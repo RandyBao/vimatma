@@ -3,7 +3,7 @@
 // For GitHub Pages: "/quanlimatkhau/sw.js" -> "/quanlimatkhau"
 const SW_PATH = self.location.pathname;
 const BASE_PATH = SW_PATH.substring(0, SW_PATH.lastIndexOf('/')) || '';
-const CACHE_NAME = 'secure-vault-cache-v2';
+const CACHE_NAME = 'secure-vault-cache-v3';
 
 // Standard static files to cache initially
 const ASSETS_TO_CACHE = [
