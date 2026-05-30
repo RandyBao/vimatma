@@ -26,9 +26,16 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // Detect actual base path dynamically
-          const base = window.location.pathname.split('/').slice(0, -1).join('/') || '';
-          const swPath = base ? `${base}/sw.js` : 'sw.js';
+          // Robust path resolver for GitHub Pages / subfolders vs standard custom domains & Vercel
+          let swPath = './sw.js';
+          if (window.location.hostname.includes('github.io')) {
+            const pathParts = window.location.pathname.split('/');
+            const repo = pathParts[1];
+            if (repo && repo !== 'index.html') {
+              swPath = `/${repo}/sw.js`;
+            }
+          }
+          
           navigator.serviceWorker.register(swPath)
             .then((reg) => {
               console.log('PWA Service Worker registered successfully:', reg.scope);

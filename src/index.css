@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+/* Tăng 3 size chữ trên điện thoại di động (màn hình dưới 768px) */
+@media (max-width: 767px) {
+  html {
+    font-size: 125% !important; /* Nâng kích thước cơ sở từ 16px lên 20px giúp mọi text-xs, text-sm, text-base... lớn hơn đúng 3 khấc */
+  }
+}
+
