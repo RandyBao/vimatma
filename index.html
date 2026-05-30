@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Ví Mật Mã - Két Sắt Bảo Mật Thần Tốc</title>
+    
+    <!-- PWA Meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ví Mật Mã" />
+    <meta name="theme-color" content="#020617" />
+    
+    <!-- PWA Icons -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/nolan/192/security-shield.png" />
+    <link rel="icon" type="image/png" href="https://img.icons8.com/nolan/64/security-shield.png" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+  </head>
+  <body class="bg-[#020617]">
+    <div id="root"></div>
+    <script type="module" src="src/main.tsx"></script>
+
+    <!-- Register service worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          // Detect actual base path dynamically
+          const base = window.location.pathname.split('/').slice(0, -1).join('/') || '';
+          const swPath = base ? `${base}/sw.js` : 'sw.js';
+          navigator.serviceWorker.register(swPath)
+            .then((reg) => {
+              console.log('PWA Service Worker registered successfully:', reg.scope);
+            })
+            .catch((err) => {
+              console.log('PWA Service Worker registration failed:', err);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>
+

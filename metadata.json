@@ -1,0 +1,6 @@
+{
+  "name": "Trình Quản Lý Mật Khẩu & Ghi Chú Bảo Mật",
+  "description": "Kho lưu trữ mã hóa 255-bit AES-GCM cục bộ để bảo vệ mật khẩu ngân hàng, tài khoản mạng xã hội, thông tin đăng nhập và các ghi chú quan trọng cần nhớ.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
