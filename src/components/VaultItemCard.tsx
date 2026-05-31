@@ -1081,7 +1081,7 @@ export default function VaultItemCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity shrink-0">
+          <div className="flex items-center gap-1 opacity-100 sm:opacity-60 sm:group-hover:opacity-100 transition-opacity shrink-0">
             <button
               type="button"
               onClick={(e) => {

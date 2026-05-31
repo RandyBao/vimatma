@@ -754,7 +754,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-0 md:h-20 flex flex-col gap-4 md:gap-0 md:grid md:grid-cols-3 items-center">
           
           {/* LEFT COLUMN: Tool Buttons (Tạo mật khẩu, Báo cáo an toàn, Sao lưu lưu trữ) */}
-          <div className="flex items-center gap-2.5 w-full md:w-auto justify-center md:justify-start order-2 md:order-1 md:h-full">
+          <div className="flex items-center gap-1.5 md:gap-2.5 w-full md:w-auto justify-center md:justify-start order-2 md:order-1 md:h-full">
             {/* Password Generator Sidebar Toggle */}
             <button
               id="gen-tools-toggle"
@@ -764,15 +764,16 @@ export default function App() {
                 setShowSettings(false);
                 setShowSecurityAudit(false);
               }}
-              className={`px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
+              className={`px-2 py-1.5 md:px-3 md:py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 md:gap-1.5 text-[11px] md:text-xs font-semibold shrink-0 ${
                 showGenTools 
                   ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5' 
                   : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
               title={t.head_createPwd}
             >
-              <KeyRound className="h-4 w-4 shrink-0 text-emerald-500/70" />
-              <span>{t.head_createPwd}</span>
+              <KeyRound className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0 text-emerald-500/70" />
+              <span className="hidden sm:inline">{t.head_createPwd}</span>
+              <span className="sm:hidden">{lang === 'vi' ? 'Tạo Pass' : 'Pwd Gen'}</span>
             </button>
 
             {/* Password Audit & Vulnerability Report button */}
@@ -784,15 +785,16 @@ export default function App() {
                 setShowSettings(false);
                 setShowGenTools(false);
               }}
-              className={`px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
+              className={`px-2 py-1.5 md:px-3 md:py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 md:gap-1.5 text-[11px] md:text-xs font-semibold shrink-0 ${
                 showSecurityAudit 
                   ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 shadow-md shadow-indigo-500/5' 
                   : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
               title={t.audit_title}
             >
-              <ShieldAlert className="h-4 w-4 shrink-0 text-indigo-400" />
-              <span>{lang === 'vi' ? 'Kiểm toán 2FA' : 'Audit 2FA'}</span>
+              <ShieldAlert className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0 text-indigo-400" />
+              <span className="hidden sm:inline">{lang === 'vi' ? 'Kiểm toán 2FA' : 'Audit 2FA'}</span>
+              <span className="sm:hidden">{lang === 'vi' ? 'Kiểm toán' : 'Audit'}</span>
               {!isPro && (
                 <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-extrabold text-[8px] px-1 py-0.2 rounded uppercase tracking-widest scale-90 origin-right">PRO</span>
               )}
@@ -807,15 +809,16 @@ export default function App() {
                 setShowGenTools(false);
                 setShowSecurityAudit(false);
               }}
-              className={`px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
+              className={`px-2 py-1.5 md:px-3 md:py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 md:gap-1.5 text-[11px] md:text-xs font-semibold shrink-0 ${
                 showSettings 
                   ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5' 
                   : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
               title={t.head_backup}
             >
-              <Settings className="h-4 w-4 shrink-0 text-emerald-500/70" />
-              <span>{t.head_backup}</span>
+              <Settings className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0 text-emerald-500/70" />
+              <span className="hidden sm:inline">{t.head_backup}</span>
+              <span className="sm:hidden">{lang === 'vi' ? 'Sao lưu' : 'Backup'}</span>
             </button>
           </div>
 
@@ -929,51 +932,63 @@ export default function App() {
           </div>
 
           {/* RIGHT COLUMN: Auto lock settings & Locked actions */}
-          <div className="flex items-center gap-2 justify-center md:justify-end w-full md:w-auto order-3 md:h-full">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-center md:justify-end w-full md:w-auto order-3 md:h-full">
             
+            {/* Release Version Indicator */}
+            <div 
+              id="release-version-badge"
+              className="flex items-center bg-slate-900/50 border border-slate-800/80 rounded-xl px-2 py-1.5 sm:px-2.5 sm:py-1.5 shrink-0 select-none font-mono text-[9px] sm:text-[10px] font-bold text-slate-400 gap-1.5 hover:text-emerald-400 hover:border-emerald-500/30 transition-all duration-300"
+              title={lang === 'vi' ? 'Phiên bản phát hành chính thức lâu dài (LTS) hoạt động bảo mật' : 'Official Long Term Support (LTS) release version'}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+              <span className="tracking-wide uppercase">v1.2.0-LTS</span>
+            </div>
+
             {/* Subscription Tier Pill */}
             {isPro ? (
               <button
                 id="tier-badge-pro"
                 type="button"
                 onClick={() => setIsUpgradeModalOpen(true)}
-                className="px-2.5 py-1.5 text-[10px] font-black bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 rounded-xl hover:scale-102 transition-all flex items-center justify-center gap-1 cursor-pointer animate-fade-in shadow-md shadow-emerald-500/5 select-none font-sans"
+                className="px-2.5 py-1.5 text-[9px] sm:text-[10px] font-black bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 rounded-xl hover:scale-102 transition-all flex items-center justify-center gap-1 cursor-pointer animate-fade-in shadow-md shadow-emerald-500/5 select-none font-sans"
               >
-                <Sparkles className="h-3.5 w-3.5 text-emerald-400 animate-pulse shrink-0" />
-                <span className="tracking-wider uppercase">PRO ELITE</span>
+                <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-400 animate-pulse shrink-0" />
+                <span className="tracking-wider uppercase hidden sm:inline">PRO ELITE</span>
+                <span className="tracking-wider uppercase sm:hidden">PRO</span>
               </button>
             ) : (
               <button
                 id="tier-badge-free"
                 type="button"
                 onClick={() => setIsUpgradeModalOpen(true)}
-                className="px-2.5 py-1.5 text-[10px] font-black bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl hover:scale-102 hover:border-indigo-400/40 hover:bg-indigo-500/25 transition-all flex items-center justify-center gap-1 cursor-pointer animate-fade-in shadow-md shadow-indigo-500/5 select-none font-sans"
+                className="px-2 py-1 sm:px-2.5 sm:py-1.5 text-[9px] sm:text-[10px] font-black bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl hover:scale-102 hover:border-indigo-400/40 hover:bg-indigo-500/25 transition-all flex items-center justify-center gap-1 cursor-pointer animate-fade-in shadow-md shadow-indigo-500/5 select-none font-sans"
               >
-                <Gift className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
-                <span className="tracking-wider uppercase">{lang === 'vi' ? 'NÂNG CẤP PRO' : 'UPGRADE PRO'}</span>
+                <Gift className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-400 shrink-0" />
+                <span className="tracking-wider uppercase hidden sm:inline">{lang === 'vi' ? 'NÂNG CẤP PRO' : 'UPGRADE PRO'}</span>
+                <span className="tracking-wider uppercase sm:hidden">{lang === 'vi' ? 'MỞ PRO' : 'PRO'}</span>
               </button>
             )}
 
             {/* 1. Language Toggle Icon Displayed at Top Right */}
-            <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-xl p-1 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-xl p-0.5 sm:p-1 shrink-0">
               <button
                 type="button"
                 onClick={() => handleLangChange(lang === 'vi' ? 'en' : 'vi')}
                 className="p-1 px-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1 cursor-pointer"
                 title={lang === 'vi' ? 'Lockscreen language settings (EN / VN)' : 'Chuyển đổi ngôn ngữ hiển thị (VI / EN)'}
               >
-                <Globe className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="text-[10px] font-extrabold uppercase font-mono tracking-wider">
+                <Globe className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-400" />
+                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase font-mono tracking-wider">
                   {lang === 'vi' ? 'VI' : 'EN'}
                 </span>
               </button>
             </div>
 
             {/* 2. Unified Auto-Lock Countdown + Timer Configuration Pill Capsule */}
-            <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-xl p-1 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-xl p-0.5 sm:p-1 shrink-0">
               {isEditingAutoLock ? (
-                <div className="flex items-center gap-1 bg-slate-950 border border-indigo-500/50 rounded-lg px-2 py-0.5 shadow-inner">
-                  <Clock className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
+                <div className="flex items-center gap-1 bg-slate-950 border border-indigo-500/50 rounded-lg px-1 py-0.5 shadow-inner">
+                  <Clock className="h-3 w-3 text-indigo-400 animate-pulse" />
                   <input
                     type="number"
                     min={0}
@@ -988,7 +1003,7 @@ export default function App() {
                         setIsEditingAutoLock(false);
                       }
                     }}
-                    className="font-mono font-extrabold text-indigo-400 text-[11px] w-12 bg-transparent text-center outline-none border-b border-indigo-500/30 focus:border-indigo-400 pb-0.5"
+                    className="font-mono font-extrabold text-indigo-400 text-[10px] sm:text-[11px] w-10 sm:w-12 bg-transparent text-center outline-none border-b border-indigo-500/30 focus:border-indigo-400 pb-0.5"
                     autoFocus
                     placeholder="3"
                   />
@@ -1006,17 +1021,17 @@ export default function App() {
                     setIsEditingAutoLock(true);
                     setTempAutoLockVal(String(autoLockMinutes));
                   }}
-                  className="flex items-center gap-1.5 text-slate-400 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-950/45 border border-slate-850 hover:bg-slate-900/40 hover:border-slate-800 hover:text-slate-200 transition-all select-none cursor-pointer group"
+                  className="flex items-center gap-1.5 text-slate-400 px-1.5 py-1 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-semibold bg-slate-950/45 border border-slate-850 hover:bg-slate-900/40 hover:border-slate-800 hover:text-slate-200 transition-all select-none cursor-pointer group"
                   title={isPro 
                     ? (lang === 'vi' ? 'Bấm để đổi thời gian tự khóa (phút, 0 để tắt)' : 'Click to customize auto-lock minutes (0 to disable)')
                     : (lang === 'vi' ? 'Yêu cầu phiên bản PRO để tùy chỉnh thời gian khóa' : 'PRO version required to customize auto-lock timer')
                   }
                 >
-                  <Clock className={`h-3.5 w-3.5 group-hover:text-indigo-400 transition-colors ${effectiveAutoLockMinutes > 0 ? 'text-indigo-400 animate-pulse' : 'text-slate-500'}`} />
-                  <span className="font-mono font-extrabold text-indigo-400 text-[11px] min-w-[34px] text-center pb-0.5 border-b border-transparent group-hover:border-indigo-400/40 transition-colors">
+                  <Clock className={`h-3 w-3 sm:h-3.5 sm:w-3.5 group-hover:text-indigo-400 transition-colors ${effectiveAutoLockMinutes > 0 ? 'text-indigo-400 animate-pulse' : 'text-slate-500'}`} />
+                  <span className="font-mono font-extrabold text-indigo-400 text-[10px] sm:text-[11px] min-w-[28px] sm:min-w-[34px] text-center pb-0.5 border-b border-transparent group-hover:border-indigo-400/40 transition-colors">
                     {effectiveAutoLockMinutes === 0 ? '00:00' : (isCountdownHidden ? '••:••' : formatCountdown(timeLeftSeconds))}
                   </span>
-                  {!isPro && <Lock className="h-2.5 w-2.5 text-amber-500/90 shrink-0 ml-0.5" />}
+                  {!isPro && <Lock className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-amber-500/90 shrink-0 ml-0.5" />}
                 </div>
               )}
 
@@ -1024,7 +1039,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={toggleCountdownVisibility}
-                className="p-1 hover:bg-slate-800 rounded-lg text-slate-450 hover:text-slate-200 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                className="p-1 hover:bg-slate-800 rounded-lg text-slate-455 hover:text-slate-200 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
                 title={isCountdownHidden ? (lang === 'vi' ? 'Hiện đếm ngược' : 'Show countdown') : (lang === 'vi' ? 'Ẩn đếm ngược' : 'Hide countdown')}
               >
                 {isCountdownHidden ? <EyeOff className="h-3.5 w-3.5 text-slate-500" /> : <Eye className="h-3.5 w-3.5 text-indigo-400" />}
@@ -1035,7 +1050,7 @@ export default function App() {
                 id="app-lock-btn"
                 type="button"
                 onClick={() => handleLock()}
-                className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/35 text-rose-400 hover:text-rose-300 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-sm"
+                className="p-1 sm:p-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/35 text-rose-400 hover:text-rose-300 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-sm"
                 title={t.head_lockBtn}
               >
                 <LogOut className="h-3.5 w-3.5" />
