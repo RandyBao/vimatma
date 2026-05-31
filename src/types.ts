@@ -15,7 +15,9 @@ export interface BaseVaultEntry {
   updatedAt: number;
   notes?: string;
   isFavorite?: boolean;
+  isSecret?: boolean;          // Đánh dấu thuộc ngăn bí mật (Code) hay không
   reminder?: ReminderConfig;   // Cấu hình nhắc nhở
+  totpSecret?: string;         // Mã khóa bí mật TOTP 2FA
 }
 
 export interface BankAccountEntry extends BaseVaultEntry {
@@ -97,7 +99,16 @@ export interface GoogleSheetEntry extends BaseVaultEntry {
   lastSyncTime?: number;     // Thời điểm đồng bộ cuối cùng
 }
 
-export type VaultEntry = BankAccountEntry | SocialMediaEntry | WebAccountEntry | SecureNoteEntry | WalletEntry | EWalletEntry | PhoneAppEntry | GoogleSheetEntry;
+export interface GoogleDriveFileEntry extends BaseVaultEntry {
+  category: 'gdrive';
+  fileName: string;
+  fileSize: string;         // Ví dụ: 1.2 GB
+  mediaType: 'video' | 'image' | 'archive' | 'audio' | 'document' | 'other';
+  driveLink: string;        // Liên kết đến Google Drive
+  isOptimized?: boolean;    // Có tối ưu hóa link
+}
+
+export type VaultEntry = BankAccountEntry | SocialMediaEntry | WebAccountEntry | SecureNoteEntry | WalletEntry | EWalletEntry | PhoneAppEntry | GoogleSheetEntry | GoogleDriveFileEntry;
 
 export interface EncryptedDatabase {
   salt: string;          // hex string
@@ -110,5 +121,5 @@ export interface CustomCategory {
   id: string;
   label: string;
   count?: number;
-  iconType: 'bank' | 'social' | 'web' | 'wallet' | 'ewallet' | 'phoneapp' | 'sheet' | 'note';
+  iconType: 'bank' | 'social' | 'web' | 'wallet' | 'ewallet' | 'phoneapp' | 'sheet' | 'note' | 'gdrive';
 }

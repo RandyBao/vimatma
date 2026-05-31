@@ -1,10 +1,98 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Star, CreditCard, Globe, Smartphone, FileText, 
   Lock, Eye, EyeOff, Copy, Check, Edit2, Trash2, ExternalLink, Wallet,
-  Fingerprint, Table, Maximize2, ChevronDown, ChevronUp, Bell, Calendar
+  Fingerprint, Table, Maximize2, ChevronDown, ChevronUp, Bell, Calendar, Timer, ShieldAlert
 } from 'lucide-react';
 import { VaultEntry, GoogleSheetEntry, CustomCategory } from '../types';
+import { generateTOTPCode } from '../utils/totp';
+import { translations } from '../utils/lang';
+
+function TotpDisplay({ secret }: { secret: string }) {
+  const currentLang = (localStorage.getItem('secure_vault_lang') as 'vi' | 'en') || 'vi';
+  const t = translations[currentLang];
+  const [totp, setTotp] = useState({ code: '------', secondsRemaining: 30 });
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // Initial call
+    setTotp(generateTOTPCode(secret));
+
+    const interval = setInterval(() => {
+      setTotp(generateTOTPCode(secret));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [secret]);
+
+  const handleCopyCode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(totp.code.replace(/\s+/g, ''));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const codeVal = totp.code;
+  const displayCode = codeVal.length === 6 ? `${codeVal.slice(0, 3)} ${codeVal.slice(3)}` : codeVal;
+
+  return (
+    <div className="mt-3.5 p-3.5 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 hover:border-indigo-500/30 rounded-2xl flex items-center justify-between gap-4 transition-all animate-fade-in group/totp">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400 group-hover/totp:scale-105 transition-transform shrink-0">
+          <Timer className="h-5 w-5" />
+        </div>
+        <div className="text-left min-w-0">
+          <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{t.totp_codeLabel}</div>
+          <div className="text-2xl font-mono font-black text-white tracking-widest mt-0.5">
+            {displayCode}
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-3 shrink-0">
+        {/* Progress Sector */}
+        <div className="relative text-xs text-indigo-400 font-mono font-bold flex items-center justify-center h-8 w-8">
+          <svg className="absolute inset-0 transform -rotate-90" viewBox="0 0 32 32">
+            <circle
+              cx="16"
+              cy="16"
+              r="14"
+              stroke="#13132a"
+              strokeWidth="3.5"
+              fill="transparent"
+            />
+            <circle
+              cx="16"
+              cy="16"
+              r="14"
+              stroke="#6366f1"
+              strokeWidth="3.5"
+              fill="transparent"
+              strokeDasharray={88}
+              strokeDashoffset={88 - (88 * totp.secondsRemaining) / 30}
+              className="transition-all duration-1000 ease-linear"
+            />
+          </svg>
+          <span className="text-[10px] select-none text-indigo-300 font-sans z-10">{totp.secondsRemaining}</span>
+        </div>
+
+        {/* Copy Button */}
+        <button
+          type="button"
+          onClick={handleCopyCode}
+          className="p-2 bg-slate-950 border border-slate-800/80 hover:border-indigo-500/30 text-slate-400 hover:text-indigo-400 rounded-xl transition-all cursor-pointer flex items-center justify-center group-hover/totp:scale-102"
+          title={t.totp_copied}
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-emerald-400" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 interface VaultItemCardProps {
   entry: VaultEntry;
@@ -30,9 +118,13 @@ export default function VaultItemCard({
   const [showSecrets, setShowSecrets] = useState<{ [key: string]: boolean }>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [launchInfoMessage, setLaunchInfoMessage] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Direct localStorage dynamic language query helper
   const currentLang = (localStorage.getItem('secure_vault_lang') as 'vi' | 'en') || 'vi';
+  const t = translations[currentLang];
 
   const toggleValue = (fieldKey: string) => {
     setShowSecrets(prev => ({ ...prev, [fieldKey]: !prev[fieldKey] }));
@@ -53,6 +145,126 @@ export default function VaultItemCard({
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     return `https://${url}`;
+  };
+
+  const renderLaunchButton = (url: string, fieldType: 'url' | 'websiteUrl') => {
+    const dropdownKey = `${entry.id}-${fieldType}`;
+    const isOpen = activeDropdown === dropdownKey;
+    const cleanUrl = formatUrl(url);
+
+    const handleOpenTab = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+      setActiveDropdown(null);
+    };
+
+    const handleCopyUrl = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(cleanUrl);
+      setActiveDropdown(null);
+      // Give inline feedback
+      setCopiedField(dropdownKey);
+      setTimeout(() => setCopiedField(null), 1500);
+    };
+
+    const handleOpenIncognito = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(cleanUrl);
+      setActiveDropdown(null);
+      // Trigger a local info alert
+      setLaunchInfoMessage(t.launch_incognitoToast);
+      setTimeout(() => setLaunchInfoMessage(null), 8000);
+    };
+
+    const handleOpenAndCopyPassword = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const pwd = (entry as any).password;
+      if (pwd) {
+        navigator.clipboard.writeText(pwd);
+      }
+      window.open(cleanUrl, '_blank', 'noopener,noreferrer');
+      setActiveDropdown(null);
+      // Show local info alert
+      setLaunchInfoMessage(currentLang === 'vi' 
+        ? 'Đã mở liên kết & tự động copy mật khẩu vào khay nhớ tạm!' 
+        : 'Opened link & automatically copied password to clipboard!');
+      setTimeout(() => setLaunchInfoMessage(null), 4000);
+    };
+
+    return (
+      <div className="relative shrink-0 select-none">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveDropdown(isOpen ? null : dropdownKey);
+          }}
+          className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-center ${
+            isOpen 
+              ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-400' 
+              : 'bg-slate-950 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-indigo-400'
+          }`}
+          title={currentLang === 'vi' ? 'Khởi chạy nâng cao' : 'Advanced Launch Actions'}
+        >
+          {copiedField === dropdownKey ? (
+            <Check className="h-4 w-4 text-emerald-400 animate-scale" />
+          ) : (
+            <ExternalLink className="h-4 w-4" />
+          )}
+        </button>
+
+        {isOpen && (
+          <>
+            <div 
+              className="fixed inset-0 z-30 cursor-default" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveDropdown(null);
+              }}
+            />
+            <div className="absolute right-0 mt-1.5 w-56 rounded-2xl bg-[#090b22]/98 border border-slate-800/90 shadow-2xl z-40 p-1.5 animate-scale overflow-hidden select-none text-left">
+              <button
+                type="button"
+                onClick={handleOpenTab}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all cursor-pointer text-left select-none"
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                <span>{t.launch_openNewTab}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenIncognito}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all cursor-pointer text-left select-none"
+              >
+                <span className="h-3.5 w-3.5 flex items-center justify-center text-slate-400 font-mono text-[9px] border border-slate-500 rounded font-black select-none shrink-0 bg-slate-900">🕵</span>
+                <span>{t.launch_openIncognito}</span>
+              </button>
+
+              {(entry as any).password && (
+                <button
+                  type="button"
+                  onClick={handleOpenAndCopyPassword}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-200 hover:text-white hover:bg-emerald-500/10 rounded-xl transition-all cursor-pointer text-left select-none"
+                >
+                  <Lock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                  <span>{t.launch_openAndCopyPass}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleCopyUrl}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all cursor-pointer text-left select-none"
+              >
+                <Copy className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <span>{t.launch_copyLink}</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
   };
 
   const getPrimaryValue = () => {
@@ -91,6 +303,10 @@ export default function VaultItemCard({
     if (entry.category === 'note') {
       return '••••••••••••';
     }
+    if (entry.category === 'gdrive') {
+      const gEntry = entry as any;
+      return `${gEntry.fileName || 'Tệp'} • ${gEntry.fileSize || '1GB+'}`;
+    }
     return '';
   };
 
@@ -103,6 +319,7 @@ export default function VaultItemCard({
     if (entry.category === 'ewallet') return entry.ewalletName?.charAt(0) || 'M';
     if (entry.category === 'phoneapp') return entry.appName?.charAt(0) || 'A';
     if (entry.category === 'sheet') return entry.title?.charAt(0) || 'T';
+    if (entry.category === 'gdrive') return 'D';
     return 'G';
   };
 
@@ -171,6 +388,13 @@ export default function VaultItemCard({
           bgColor: 'bg-emerald-500/10 border-emerald-500/20',
           badgeText: fallbackLabel || (currentLang === 'vi' ? 'Bảng tính' : 'Spreadsheet'),
           badgeColor: 'bg-emerald-500/25 text-emerald-300',
+        };
+      case 'gdrive':
+        return {
+          icon: <ExternalLink className="h-5 w-5 text-indigo-400" />,
+          bgColor: 'bg-indigo-500/10 border-indigo-500/20',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Lưu trữ Drive' : 'Drive Link'),
+          badgeColor: 'bg-indigo-500/25 text-indigo-300',
         };
       default:
         return {
@@ -377,19 +601,70 @@ export default function VaultItemCard({
                 <Edit2 className="h-3.5 w-3.5" />
               </button>
 
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (window.confirm(currentLang === 'vi' ? `Bạn có chắc muốn xóa "${entry.title}"?` : `Are you sure you want to delete "${entry.title}"?`)) {
-                    onDelete(entry.id);
-                  }
-                }}
-                className="p-1.5 bg-slate-950 hover:bg-slate-855 border border-slate-850 rounded-lg text-slate-400 hover:text-rose-450 transition-colors cursor-pointer"
-                title={currentLang === 'vi' ? 'Xóa' : 'Delete'}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              <div className="relative shrink-0 select-none">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteConfirm(!showDeleteConfirm);
+                  }}
+                  className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-center ${
+                    showDeleteConfirm
+                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-450'
+                      : 'bg-slate-950 border-slate-850 text-slate-400 hover:text-rose-450'
+                  }`}
+                  title={currentLang === 'vi' ? 'Xóa' : 'Delete'}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+
+                {showDeleteConfirm && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-30 cursor-default" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeleteConfirm(false);
+                      }}
+                    />
+                    <div 
+                      className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-[#090b22]/98 border border-rose-500/40 shadow-[0_10px_30px_rgba(244,63,94,0.15)] z-40 p-3.5 animate-scale text-left select-none"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-[11px] font-extrabold text-rose-450 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                        <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+                        <span>{currentLang === 'vi' ? 'Xác nhận xóa' : 'Confirm Delete'}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-450 font-medium leading-normal mb-3">
+                        {currentLang === 'vi' ? `Bạn muốn xóa "${entry.title}"?` : `Remove "${entry.title}"?`}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(entry.id);
+                            setShowDeleteConfirm(false);
+                          }}
+                          className="flex-1 py-1 px-2 rounded-lg bg-rose-500 hover:bg-rose-600 active:bg-rose-750 text-white font-bold text-[10px] text-center transition-colors cursor-pointer"
+                        >
+                          {currentLang === 'vi' ? 'Xóa' : 'Delete'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDeleteConfirm(false);
+                          }}
+                          className="flex-1 py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-750 text-slate-350 hover:text-slate-100 font-bold text-[10px] text-center transition-colors cursor-pointer"
+                        >
+                          {currentLang === 'vi' ? 'Hủy' : 'Cancel'}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
 
               <div className="p-1.5 bg-slate-950 hover:bg-slate-850 border border-slate-850 rounded-lg text-slate-500 group-hover:text-emerald-400 transition-colors flex items-center justify-center">
                 {isExpanded ? (
@@ -427,15 +702,7 @@ export default function VaultItemCard({
                     <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Liên kết URL</span>
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-sm text-slate-300 line-clamp-1">{entry.url}</span>
-                      <a 
-                        href={formatUrl(entry.url)} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1 text-slate-500 hover:text-emerald-400 transition-colors shrink-0"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+                      {renderLaunchButton(entry.url, 'url')}
                     </div>
                   </div>
                 )}
@@ -451,15 +718,7 @@ export default function VaultItemCard({
                     <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Website</span>
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-sm text-slate-300 line-clamp-1">{entry.websiteUrl}</span>
-                      <a 
-                        href={formatUrl(entry.websiteUrl)} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1 text-slate-450 hover:text-emerald-400 transition-colors shrink-0"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+                      {renderLaunchButton(entry.websiteUrl, 'websiteUrl')}
                     </div>
                   </div>
                 )}
@@ -673,7 +932,59 @@ export default function VaultItemCard({
                 </div>
               </div>
             )}
+
+            {entry.category === 'gdrive' && (
+              <>
+                <RenderField label="Tên tệp tin" value={(entry as any).fileName} />
+                <RenderField label="Dung lượng tệp" value={(entry as any).fileSize} />
+                <RenderField label="Loại phương tiện" value={(entry as any).mediaType === 'video' ? 'Video (MP4, MKV, ...)' : (entry as any).mediaType === 'image' ? 'Hình ảnh' : (entry as any).mediaType === 'archive' ? 'Tệp nén ZIP/RAR' : (entry as any).mediaType === 'audio' ? 'Âm thanh' : (entry as any).mediaType === 'document' ? 'Tài liệu' : 'Đặc biệt / Khác'} />
+                
+                {(entry as any).driveLink && (
+                  <div className="flex flex-col gap-1 py-1.5 text-left">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Đường link Google Drive</span>
+                    <div className="flex items-center justify-between gap-1.5 bg-slate-950/40 p-2 rounded-xl border border-slate-805 bg-slate-950 border-slate-800">
+                      <span className="text-[11px] text-indigo-400 font-mono line-clamp-1 truncate max-w-[220px] select-all mr-2">
+                        {(entry as any).driveLink}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy((entry as any).driveLink, `${entry.id}-driveLink`);
+                          }}
+                          className="p-1.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/30 text-slate-400 hover:text-indigo-400 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0"
+                          title="Sao chép đường liên kết"
+                        >
+                          {copiedField === `${entry.id}-driveLink` ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400 animate-scale" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                        <a
+                          href={(entry as any).driveLink}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 hover:border-indigo-500/40 text-indigo-400 hover:text-indigo-300 rounded-lg transition-all flex items-center justify-center shrink-0 font-bold text-xs gap-1"
+                          title="Tải trực tiếp hoặc Xem trực tuyến"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline font-sans text-[10px] uppercase">Mở</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
+        )}
+
+        {/* 2FA Authenticator (Dynamic countdown) */}
+        {isExpanded && entry.totpSecret && (
+          <TotpDisplay secret={entry.totpSecret} />
         )}
 
         {/* Reminder block */}
@@ -697,6 +1008,18 @@ export default function VaultItemCard({
         {isExpanded && entry.notes && entry.category !== 'note' && (
           <div className="mt-2.5 pt-2 border-t border-slate-850 text-slate-400 text-sm text-left italic select-text">
             <span className="font-semibold text-slate-500 not-italic">{currentLang === 'vi' ? 'Lưu ý: ' : 'Observations: '}</span> {entry.notes}
+          </div>
+        )}
+
+        {/* Local Card Info Banner */}
+        {launchInfoMessage && (
+          <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-[#0b0c2a]/95 border border-indigo-500/30 text-[11px] font-medium text-indigo-300 p-2.5 rounded-xl z-50 flex items-start gap-2 shadow-2xl animate-fade-in select-none" onClick={(e) => e.stopPropagation()}>
+            <div className="p-1 bg-indigo-500/10 rounded text-indigo-400 shrink-0">
+              <Lock className="h-3.5 w-3.5" />
+            </div>
+            <div className="text-left flex-1 font-sans leading-relaxed">
+              {launchInfoMessage}
+            </div>
           </div>
         )}
       </div>
@@ -770,19 +1093,70 @@ export default function VaultItemCard({
             >
               <Edit2 className="h-3.5 w-3.5" />
             </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (window.confirm(currentLang === 'vi' ? `Bạn có chắc muốn xóa "${entry.title}"?` : `Are you sure you want to delete "${entry.title}"?`)) {
-                  onDelete(entry.id);
-                }
-              }}
-              className="p-1.5 text-slate-400 hover:text-rose-455 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-              title={currentLang === 'vi' ? 'Xóa' : 'Delete'}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+              <div className="relative shrink-0 select-none">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteConfirm(!showDeleteConfirm);
+                  }}
+                  className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                    showDeleteConfirm
+                      ? 'bg-rose-500/15 text-rose-450 border border-rose-500/40'
+                      : 'text-slate-400 hover:text-rose-455 hover:bg-slate-800'
+                  }`}
+                  title={currentLang === 'vi' ? 'Xóa' : 'Delete'}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+
+                {showDeleteConfirm && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-30 cursor-default" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeleteConfirm(false);
+                      }}
+                    />
+                    <div 
+                      className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-[#090b22]/98 border border-rose-500/40 shadow-[0_10px_30px_rgba(244,63,94,0.15)] z-45 p-3.5 animate-scale text-left select-none"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-[11px] font-extrabold text-rose-450 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                        <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+                        <span>{currentLang === 'vi' ? 'Xác nhận xóa' : 'Confirm Delete'}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-450 font-medium leading-normal mb-3">
+                        {currentLang === 'vi' ? `Bạn muốn xóa "${entry.title}"?` : `Remove "${entry.title}"?`}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(entry.id);
+                            setShowDeleteConfirm(false);
+                          }}
+                          className="flex-1 py-1 px-2 rounded-lg bg-rose-500 hover:bg-rose-600 active:bg-rose-750 text-white font-bold text-[10px] text-center transition-colors cursor-pointer"
+                        >
+                          {currentLang === 'vi' ? 'Xóa' : 'Delete'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDeleteConfirm(false);
+                          }}
+                          className="flex-1 py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-750 text-slate-350 hover:text-slate-100 font-bold text-[10px] text-center transition-colors cursor-pointer"
+                        >
+                          {currentLang === 'vi' ? 'Hủy' : 'Cancel'}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             <div className="p-1.5 text-slate-500 group-hover:text-emerald-400 rounded-lg transition-colors flex items-center justify-center ml-0.5">
               {isExpanded ? (
                 <ChevronUp className="h-4.5 w-4.5 text-emerald-400" />
@@ -818,15 +1192,7 @@ export default function VaultItemCard({
                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Liên kết URL</span>
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-base text-slate-300 line-clamp-1">{entry.url}</span>
-                      <a 
-                        href={formatUrl(entry.url)} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1 text-slate-500 hover:text-emerald-400 transition-colors shrink-0"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+                      {renderLaunchButton(entry.url, 'url')}
                     </div>
                   </div>
                 )}
@@ -842,15 +1208,7 @@ export default function VaultItemCard({
                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider font-mono">Website</span>
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-base text-slate-300 line-clamp-1">{entry.websiteUrl}</span>
-                      <a 
-                        href={formatUrl(entry.websiteUrl)} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1 text-slate-400 hover:text-emerald-400 transition-colors shrink-0"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+                      {renderLaunchButton(entry.websiteUrl, 'websiteUrl')}
                     </div>
                   </div>
                 )}
@@ -1064,7 +1422,59 @@ export default function VaultItemCard({
                 </div>
               </div>
             )}
+
+            {entry.category === 'gdrive' && (
+              <>
+                <RenderField label="Tên tệp tin" value={(entry as any).fileName} />
+                <RenderField label="Dung lượng tệp" value={(entry as any).fileSize} />
+                <RenderField label="Loại phương tiện" value={(entry as any).mediaType === 'video' ? 'Video (MP4, MKV, ...)' : (entry as any).mediaType === 'image' ? 'Hình ảnh' : (entry as any).mediaType === 'archive' ? 'Tệp nén ZIP/RAR' : (entry as any).mediaType === 'audio' ? 'Âm thanh' : (entry as any).mediaType === 'document' ? 'Tài liệu' : 'Đặc biệt / Khác'} />
+                
+                {(entry as any).driveLink && (
+                  <div className="flex flex-col gap-1 py-1.5 text-left">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Đường link Google Drive</span>
+                    <div className="flex items-center justify-between gap-1.5 bg-slate-950/40 p-2 rounded-xl border border-slate-805 bg-slate-950 border-slate-800 font-sans">
+                      <span className="text-[11px] text-indigo-400 font-mono line-clamp-1 truncate max-w-[220px] select-all mr-2">
+                        {(entry as any).driveLink}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy((entry as any).driveLink, `${entry.id}-driveLink`);
+                          }}
+                          className="p-1.5 bg-slate-900 border border-slate-800 hover:border-indigo-500/30 text-slate-400 hover:text-indigo-400 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0"
+                          title="Sao chép đường liên kết"
+                        >
+                          {copiedField === `${entry.id}-driveLink` ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400 animate-scale" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                        <a
+                          href={(entry as any).driveLink}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 hover:border-indigo-500/40 text-indigo-400 hover:text-indigo-300 rounded-lg transition-all flex items-center justify-center shrink-0 font-bold text-xs gap-1"
+                          title="Tải trực tiếp hoặc Xem trực tuyến"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline font-sans text-[10px] uppercase">Mở</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
+        )}
+
+        {/* 2FA Authenticator (Dynamic countdown) */}
+        {isExpanded && entry.totpSecret && (
+          <TotpDisplay secret={entry.totpSecret} />
         )}
       </div>
 
@@ -1090,6 +1500,18 @@ export default function VaultItemCard({
         <div id="notes-footer" className="mt-3 pt-2 border-t border-slate-850 text-sm text-slate-350 leading-relaxed italic line-clamp-3 select-text text-left">
           <span className="font-semibold text-slate-500 not-italic">Lưu ý: </span>
           {entry.notes}
+        </div>
+      )}
+
+      {/* Local Card Info Banner */}
+      {launchInfoMessage && (
+        <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-[#0b0c2a]/95 border border-indigo-500/30 text-[11px] font-medium text-indigo-300 p-2.5 rounded-xl z-50 flex items-start gap-2 shadow-2xl animate-fade-in select-none" onClick={(e) => e.stopPropagation()}>
+          <div className="p-1 bg-indigo-500/10 rounded text-indigo-400 shrink-0">
+            <Lock className="h-3.5 w-3.5" />
+          </div>
+          <div className="text-left flex-1 font-sans leading-relaxed">
+            {launchInfoMessage}
+          </div>
         </div>
       )}
     </div>

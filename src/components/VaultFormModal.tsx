@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldAlert, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { X, ShieldAlert, KeyRound, Eye, EyeOff, Shield, Lock } from 'lucide-react';
 import { VaultEntry, VaultCategory, CustomCategory } from '../types';
 import PasswordGenerator from './PasswordGenerator';
+import { LangType, translations } from '../utils/lang';
 
 interface VaultFormModalProps {
   isOpen: boolean;
@@ -12,10 +13,15 @@ interface VaultFormModalProps {
 }
 
 export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, customCategories }: VaultFormModalProps) {
+  const isPro = localStorage.getItem('secure_vault_pro_active') === 'true';
+  const lang = (localStorage.getItem('secure_vault_lang') as LangType) || 'vi';
+  const t = translations[lang];
+
   const [category, setCategory] = useState<VaultCategory>('bank');
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [totpSecret, setTotpSecret] = useState('');
 
   // Reminder Fields
   const [reminderEnabled, setReminderEnabled] = useState(false);
@@ -89,6 +95,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState('');
 
+  // Google Drive Large File Fields
+  const [driveFileName, setDriveFileName] = useState('');
+  const [driveFileSize, setDriveFileSize] = useState('1.0 GB');
+  const [driveMediaType, setDriveMediaType] = useState<'video' | 'image' | 'archive' | 'audio' | 'document' | 'other'>('video');
+  const [driveLink, setDriveLink] = useState('');
+  const [isDriveOptimized, setIsDriveOptimized] = useState(true);
+  const [isSecret, setIsSecret] = useState(false);
+
   // Find which template style to use
   const activeTemplateType = (() => {
     if (customCategories) {
@@ -112,6 +126,8 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setTitle(editingEntry.title);
       setNotes(editingEntry.notes || '');
       setIsFavorite(!!editingEntry.isFavorite);
+      setIsSecret(!!editingEntry.isSecret);
+      setTotpSecret(editingEntry.totpSecret || '');
 
       // Load reminder configuration if present
       if (editingEntry.reminder) {
@@ -179,6 +195,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         setGoogleAccount(editingEntry.googleAccount || '');
         setLastSyncTime(editingEntry.lastSyncTime);
         setSyncError('');
+      } else if (editingEntry.category === 'gdrive') {
+        const dEntry = editingEntry as any;
+        setDriveFileName(dEntry.fileName || '');
+        setDriveFileSize(dEntry.fileSize || '1.0 GB');
+        setDriveMediaType(dEntry.mediaType || 'video');
+        setDriveLink(dEntry.driveLink || '');
+        setIsDriveOptimized(dEntry.isOptimized !== false);
       }
     } else {
       // Clear forms
@@ -186,11 +209,18 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setTitle('');
       setNotes('');
       setIsFavorite(false);
+      setIsSecret(false);
 
       setReminderEnabled(false);
       setReminderDate('');
       setReminderType('yearly');
       setReminderMessage('');
+
+      setDriveFileName('');
+      setDriveFileSize('1.0 GB');
+      setDriveMediaType('video');
+      setDriveLink('');
+      setIsDriveOptimized(true);
 
       setBankName('');
       setAccountNumber('');
@@ -248,6 +278,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setGoogleAccount('');
       setLastSyncTime(undefined);
       setSyncError('');
+      setTotpSecret('');
     }
     setShowPassGen(false);
     setPassGenTarget(null);
@@ -378,6 +409,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       title: title.trim(),
       notes: notes.trim() || undefined,
       isFavorite,
+      totpSecret: totpSecret.trim() || undefined,
       updatedAt: Date.now(),
       createdAt: editingEntry?.createdAt || Date.now()
     };
@@ -469,6 +501,15 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         googleAccount: googleAccount.trim(),
         lastSyncTime,
       };
+    } else if (activeTemplateType === 'gdrive') {
+      targetData = {
+        ...targetData,
+        fileName: driveFileName.trim() || title.trim(),
+        fileSize: driveFileSize.trim() || '1.0 GB',
+        mediaType: driveMediaType,
+        driveLink: driveLink.trim(),
+        isOptimized: isDriveOptimized,
+      };
     }
 
     onSave(targetData);
@@ -516,17 +557,20 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                 Loại lưu trữ
               </label>
-              <div className="grid grid-cols-4 gap-2">
-                {(['bank', 'social', 'web', 'wallet', 'ewallet', 'phoneapp', 'sheet', 'note'] as VaultCategory[]).map((cat) => {
+              <div className="grid grid-cols-5 gap-1.5">
+                {(['bank', 'social', 'web', 'wallet', 'ewallet', 'phoneapp', 'sheet', 'note', 'gdrive'] as VaultCategory[])
+                  .filter(cat => isPro ? true : (cat !== 'sheet' && cat !== 'gdrive'))
+                  .map((cat) => {
                   let visualText = '';
-                  if (cat === 'bank') visualText = 'Ngân hàng';
-                  if (cat === 'social') visualText = 'Mã xã hội';
+                  if (cat === 'bank') visualText = 'N.Hàng';
+                  if (cat === 'social') visualText = 'Mã xh';
                   if (cat === 'web') visualText = 'Web/App';
-                  if (cat === 'wallet') visualText = 'Ví Crypto';
-                  if (cat === 'ewallet') visualText = 'Ví Momo...';
-                  if (cat === 'phoneapp') visualText = 'App Mobile';
+                  if (cat === 'wallet') visualText = 'V.Crypto';
+                  if (cat === 'ewallet') visualText = 'V.Momo';
+                  if (cat === 'phoneapp') visualText = 'App Mob';
                   if (cat === 'sheet') visualText = 'Bảng tính';
                   if (cat === 'note') visualText = 'Ghi chú';
+                  if (cat === 'gdrive') visualText = 'Bảo Mật Drive (>1GB)';
 
                   return (
                     <button
@@ -536,7 +580,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       onClick={() => setCategory(cat)}
                       className={`text-center py-2 px-1 text-[10px] font-semibold rounded-xl border transition-all cursor-pointer ${
                         category === cat
-                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-semibold shadow-lg shadow-emerald-500/5'
+                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-semibold shadow-lg shadow-emerald-500/5 col-span-2'
                           : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                       }`}
                     >
@@ -1575,6 +1619,103 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
             </div>
           )}
 
+          {/* Google Drive and Large Files Segment */}
+          {activeTemplateType === 'gdrive' && (
+            <div className="space-y-4 border-l border-indigo-500 pl-4 py-1">
+              {/* Informative Security/Storage Warning Banner */}
+              <div className="bg-slate-950/75 border border-indigo-500/30 rounded-2xl p-4 space-y-2.5">
+                <div className="flex items-center gap-2 text-indigo-400">
+                  <Shield className="h-4 w-4 shrink-0 text-indigo-400 animate-pulse" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Lưu Trữ Tối Ưu & Bảo Mật Cao</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Trình duyệt giới hạn bộ nhớ đệm <strong className="text-slate-350">localStorage tối đa là 5MB</strong>. Việc lưu trực tiếp các tệp tin hình ảnh, tài liệu hoặc clip MP4 dung lượng lớn (Ví dụ: <strong className="text-slate-350">&gt; 1GB</strong>) sẽ làm sập bộ nhớ đệm và gây mất toàn bộ dữ liệu.
+                </p>
+                <p className="text-[11px] text-indigo-400/95 leading-relaxed font-semibold">
+                  💡 Giải pháp tối ưu: Tải tệp lên Google Drive của bạn, lấy liên kết bảo mật và nhập vào đây. Hệ thống sẽ mã hóa an toàn liên kết Drive, dung lượng và định dạng để bảo vệ tuyệt mật mà không ngốn dung lượng trình duyệt của bạn!
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Tên tệp tin / Ảnh / Video <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  id="form-gdrive-filename"
+                  type="text"
+                  required
+                  placeholder="Ví dụ: Video minh chứng sao lưu dự án, Clip kỉ niệm..."
+                  value={driveFileName}
+                  onChange={(e) => setDriveFileName(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm placeholder-slate-700 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Dung lượng tệp (Xấp xỉ) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    id="form-gdrive-filesize"
+                    type="text"
+                    required
+                    placeholder="Ví dụ: 1.2 GB, 800 MB..."
+                    value={driveFileSize}
+                    onChange={(e) => setDriveFileSize(e.target.value)}
+                    className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm placeholder-slate-700 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Định dạng tệp <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    id="form-gdrive-mediatype"
+                    value={driveMediaType}
+                    onChange={(e) => setDriveMediaType(e.target.value as any)}
+                    className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300 outline-none h-[38px]"
+                  >
+                    <option value="video">Video (MP4, MKV, AVI, ...)</option>
+                    <option value="image">Hình ảnh (JPG, PNG, HEIC, ...)</option>
+                    <option value="archive">Tệp nén (ZIP, RAR, 7Z, ...)</option>
+                    <option value="audio">Âm thanh (MP3, WAV, FLAC, ...)</option>
+                    <option value="document">Tài liệu (PDF, DOCX, XLSX, ...)</option>
+                    <option value="other">Định dạng Khác</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Đường dẫn liên kết Google Drive <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  id="form-gdrive-link"
+                  type="url"
+                  required
+                  placeholder="https://drive.google.com/file/d/..."
+                  value={driveLink}
+                  onChange={(e) => setDriveLink(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm placeholder-slate-700 outline-none focus:border-indigo-500 transition-all font-mono text-xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 font-sans">
+                <input
+                  id="form-gdrive-optimized"
+                  type="checkbox"
+                  checked={isDriveOptimized}
+                  onChange={(e) => setIsDriveOptimized(e.target.checked)}
+                  className="rounded border-slate-800 text-indigo-500 focus:ring-indigo-500 bg-slate-950 h-4 w-4 cursor-pointer"
+                />
+                <label htmlFor="form-gdrive-optimized" className="text-xs font-medium text-slate-400 cursor-pointer select-none">
+                  Kích hoạt tối ưu hóa đường truyền Google Drive (Tăng tốc độ tải trực tiếp từ Drive)
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* In-form Password Generator Popover */}
           {showPassGen && (
             <div className="bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800">
@@ -1592,6 +1733,35 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                 onSelectPassword={handlePasswordFromGenerator} 
                 showSelectButton={true} 
               />
+            </div>
+          )}
+
+          {/* Advanced 2FA / TOTP Section */}
+          {activeTemplateType !== 'note' && activeTemplateType !== 'sheet' && (
+            <div className="bg-slate-950/20 p-4 rounded-2xl border border-dashed border-slate-800 space-y-3">
+              <div className="flex items-center gap-1.5 text-indigo-400">
+                <Shield className="h-4 w-4 shrink-0 text-indigo-400 animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  {t.totp_codeLabel}
+                </span>
+                <span className="ml-auto bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded text-[9px] font-black tracking-widest uppercase">PRO</span>
+              </div>
+              <p className="text-[11px] text-slate-450 leading-relaxed">
+                {t.totp_desc}
+              </p>
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                  {t.totp_secretLabel}
+                </label>
+                <input
+                  id="form-totp-secret"
+                  type="text"
+                  placeholder={t.totp_secretPlc}
+                  value={totpSecret}
+                  onChange={(e) => setTotpSecret(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:border-indigo-500 transition-colors font-mono tracking-wider"
+                />
+              </div>
             </div>
           )}
 
@@ -1613,7 +1783,16 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           )}
 
           {/* Reminder Section */}
-          <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/80 space-y-3.5 transition-all">
+          <div className={`bg-slate-950/40 p-4 rounded-2xl border border-slate-800/80 space-y-3.5 transition-all relative overflow-hidden ${!isPro ? 'opacity-70 border-rose-500/10' : ''}`}>
+            {!isPro && (
+              <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[1px] flex flex-col items-center justify-center p-3 text-center z-10">
+                <span className="text-xs font-bold text-rose-400 tracking-wide uppercase flex items-center gap-1.5">
+                  <Lock className="h-4 w-4 text-rose-450" />
+                  <span>Chức năng Đặt Lịch Nhắc Nhở (PRO Only)</span>
+                </span>
+                <p className="text-[10px] text-slate-500 mt-1 max-w-[280px]">Hãy nâng cấp lên phiên bản PRO để đặt thông báo nhắc tự động định kỳ!</p>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="flex h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
@@ -1625,7 +1804,8 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                 <input
                   id="form-reminder-checkbox"
                   type="checkbox"
-                  checked={reminderEnabled}
+                  checked={isPro ? reminderEnabled : false}
+                  disabled={!isPro}
                   onChange={(e) => setReminderEnabled(e.target.checked)}
                   className="sr-only peer"
                 />
@@ -1633,7 +1813,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               </div>
             </div>
 
-            {reminderEnabled && (
+            {reminderEnabled && isPro && (
               <div className="space-y-3 pt-1 animate-fade-in">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -1679,18 +1859,36 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
             )}
           </div>
 
-          {/* Make Favorite Toggle */}
-          <div className="flex items-center gap-2 pt-2">
-            <input
-              id="form-fav-checkbox"
-              type="checkbox"
-              checked={isFavorite}
-              onChange={(e) => setIsFavorite(e.target.checked)}
-              className="rounded border-slate-800 text-emerald-500 focus:ring-emerald-500 bg-slate-950 h-4 w-4 cursor-pointer"
-            />
-            <label htmlFor="form-fav-checkbox" className="text-sm font-medium text-slate-300 cursor-pointer select-none">
-              Đánh dấu là Yêu thích (Ghim lên đầu trang)
-            </label>
+          {/* Make Favorite Toggle and Secret Compartment checkbox */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div className={`flex items-center gap-2 px-3 py-2 bg-slate-955 border border-slate-850 rounded-xl ${!isPro ? 'col-span-2' : ''}`}>
+              <input
+                id="form-fav-checkbox"
+                type="checkbox"
+                checked={isFavorite}
+                onChange={(e) => setIsFavorite(e.target.checked)}
+                className="rounded border-slate-800 text-emerald-500 focus:ring-emerald-500 bg-slate-950 h-4 w-4 cursor-pointer"
+              />
+              <label htmlFor="form-fav-checkbox" className="text-sm font-semibold text-slate-350 cursor-pointer select-none">
+                Đánh dấu là Yêu thích
+              </label>
+            </div>
+
+            {isPro ? (
+              <div className="flex items-center gap-2 bg-indigo-950/20 px-3 py-2 rounded-xl border border-indigo-500/20">
+                <input
+                  id="form-secret-checkbox"
+                  type="checkbox"
+                  checked={isSecret}
+                  onChange={(e) => setIsSecret(e.target.checked)}
+                  className="rounded border-slate-800 text-indigo-500 focus:ring-indigo-500 bg-slate-950 h-4 w-4 cursor-pointer"
+                />
+                <label htmlFor="form-secret-checkbox" className="text-sm font-semibold text-indigo-300 cursor-pointer select-none flex items-center gap-1.5">
+                  <Lock className="h-3.5 w-3.5 shrink-0" />
+                  Lưu vào Ngăn bí mật (Code)
+                </label>
+              </div>
+            ) : null}
           </div>
 
           {/* Buttons */}

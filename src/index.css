@@ -7,3 +7,214 @@
   }
 }
 
+/* ==========================================================================
+   THEME SWITCHING - DETAILED PRESETS (CYBERPUNK, EMERALD CLASSIC, DARK SPACE)
+   ========================================================================== */
+
+/* 1. CYBERPUNK NEON */
+[data-theme="cyberpunk"] {
+  background-color: #070010 !important;
+  color: #fffdeb !important;
+}
+
+[data-theme="cyberpunk"] .bg-slate-950 {
+  background-color: #070010 !important;
+}
+
+[data-theme="cyberpunk"] .bg-slate-900 {
+  background-color: #120124 !important;
+  border-color: rgba(236, 72, 153, 0.25) !important;
+}
+
+[data-theme="cyberpunk"] .bg-slate-900\/60,
+[data-theme="cyberpunk"] .bg-slate-950\/80,
+[data-theme="cyberpunk"] .bg-slate-950\/40 {
+  background-color: rgba(21, 1, 38, 0.9) !important;
+}
+
+[data-theme="cyberpunk"] .border-slate-900,
+[data-theme="cyberpunk"] .border-slate-800,
+[data-theme="cyberpunk"] .border-slate-800\/80,
+[data-theme="cyberpunk"] .border-slate-800\/60,
+[data-theme="cyberpunk"] .border-slate-850\/60 {
+  border-color: rgba(219, 39, 119, 0.25) !important;
+}
+
+/* Emerald to Neon Fuchsia highlights */
+[data-theme="cyberpunk"] .text-emerald-400,
+[data-theme="cyberpunk"] .text-emerald-500 {
+  color: #f43f5e !important; /* Rose neon pink */
+}
+
+[data-theme="cyberpunk"] .bg-emerald-500\/10 {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+}
+
+[data-theme="cyberpunk"] .border-emerald-500\/20,
+[data-theme="cyberpunk"] .border-emerald-500\/40,
+[data-theme="cyberpunk"] .border-emerald-500\/35 {
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+/* Primary actions to Cyber Yellow */
+[data-theme="cyberpunk"] .bg-emerald-500,
+[data-theme="cyberpunk"] .bg-indigo-500 {
+  background-color: #eab308 !important; /* cyberpunk yellow */
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="cyberpunk"] .bg-emerald-500:hover,
+[data-theme="cyberpunk"] .bg-indigo-500:hover {
+  background-color: #facc15 !important;
+}
+
+[data-theme="cyberpunk"] .text-indigo-400 {
+  color: #22d3ee !important; /* Cyan neon */
+}
+
+[data-theme="cyberpunk"] .bg-indigo-500\/10 {
+  background-color: rgba(34, 211, 238, 0.12) !important;
+}
+
+[data-theme="cyberpunk"] .border-indigo-500\/25,
+[data-theme="cyberpunk"] .border-indigo-505\/20,
+[data-theme="cyberpunk"] .border-indigo-500\/20 {
+  border-color: rgba(34, 211, 238, 0.3) !important;
+}
+
+[data-theme="cyberpunk"] .text-slate-400 {
+  color: #d8b4fe !important; /* Light violet */
+}
+
+/* 2. EMERALD CLASSIC */
+[data-theme="emerald"] {
+  background-color: #01140e !important;
+  color: #ecfdf5 !important;
+}
+
+[data-theme="emerald"] .bg-slate-950 {
+  background-color: #01140e !important;
+}
+
+[data-theme="emerald"] .bg-slate-900 {
+  background-color: #022c22 !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+[data-theme="emerald"] .bg-slate-900\/60,
+[data-theme="emerald"] .bg-slate-950\/80,
+[data-theme="emerald"] .bg-slate-950\/40 {
+  background-color: rgba(2, 44, 34, 0.85) !important;
+}
+
+[data-theme="emerald"] .border-slate-900,
+[data-theme="emerald"] .border-slate-800,
+[data-theme="emerald"] .border-slate-800\/80,
+[data-theme="emerald"] .border-slate-800\/60,
+[data-theme="emerald"] .border-slate-850\/60 {
+  border-color: rgba(5, 150, 105, 0.25) !important;
+}
+
+[data-theme="emerald"] .text-emerald-400,
+[data-theme="emerald"] .text-emerald-500 {
+  color: #34d399 !important; /* bright mint green */
+}
+
+[data-theme="emerald"] .bg-emerald-500\/10 {
+  background-color: rgba(52, 211, 153, 0.12) !important;
+}
+
+[data-theme="emerald"] .bg-emerald-500 {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="emerald"] .bg-emerald-500:hover {
+  background-color: #34d399 !important;
+}
+
+[data-theme="emerald"] .text-indigo-400 {
+  color: #2dd4bf !important; /* Teal accent instead of Indigo */
+}
+
+[data-theme="emerald"] .bg-indigo-500\/10 {
+  background-color: rgba(45, 212, 191, 0.12) !important;
+}
+
+[data-theme="emerald"] .border-indigo-500\/20,
+[data-theme="emerald"] .border-indigo-505\/20,
+[data-theme="emerald"] .border-indigo-500\/25 {
+  border-color: rgba(45, 212, 191, 0.3) !important;
+}
+
+[data-theme="emerald"] .text-slate-400 {
+  color: #a7f3d0 !important; /* Light sage */
+}
+
+
+/* 3. DARK SPACE COCY */
+[data-theme="darkspace"] {
+  background-color: #02020f !important;
+  color: #e0e7ff !important;
+}
+
+[data-theme="darkspace"] .bg-slate-950 {
+  background-color: #02020f !important;
+}
+
+[data-theme="darkspace"] .bg-slate-900 {
+  background-color: #0a0b22 !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+[data-theme="darkspace"] .bg-slate-900\/60,
+[data-theme="darkspace"] .bg-slate-950\/80,
+[data-theme="darkspace"] .bg-slate-950\/40 {
+  background-color: rgba(8, 9, 32, 0.9) !important;
+}
+
+[data-theme="darkspace"] .border-slate-900,
+[data-theme="darkspace"] .border-slate-800,
+[data-theme="darkspace"] .border-slate-800\/80,
+[data-theme="darkspace"] .border-slate-800\/60,
+[data-theme="darkspace"] .border-slate-850\/60 {
+  border-color: rgba(79, 70, 229, 0.25) !important;
+}
+
+[data-theme="darkspace"] .text-emerald-400,
+[data-theme="darkspace"] .text-emerald-500 {
+  color: #818cf8 !important; /* Lavender indigo */
+}
+
+[data-theme="darkspace"] .bg-emerald-500\/10 {
+  background-color: rgba(129, 140, 248, 0.12) !important;
+}
+
+[data-theme="darkspace"] .bg-emerald-500 {
+  background-color: #4f46e5 !important; /* Royal indigo */
+  color: #ffffff !important;
+}
+
+[data-theme="darkspace"] .bg-emerald-500:hover {
+  background-color: #6366f1 !important;
+}
+
+[data-theme="darkspace"] .text-indigo-400 {
+  color: #c084fc !important; /* Royal Amethyst purple */
+}
+
+[data-theme="darkspace"] .bg-indigo-500\/10 {
+  background-color: rgba(192, 132, 252, 0.12) !important;
+}
+
+[data-theme="darkspace"] .border-indigo-500\/20,
+[data-theme="darkspace"] .border-indigo-505\/20,
+[data-theme="darkspace"] .border-indigo-500\/25 {
+  border-color: rgba(192, 132, 252, 0.25) !important;
+}
+
+[data-theme="darkspace"] .text-slate-400 {
+  color: #93c5fd !important; /* Sky grey */
+}
+

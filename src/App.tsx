@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Shield, Lock, Unlock, Search, PlusCircle, LogOut, Download, Upload, 
-  Settings, KeyRound, Star, CreditCard, Smartphone, Globe, 
+  Settings, KeyRound, Star, CreditCard, Smartphone, Globe, Code,
   FileText, ArrowUpDown, ChevronRight, RefreshCw, Layers, Wallet,
   Fingerprint, Table, ArrowUp, ArrowDown, Eye, EyeOff, ChevronUp, ChevronDown,
-  Trash2, Edit2, LayoutGrid, List, Bell, Calendar, Clock
+  Trash2, Edit2, LayoutGrid, List, Bell, Calendar, Clock, ShieldAlert, Sparkles, Gift
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LockScreen from './components/LockScreen';
@@ -12,6 +12,8 @@ import VaultItemCard from './components/VaultItemCard';
 import VaultFormModal from './components/VaultFormModal';
 import SpreadsheetWorkspaceModal from './components/SpreadsheetWorkspaceModal';
 import PasswordGenerator from './components/PasswordGenerator';
+import SecurityAudit from './components/SecurityAudit';
+import UpgradeModal from './components/UpgradeModal';
 import { VaultEntry, VaultCategory, CustomCategory, GoogleSheetEntry } from './types';
 import { encryptText } from './utils/crypto';
 import { LangType, translations } from './utils/lang';
@@ -106,15 +108,22 @@ export default function App() {
     localStorage.setItem('secure_vault_categories', JSON.stringify(updated));
   };
 
+  // Check if deployed on GitHub Pages or Vercel
+  const isDeployedOnGithubOrVercel = typeof window !== 'undefined' && (
+    window.location.hostname.includes('github') || 
+    window.location.hostname.includes('vercel')
+  );
+
   // Visual branding title state with suggestions
   const [vaultTitle, setVaultTitle] = useState(() => {
     return localStorage.getItem('secure_vault_app_title') || '';
   });
-  const currentVaultTitle = vaultTitle || t.app_title;
+  const currentVaultTitle = isDeployedOnGithubOrVercel ? t.app_title : (vaultTitle || t.app_title);
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
   const [customAppTitle, setCustomAppTitle] = useState('');
 
   // Filtering and Controls state
+  const [showSecretDrawer, setShowSecretDrawer] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | 'fav' | VaultCategory>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'alphabetical'>('recent');
@@ -162,6 +171,26 @@ export default function App() {
   
   const [showGenTools, setShowGenTools] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSecurityAudit, setShowSecurityAudit] = useState(false);
+  const [isPro, setIsPro] = useState(() => localStorage.getItem('secure_vault_pro_active') === 'true');
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [appTheme, setAppTheme] = useState<string>(() => {
+    return localStorage.getItem('secure_vault_theme') || 'slate';
+  });
+
+  // --- AUTO LOCK MECHANISM ---
+  const [autoLockMinutes, setAutoLockMinutes] = useState<number>(() => {
+    const saved = localStorage.getItem('secure_vault_auto_lock_time');
+    return saved !== null ? Number(saved) : 3; // Mặc định 3 Phút
+  });
+
+  // Enforced limitation variables for Free vs Pro
+  const effectiveViewMode = isPro ? viewMode : 'grid';
+  const effectiveCategoryLayoutMode = isPro ? categoryLayoutMode : 'grid';
+  const effectiveSortBy = isPro ? sortBy : 'recent';
+  const effectiveCategorySortMode = isPro ? categorySortMode : 'default';
+  const effectiveAppTheme = isPro ? appTheme : 'slate';
+  const effectiveAutoLockMinutes = isPro ? autoLockMinutes : 1;
 
   // Status popups
   const [toast, setToast] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -171,12 +200,6 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // --- AUTO LOCK MECHANISM ---
-  const [autoLockMinutes, setAutoLockMinutes] = useState<number>(() => {
-    const saved = localStorage.getItem('secure_vault_auto_lock_time');
-    return saved !== null ? Number(saved) : 3; // Mặc định 3 Phút
-  });
-
   const [isEditingAutoLock, setIsEditingAutoLock] = useState<boolean>(false);
   const [tempAutoLockVal, setTempAutoLockVal] = useState<string>('3');
 
@@ -184,21 +207,21 @@ export default function App() {
     return localStorage.getItem('secure_vault_hide_countdown') === 'true';
   });
 
-  const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(autoLockMinutes * 60);
+  const [timeLeftSeconds, setTimeLeftSeconds] = useState<number>(effectiveAutoLockMinutes * 60);
 
   // Cập nhật lại số giây đếm ngược khi thời gian cấu hình thay đổi
   useEffect(() => {
-    setTimeLeftSeconds(autoLockMinutes * 60);
-  }, [autoLockMinutes]);
+    setTimeLeftSeconds(effectiveAutoLockMinutes * 60);
+  }, [effectiveAutoLockMinutes]);
 
   // Bộ đếm lùi và tự động bắt sự kiện tương tác để hoãn khóa kho
   useEffect(() => {
-    if (!isUnlocked || autoLockMinutes <= 0) {
+    if (!isUnlocked || effectiveAutoLockMinutes <= 0) {
       return;
     }
 
     // Thiết lập số giây ban đầu
-    setTimeLeftSeconds(autoLockMinutes * 60);
+    setTimeLeftSeconds(effectiveAutoLockMinutes * 60);
 
     const timer = setInterval(() => {
       setTimeLeftSeconds((prev) => {
@@ -220,7 +243,7 @@ export default function App() {
     }, 1000);
 
     const resetTimer = () => {
-      setTimeLeftSeconds(autoLockMinutes * 60);
+      setTimeLeftSeconds(effectiveAutoLockMinutes * 60);
     };
 
     // Lắng nghe các tương tác của người dùng để hoãn khóa kho
@@ -238,7 +261,7 @@ export default function App() {
       window.removeEventListener('touchstart', resetTimer);
       window.removeEventListener('scroll', resetTimer);
     };
-  }, [isUnlocked, autoLockMinutes, t]);
+  }, [isUnlocked, effectiveAutoLockMinutes, t]);
 
   const handleAutoLockMinutesChange = (val: number) => {
     setAutoLockMinutes(val);
@@ -321,13 +344,43 @@ export default function App() {
   const handleSaveEntry = (savedEntry: VaultEntry) => {
     let updated: VaultEntry[];
     const exists = entries.some(e => e.id === savedEntry.id);
+
+    // Limit check for Free 2FA TOTP
+    const hasTotp = !!savedEntry.totpSecret;
+    if (hasTotp && !isPro) {
+      const isNewlyAddingTotp = !exists || !entries.find(e => e.id === savedEntry.id)?.totpSecret;
+      if (isNewlyAddingTotp) {
+        const currentTotpCount = entries.filter(e => !!e.totpSecret).length;
+        if (currentTotpCount >= 5) {
+          setIsUpgradeModalOpen(true);
+          triggerToast(
+            lang === 'vi'
+              ? 'Đạt giới hạn 5 tài khoản kích hoạt 2FA của Bản Miễn Phí. Vui lòng nâng cấp lên PRO! 🛡️'
+              : 'Reached 5 2FA-enabled accounts limit of Free version. Please upgrade to PRO! 🛡️',
+            'error'
+          );
+          return;
+        }
+      }
+    }
     
     if (exists) {
       updated = entries.map(e => e.id === savedEntry.id ? savedEntry : e);
-      triggerToast('Cập nhật tài khoản thành công!');
+      triggerToast(lang === 'vi' ? 'Cập nhật tài khoản thành công!' : 'Account updated successfully!');
     } else {
+      // Limit check for Free version (30 credentials)
+      if (!isPro && entries.length >= 30) {
+        setIsUpgradeModalOpen(true);
+        triggerToast(
+          lang === 'vi' 
+            ? 'Đạt giới hạn 30 tài khoản của Bản Miễn Phí. Vui lòng nâng cấp lên PRO!' 
+            : 'Reached 30 items limit of Free version. Please upgrade to PRO to store unlimited credentials!',
+          'error'
+        );
+        return;
+      }
       updated = [savedEntry, ...entries];
-      triggerToast('Đã lưu tài khoản bảo mật mới!');
+      triggerToast(lang === 'vi' ? 'Đã lưu tài khoản bảo mật mới!' : 'New secure vault entry saved!');
     }
     
     saveEntries(updated);
@@ -515,15 +568,16 @@ export default function App() {
   // Statistics calculation helpers
   const stats = useMemo(() => {
     const counts: Record<string, number> = {};
+    const visibleEntries = entries.filter((e) => showSecretDrawer ? !!(e as any).isSecret : !(e as any).isSecret);
     categories.forEach((cat) => {
-      counts[cat.id] = entries.filter((e) => e.category === cat.id).length;
+      counts[cat.id] = visibleEntries.filter((e) => e.category === cat.id).length;
     });
     return {
-      total: entries.length,
-      fav: entries.filter((e) => e.isFavorite).length,
+      total: visibleEntries.length,
+      fav: visibleEntries.filter((e) => e.isFavorite).length,
       counts,
     };
-  }, [entries, categories]);
+  }, [entries, categories, showSecretDrawer]);
 
   // Computed categories considering display settings
   const displayedCategories = useMemo(() => {
@@ -547,6 +601,13 @@ export default function App() {
   // Search filter and category selections
   const filteredEntries = useMemo(() => {
     let result = [...entries];
+
+    // Secret compartment filter
+    if (showSecretDrawer) {
+      result = result.filter((e) => !!(e as any).isSecret);
+    } else {
+      result = result.filter((e) => !(e as any).isSecret);
+    }
 
     // Filter categories
     if (activeCategory === 'fav') {
@@ -606,7 +667,7 @@ export default function App() {
     }
 
     return result;
-  }, [entries, activeCategory, searchQuery, sortBy]);
+  }, [entries, activeCategory, searchQuery, sortBy, showSecretDrawer]);
 
   // Open Edit Dialog
   const handleEditInit = (entry: VaultEntry) => {
@@ -621,7 +682,8 @@ export default function App() {
 
   // Tập hợp danh sách các nhắc nhở cần lưu ý hiển thị
   const remindersToShow = useMemo(() => {
-    return entries
+    const visibleEntries = entries.filter((e) => showSecretDrawer ? !!(e as any).isSecret : !(e as any).isSecret);
+    return visibleEntries
       .filter(e => e.reminder && e.reminder.enabled && e.reminder.date)
       .map(e => {
         const { daysLeft, isToday, formattedDate } = getReminderDaysLeft(e.reminder!.date, e.reminder!.type);
@@ -640,7 +702,7 @@ export default function App() {
         if (!a.isToday && b.isToday) return 1;
         return a.daysLeft - b.daysLeft;
       });
-  }, [entries]);
+  }, [entries, showSecretDrawer]);
 
   // Điều hướng và trượt tới xem nhanh mục có lời nhắc
   const handleFocusReminderItem = (itemId: string, category: string) => {
@@ -664,7 +726,7 @@ export default function App() {
   }
 
   return (
-    <div id="main-vault-root" className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
+    <div id="main-vault-root" data-theme={effectiveAppTheme} className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased transition-colors duration-300">
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
@@ -691,7 +753,7 @@ export default function App() {
       <header className="border-b border-slate-900 bg-slate-950/80 sticky top-0 z-30 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-0 md:h-20 flex flex-col gap-4 md:gap-0 md:grid md:grid-cols-3 items-center">
           
-          {/* LEFT COLUMN: Tool Buttons (Tạo mật khẩu, Sao lưu lưu trữ) */}
+          {/* LEFT COLUMN: Tool Buttons (Tạo mật khẩu, Báo cáo an toàn, Sao lưu lưu trữ) */}
           <div className="flex items-center gap-2.5 w-full md:w-auto justify-center md:justify-start order-2 md:order-1 md:h-full">
             {/* Password Generator Sidebar Toggle */}
             <button
@@ -700,6 +762,7 @@ export default function App() {
               onClick={() => {
                 setShowGenTools(!showGenTools);
                 setShowSettings(false);
+                setShowSecurityAudit(false);
               }}
               className={`px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
                 showGenTools 
@@ -712,6 +775,29 @@ export default function App() {
               <span>{t.head_createPwd}</span>
             </button>
 
+            {/* Password Audit & Vulnerability Report button */}
+            <button
+              id="audit-dashboard-toggle"
+              type="button"
+              onClick={() => {
+                setShowSecurityAudit(!showSecurityAudit);
+                setShowSettings(false);
+                setShowGenTools(false);
+              }}
+              className={`px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
+                showSecurityAudit 
+                  ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 shadow-md shadow-indigo-500/5' 
+                  : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+              title={t.audit_title}
+            >
+              <ShieldAlert className="h-4 w-4 shrink-0 text-indigo-400" />
+              <span>{lang === 'vi' ? 'Kiểm toán 2FA' : 'Audit 2FA'}</span>
+              {!isPro && (
+                <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-extrabold text-[8px] px-1 py-0.2 rounded uppercase tracking-widest scale-90 origin-right">PRO</span>
+              )}
+            </button>
+
             {/* Settings and Backup/Restore Panel Link */}
             <button
               id="settings-panel-toggle"
@@ -719,6 +805,7 @@ export default function App() {
               onClick={() => {
                 setShowSettings(!showSettings);
                 setShowGenTools(false);
+                setShowSecurityAudit(false);
               }}
               className={`px-3 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
                 showSettings 
@@ -744,19 +831,21 @@ export default function App() {
                   <h1 className="text-base sm:text-lg font-black text-white tracking-wide uppercase select-none font-sans">
                     {currentVaultTitle}
                   </h1>
-                  <button
-                    id="rename-app-btn"
-                    type="button"
-                    onClick={() => setShowTitleSuggestions(!showTitleSuggestions)}
-                    className="p-1 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-emerald-450 transition-colors cursor-pointer"
-                    title={t.head_renameBtn}
-                  >
-                    <Edit2 className="h-3 w-3" />
-                  </button>
+                  {!isDeployedOnGithubOrVercel && (
+                    <button
+                      id="rename-app-btn"
+                      type="button"
+                      onClick={() => setShowTitleSuggestions(!showTitleSuggestions)}
+                      className="p-1 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-emerald-450 transition-colors cursor-pointer"
+                      title={t.head_renameBtn}
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
                 <p className="text-[9px] text-emerald-400/80 font-bold uppercase tracking-widest font-mono select-none">{t.head_encryptionText}</p>
 
-                {showTitleSuggestions && (
+                {showTitleSuggestions && !isDeployedOnGithubOrVercel && (
                   <div className="absolute top-14 left-1/2 -translate-x-1/2 w-72 bg-slate-950 border border-slate-800/80 p-4 rounded-2xl shadow-2xl z-50 text-left animate-slide-up">
                     <div className="flex items-center justify-between mb-3 border-b border-slate-900 pb-2">
                       <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">{t.head_renameSuggestionsTitle}</span>
@@ -842,6 +931,29 @@ export default function App() {
           {/* RIGHT COLUMN: Auto lock settings & Locked actions */}
           <div className="flex items-center gap-2 justify-center md:justify-end w-full md:w-auto order-3 md:h-full">
             
+            {/* Subscription Tier Pill */}
+            {isPro ? (
+              <button
+                id="tier-badge-pro"
+                type="button"
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className="px-2.5 py-1.5 text-[10px] font-black bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 rounded-xl hover:scale-102 transition-all flex items-center justify-center gap-1 cursor-pointer animate-fade-in shadow-md shadow-emerald-500/5 select-none font-sans"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-emerald-400 animate-pulse shrink-0" />
+                <span className="tracking-wider uppercase">PRO ELITE</span>
+              </button>
+            ) : (
+              <button
+                id="tier-badge-free"
+                type="button"
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className="px-2.5 py-1.5 text-[10px] font-black bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl hover:scale-102 hover:border-indigo-400/40 hover:bg-indigo-500/25 transition-all flex items-center justify-center gap-1 cursor-pointer animate-fade-in shadow-md shadow-indigo-500/5 select-none font-sans"
+              >
+                <Gift className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                <span className="tracking-wider uppercase">{lang === 'vi' ? 'NÂNG CẤP PRO' : 'UPGRADE PRO'}</span>
+              </button>
+            )}
+
             {/* 1. Language Toggle Icon Displayed at Top Right */}
             <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-xl p-1 shrink-0">
               <button
@@ -887,16 +999,24 @@ export default function App() {
               ) : (
                 <div 
                   onClick={() => {
+                    if (!isPro) {
+                      setIsUpgradeModalOpen(true);
+                      return;
+                    }
                     setIsEditingAutoLock(true);
                     setTempAutoLockVal(String(autoLockMinutes));
                   }}
                   className="flex items-center gap-1.5 text-slate-400 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-950/45 border border-slate-850 hover:bg-slate-900/40 hover:border-slate-800 hover:text-slate-200 transition-all select-none cursor-pointer group"
-                  title={lang === 'vi' ? 'Bấm để đổi thời gian tự khóa (phút, 0 để tắt)' : 'Click to customize auto-lock minutes (0 to disable)'}
+                  title={isPro 
+                    ? (lang === 'vi' ? 'Bấm để đổi thời gian tự khóa (phút, 0 để tắt)' : 'Click to customize auto-lock minutes (0 to disable)')
+                    : (lang === 'vi' ? 'Yêu cầu phiên bản PRO để tùy chỉnh thời gian khóa' : 'PRO version required to customize auto-lock timer')
+                  }
                 >
-                  <Clock className={`h-3.5 w-3.5 group-hover:text-indigo-400 transition-colors ${autoLockMinutes > 0 ? 'text-indigo-400 animate-pulse' : 'text-slate-500'}`} />
+                  <Clock className={`h-3.5 w-3.5 group-hover:text-indigo-400 transition-colors ${effectiveAutoLockMinutes > 0 ? 'text-indigo-400 animate-pulse' : 'text-slate-500'}`} />
                   <span className="font-mono font-extrabold text-indigo-400 text-[11px] min-w-[34px] text-center pb-0.5 border-b border-transparent group-hover:border-indigo-400/40 transition-colors">
-                    {autoLockMinutes === 0 ? '00:00' : (isCountdownHidden ? '••:••' : formatCountdown(timeLeftSeconds))}
+                    {effectiveAutoLockMinutes === 0 ? '00:00' : (isCountdownHidden ? '••:••' : formatCountdown(timeLeftSeconds))}
                   </span>
+                  {!isPro && <Lock className="h-2.5 w-2.5 text-amber-500/90 shrink-0 ml-0.5" />}
                 </div>
               )}
 
@@ -1068,6 +1188,43 @@ export default function App() {
                   );
                 })}
               </div>
+
+              {/* Clandestine Secret Drawer (Code) Activation */}
+              <div className="mt-3.5 pt-3.5 border-t border-slate-800/40">
+                <button
+                  id="secret-drawer-code-trigger"
+                  type="button"
+                  onClick={() => {
+                    // Explains double-click trick in a localized toast helper
+                    triggerToast(lang === 'vi' 
+                      ? '💡 MẸO: Hãy kích đúp (bấm liên tục 2 lần) vào biểu tượng cái khiên hoặc chữ "Code" này để mở/khóa Ngăn bí mật!' 
+                      : '💡 TIP: Double-click this Shield or "Code" text to unlock or lock the Safe Cabinet!', 'info');
+                  }}
+                  onDoubleClick={(e) => {
+                    e.preventDefault();
+                    setActiveCategory('all');
+                    setShowSecretDrawer(prev => !prev);
+                    triggerToast(!showSecretDrawer 
+                      ? (lang === 'vi' ? '🔑 Đã mở khóa Ngăn bí mật (Code) thành công!' : '🔑 Unlocked Secret Cabinet (Code) successfully!')
+                      : (lang === 'vi' ? '🔒 Đã khoá & ẩn toàn bộ các tệp bảo mật!' : '🔒 Locked & hid all secret items!'),
+                      !showSecretDrawer ? 'success' : 'info'
+                    );
+                  }}
+                  className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-300 border font-semibold select-none cursor-pointer ${
+                    showSecretDrawer 
+                      ? 'bg-rose-500/10 border-rose-500/50 text-rose-400 font-bold shadow-lg shadow-rose-500/5' 
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
+                  }`}
+                  title={lang === 'vi' ? 'Bấm đúp liên tục để truy cập Ngăn bí mật' : 'Double-click to access Secret Cabinet'}
+                >
+                  <div className={`p-1.5 rounded-lg transition-all duration-200 ${
+                    showSecretDrawer ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-900 text-rose-500'
+                  }`}>
+                    <Shield className="h-4.5 w-4.5 shrink-0" />
+                  </div>
+                  <span className="text-sm font-sans font-bold tracking-wide">Code</span>
+                </button>
+              </div>
             </div>
 
             <hr className="border-slate-800/40" />
@@ -1082,55 +1239,59 @@ export default function App() {
                 
                 <div className="flex items-center gap-1.5 font-sans">
                   {/* Display options / Tùy chọn hiển thị button */}
-                  <button
-                    type="button"
-                    onClick={() => setShowSidebarOptions(!showSidebarOptions)}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 text-sm font-bold uppercase tracking-wider rounded-lg border transition-all duration-200 cursor-pointer ${
-                      showSidebarOptions
-                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5'
-                        : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                    }`}
-                    title={t.side_displayBtn}
-                  >
-                    <Settings className={`h-3 w-3 transition-transform duration-500 ${showSidebarOptions ? 'rotate-45 text-emerald-400' : 'text-slate-400'}`} />
-                    <span className="hidden sm:inline">{t.side_displayBtn}</span>
-                  </button>
+                  {isPro && (
+                    <button
+                      type="button"
+                      onClick={() => setShowSidebarOptions(!showSidebarOptions)}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 text-sm font-bold uppercase tracking-wider rounded-lg border transition-all duration-200 cursor-pointer ${
+                        showSidebarOptions
+                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5'
+                          : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      }`}
+                      title={t.side_displayBtn}
+                    >
+                      <Settings className={`h-3 w-3 transition-transform duration-500 ${showSidebarOptions ? 'rotate-45 text-emerald-400' : 'text-slate-400'}`} />
+                      <span className="hidden sm:inline">{t.side_displayBtn}</span>
+                    </button>
+                  )}
 
                   {/* Lock button */}
-                  <button
-                    id="categories-lock-btn"
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesLocked(!isCategoriesLocked);
-                      if (isCategoriesLocked) {
-                        // reset inline Add Cat widget
-                        setShowAddCatForm(false);
-                      }
-                    }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-bold uppercase tracking-wider rounded-lg border transition-all duration-200 cursor-pointer ${
-                      isCategoriesLocked 
-                        ? 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' 
-                        : 'bg-amber-500/10 border-amber-500/40 text-amber-400 font-semibold shadow-lg shadow-amber-500/5'
-                    }`}
-                    title={isCategoriesLocked ? t.side_unlockEditTooltip : t.side_lockEditTooltip}
-                  >
-                    {isCategoriesLocked ? (
-                      <>
-                        <Lock className="h-3 w-3 text-slate-400" />
-                        <span className="hidden sm:inline">{t.side_lockedState}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Unlock className="h-3 w-3 text-amber-400 animate-pulse" />
-                        <span className="hidden sm:inline">{t.side_editState}</span>
-                      </>
-                    )}
-                  </button>
+                  {isPro && (
+                    <button
+                      id="categories-lock-btn"
+                      type="button"
+                      onClick={() => {
+                        setIsCategoriesLocked(!isCategoriesLocked);
+                        if (isCategoriesLocked) {
+                          // reset inline Add Cat widget
+                          setShowAddCatForm(false);
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-bold uppercase tracking-wider rounded-lg border transition-all duration-200 cursor-pointer ${
+                        isCategoriesLocked 
+                          ? 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' 
+                          : 'bg-amber-500/10 border-amber-500/40 text-amber-400 font-semibold shadow-lg shadow-amber-500/5'
+                      }`}
+                      title={isCategoriesLocked ? t.side_unlockEditTooltip : t.side_lockEditTooltip}
+                    >
+                      {isCategoriesLocked ? (
+                        <>
+                          <Lock className="h-3 w-3 text-slate-400" />
+                          <span className="hidden sm:inline">{t.side_lockedState}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Unlock className="h-3 w-3 text-amber-400 animate-pulse" />
+                          <span className="hidden sm:inline">{t.side_editState}</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Collapsible Display Options right below header */}
-              {showSidebarOptions && (
+              {isPro && showSidebarOptions && (
                 <div className="bg-slate-950/60 border border-slate-850 rounded-xl p-3 mb-3 space-y-3 text-left animate-fade-in">
                   <div className="flex flex-col gap-2">
                     {/* Compact Mode Toggle */}
@@ -1181,7 +1342,7 @@ export default function App() {
                           type="checkbox"
                           checked={hideCompactSummaries}
                           onChange={(e) => handleSetHideCompactSummaries(e.target.checked)}
-                          className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 accent-emerald-500 cursor-pointer transition-all"
+                          className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-emerald-505/20 h-4 w-4 accent-emerald-500 cursor-pointer transition-all"
                         />
                       </div>
                       <span className="transition-colors group-hover/opt:text-slate-300">{t.side_optHideSums}</span>
@@ -1242,7 +1403,7 @@ export default function App() {
 
               {/* Dynamic Categories List */}
               <div className={`${
-                categoryLayoutMode === 'grid' ? 'grid grid-cols-2 gap-2' : 'space-y-1'
+                effectiveCategoryLayoutMode === 'grid' ? 'grid grid-cols-2 gap-2' : 'space-y-1'
               } overflow-y-auto pr-0.5 scrollbar-thin select-none transition-all duration-350 ${
                 sidebarCompact ? 'max-h-[220px]' : 'max-h-[300px]'
               }`}>
@@ -1255,7 +1416,7 @@ export default function App() {
                     <div 
                       key={cat.id} 
                       className={`flex items-center justify-between rounded-xl border transition-all font-semibold group ${
-                        categoryLayoutMode === 'grid'
+                        effectiveCategoryLayoutMode === 'grid'
                           ? (sidebarCompact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-1.5 text-sm')
                           : (sidebarCompact ? 'px-2 py-1.5 text-sm' : 'px-2.5 py-2.5 text-base')
                       } ${
@@ -1268,7 +1429,6 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => {
-                          // we can still filter even if unlocked, for rapid debug
                           setActiveCategory(cat.id);
                         }}
                         className="flex-1 text-left flex items-center gap-1.5 cursor-pointer outline-none overflow-hidden"
@@ -1283,7 +1443,7 @@ export default function App() {
                       {isCategoriesLocked ? (
                         !hideCounts && (
                           <span className={`font-mono font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1 ${
-                            categoryLayoutMode === 'grid' ? 'text-[11px]' : (sidebarCompact ? 'text-xs' : 'text-xs')
+                            effectiveCategoryLayoutMode === 'grid' ? 'text-[11px]' : (sidebarCompact ? 'text-xs' : 'text-xs')
                           } ${
                             isActive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-950 text-slate-500'
                           }`}>
@@ -1292,7 +1452,7 @@ export default function App() {
                         )
                       ) : (
                         <div className={`flex items-center gap-0.5 flex-shrink-0 animate-fade-in ${
-                          categoryLayoutMode === 'grid' ? 'flex-wrap justify-end max-w-[45px]' : ''
+                          effectiveCategoryLayoutMode === 'grid' ? 'flex-wrap justify-end max-w-[45px]' : ''
                         }`}>
                           {/* Reorder Up */}
                           <button
@@ -1588,6 +1748,98 @@ export default function App() {
                       </label>
                     </div>
                   </div>
+
+                  {/* Theme Selector Section */}
+                  <div className="pt-5 border-t border-slate-800/60 mt-4 select-none">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                      <div>
+                        <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                          <Sparkles className="h-4 w-4 text-indigo-400" />
+                          <span>{t.theme_title}</span>
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {t.theme_desc}
+                        </p>
+                      </div>
+                      {!isPro && (
+                        <span className="self-start sm:self-center px-2 py-0.5 rounded text-[9px] font-black tracking-widest bg-indigo-500/10 border border-indigo-505/20 text-indigo-400 uppercase">
+                          PRO ONLY
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { 
+                          id: 'slate', 
+                          name: t.theme_slate, 
+                          isProTheme: false,
+                          colors: ['bg-slate-950', 'bg-slate-900', 'bg-emerald-500'],
+                        },
+                        { 
+                          id: 'cyberpunk', 
+                          name: t.theme_cyberpunk, 
+                          isProTheme: true,
+                          colors: ['bg-[#070010]', 'bg-[#120124]', 'bg-fuchsia-500', 'bg-yellow-400'],
+                        },
+                        { 
+                          id: 'emerald', 
+                          name: t.theme_emerald, 
+                          isProTheme: true,
+                          colors: ['bg-[#01140e]', 'bg-[#022c22]', 'bg-emerald-600'],
+                        },
+                        { 
+                          id: 'darkspace', 
+                          name: t.theme_darkspace, 
+                          isProTheme: true,
+                          colors: ['bg-[#02020f]', 'bg-[#0a0b22]', 'bg-indigo-600'],
+                        },
+                      ].map((themeItem) => {
+                        const isSelected = appTheme === themeItem.id;
+                        const handleThemeClick = () => {
+                          if (themeItem.isProTheme && !isPro) {
+                            setIsUpgradeModalOpen(true);
+                            triggerToast(t.theme_locked_toast, 'error');
+                            return;
+                          }
+                          setAppTheme(themeItem.id);
+                          localStorage.setItem('secure_vault_theme', themeItem.id);
+                          triggerToast(t.theme_unlocked_toast, 'success');
+                        };
+
+                        return (
+                          <button
+                            key={themeItem.id}
+                            type="button"
+                            onClick={handleThemeClick}
+                            className={`p-3.5 rounded-2xl border flex flex-col items-center justify-between gap-3 text-center transition-all cursor-pointer relative overflow-hidden group/theme-item select-none ${
+                              isSelected 
+                                ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 font-bold' 
+                                : 'bg-slate-950/40 border-slate-850/80 hover:border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {/* Pro Block Overlay Indicator */}
+                            {themeItem.isProTheme && !isPro && (
+                              <div className="absolute top-1.5 right-1.5">
+                                <Lock className="h-3 w-3 text-slate-600 group-hover/theme-item:text-indigo-400 transition-colors" />
+                              </div>
+                            )}
+
+                            {/* Bullet Circle Preview */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              {themeItem.colors.map((bgC, idx) => (
+                                <div key={idx} className={`h-4.5 w-4.5 rounded-full border border-slate-950/50 shadow-sm ${bgC}`} />
+                              ))}
+                            </div>
+
+                            <span className="text-[11px] font-bold leading-tight truncate w-full tracking-wide">
+                              {themeItem.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -1607,85 +1859,123 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* Main Credentials Display Area */}
-          <div id="credentials-grid-flow">
-            {filteredEntries.length === 0 ? (
-              <div id="no-cards-placeholder" className="bg-slate-900 border border-slate-800/60 rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4">
-                <div className="h-14 w-14 bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800 text-slate-500">
-                  <Shield className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-200">{t.work_emptyTitle}</h3>
-                  <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto leading-relaxed">
-                    {searchQuery 
-                      ? t.work_emptySearch
-                      : t.work_emptyDesc}
-                  </p>
-                </div>
-                {!searchQuery && (
+          {/* Main Credentials Display Area / Security Audit Dashboard */}
+          {showSecurityAudit ? (
+            <div id="security-audit-container">
+              <SecurityAudit
+                entries={entries}
+                isPro={isPro}
+                onUpgradeClick={() => setIsUpgradeModalOpen(true)}
+                currentLang={lang}
+              />
+            </div>
+          ) : (
+            <div id="credentials-grid-flow">
+              {showSecretDrawer && (
+                <div className="mb-5 bg-indigo-950/25 border border-indigo-500/20 border-l-4 border-l-indigo-500 rounded-r-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left animate-fade-in text-indigo-300">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2.5 bg-indigo-500/15 rounded-xl text-indigo-400 shrink-0">
+                      <Unlock className="h-5 w-5 animate-pulse" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
+                        <span>Khu vực Ngăn Bí Mật (Code Cabinet)</span>
+                        <span className="bg-indigo-500/20 text-[9px] font-black tracking-widest text-indigo-300 px-1 py-0.2 rounded">SECURE</span>
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5 leading-relaxed truncate">Các tài khoản, ví, dữ liệu và tệp lớn qua Google Drive trong ngăn này cực kỳ an toàn.</p>
+                    </div>
+                  </div>
                   <button
-                    id="placeholder-add-btn"
                     type="button"
-                    onClick={handleCreateNew}
-                    className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold py-2.5 px-5 rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-emerald-500/5 mt-2"
+                    onClick={() => {
+                      setShowSecretDrawer(false);
+                      triggerToast(lang === 'vi' ? '🔒 Đã khoá Ngăn bí mật thành công!' : '🔒 Locked Secret Drawer successfully!', 'info');
+                    }}
+                    className="self-end sm:self-auto px-3.5 py-1.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 hover:text-indigo-200 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer shadow-sm"
                   >
-                    <PlusCircle className="h-4 w-4" />
-                    <span>{t.work_createFirst}</span>
+                    🔒 Khóa Ngăn (Lock)
                   </button>
-                )}
-              </div>
-            ) : viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {filteredEntries.map((item) => (
-                  <motion.div
-                    id={`anim-wrapper-${item.id}`}
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.25 }}
-                  >
-                    <VaultItemCard
-                      entry={item}
-                      onEdit={handleEditInit}
-                      onDelete={handleDeleteEntry}
-                      onToggleFavorite={handleToggleFavorite}
-                      onOpenWorkspace={handleOpenWorkspace}
-                      categories={categories}
-                      layoutMode="grid"
-                      hideCompactSummaries={hideCompactSummaries}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div id="credentials-list-flow" className="flex flex-col gap-3">
-                {filteredEntries.map((item) => (
-                  <motion.div
-                    id={`anim-wrapper-${item.id}`}
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <VaultItemCard
-                      entry={item}
-                      onEdit={handleEditInit}
-                      onDelete={handleDeleteEntry}
-                      onToggleFavorite={handleToggleFavorite}
-                      onOpenWorkspace={handleOpenWorkspace}
-                      categories={categories}
-                      layoutMode="table"
-                      hideCompactSummaries={hideCompactSummaries}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+
+              {filteredEntries.length === 0 ? (
+                <div id="no-cards-placeholder" className="bg-slate-900 border border-slate-800/60 rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4">
+                  <div className="h-14 w-14 bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800 text-slate-500">
+                    <Shield className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-200">{t.work_emptyTitle}</h3>
+                    <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto leading-relaxed">
+                      {searchQuery 
+                        ? t.work_emptySearch
+                        : t.work_emptyDesc}
+                    </p>
+                  </div>
+                  {!searchQuery && (
+                    <button
+                      id="placeholder-add-btn"
+                      type="button"
+                      onClick={handleCreateNew}
+                      className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold py-2.5 px-5 rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-emerald-500/5 mt-2"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      <span>{t.work_createFirst}</span>
+                    </button>
+                  )}
+                </div>
+              ) : viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {filteredEntries.map((item) => (
+                    <motion.div
+                      id={`anim-wrapper-${item.id}`}
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <VaultItemCard
+                        entry={item}
+                        onEdit={handleEditInit}
+                        onDelete={handleDeleteEntry}
+                        onToggleFavorite={handleToggleFavorite}
+                        onOpenWorkspace={handleOpenWorkspace}
+                        categories={categories}
+                        layoutMode="grid"
+                        hideCompactSummaries={hideCompactSummaries}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div id="credentials-list-flow" className="flex flex-col gap-3">
+                  {filteredEntries.map((item) => (
+                    <motion.div
+                      id={`anim-wrapper-${item.id}`}
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <VaultItemCard
+                        entry={item}
+                        onEdit={handleEditInit}
+                        onDelete={handleDeleteEntry}
+                        onToggleFavorite={handleToggleFavorite}
+                        onOpenWorkspace={handleOpenWorkspace}
+                        categories={categories}
+                        layoutMode="table"
+                        hideCompactSummaries={hideCompactSummaries}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </section>
       </main>
 
@@ -1710,6 +2000,18 @@ export default function App() {
         }}
         entry={activeWorkspaceSheet}
         onSave={handleSaveWorkspaceSheet}
+      />
+
+      {/* Premium Edition Comparison & Coupon Modal */}
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        isPro={isPro}
+        onUpgradeSuccess={() => {
+          setIsPro(true);
+          triggerToast(lang === 'vi' ? 'Kích hoạt thành công phiên bản PRO Cận Vệ! 🎉' : 'Activated PRO Elite Edition successfully! 🎉', 'success');
+        }}
+        lang={lang}
       />
     </div>
   );

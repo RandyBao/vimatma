@@ -8,7 +8,11 @@ interface PasswordGeneratorProps {
 }
 
 export default function PasswordGenerator({ onSelectPassword, showSelectButton = false }: PasswordGeneratorProps) {
-  const [length, setLength] = useState(16);
+  // Direct localStorage dynamic premium structure/language check
+  const isPro = localStorage.getItem('secure_vault_pro_active') === 'true';
+  const currentLang = (localStorage.getItem('secure_vault_lang') as 'vi' | 'en') || 'vi';
+
+  const [length, setLength] = useState(isPro ? 16 : 12);
   const [includeUppercase, setIncludeUppercase] = useState(true);
   const [includeLowercase, setIncludeLowercase] = useState(true);
   const [includeNumbers, setIncludeNumbers] = useState(true);
@@ -16,15 +20,23 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
   const [password, setPassword] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Direct localStorage dynamic language query helper
-  const currentLang = (localStorage.getItem('secure_vault_lang') as 'vi' | 'en') || 'vi';
+  // Clamp length based on license, and adjust state if modified
+  const currentMax = isPro ? 32 : 12;
+  const actualLength = isPro ? length : Math.min(length, 12);
 
   const generatePassword = useCallback(() => {
     let charset = '';
-    if (includeUppercase) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    if (includeLowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
-    if (includeNumbers) charset += '0123456789';
-    if (includeSymbols) charset += '!@#$%^&*()_+~`|}{[]:;?><,./-=';
+    
+    // Non-PRO has locked options: Uppercase, Lowercase, Numbers always true, Symbols always false
+    const useUpper = isPro ? includeUppercase : true;
+    const useLower = isPro ? includeLowercase : true;
+    const useNumbers = isPro ? includeNumbers : true;
+    const useSymbols = isPro ? includeSymbols : false;
+
+    if (useUpper) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (useLower) charset += 'abcdefghijklmnopqrstuvwxyz';
+    if (useNumbers) charset += '0123456789';
+    if (useSymbols) charset += '!@#$%^&*()_+~`|}{[]:;?><,./-=';
 
     if (charset === '') {
       setPassword('');
@@ -32,13 +44,13 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
     }
 
     let generated = '';
-    const array = new Uint32Array(length);
+    const array = new Uint32Array(actualLength);
     window.crypto.getRandomValues(array);
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; i < actualLength; i++) {
       generated += charset[array[i] % charset.length];
     }
     setPassword(generated);
-  }, [length, includeUppercase, includeLowercase, includeNumbers, includeSymbols]);
+  }, [actualLength, includeUppercase, includeLowercase, includeNumbers, includeSymbols, isPro]);
 
   useEffect(() => {
     generatePassword();
@@ -131,15 +143,18 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
       {/* Length Slider */}
       <div className="mb-5">
         <div className="flex justify-between text-sm mb-2">
-          <span className="text-slate-300 font-medium">{currentLang === 'vi' ? 'Độ dài ký tự:' : 'Password length:'}</span>
-          <span id="password-length-val" className="text-emerald-400 font-mono font-bold">{length}</span>
+          <span className="text-slate-300 font-medium">
+            {currentLang === 'vi' ? 'Độ dài ký tự:' : 'Password length:'}
+            {!isPro && <span className="text-slate-500 text-[10px] ml-1.5 font-bold uppercase font-sans">(Bản Free - Max 12)</span>}
+          </span>
+          <span id="password-length-val" className="text-emerald-400 font-mono font-bold">{actualLength}</span>
         </div>
         <input
           id="password-length-slider"
           type="range"
           min="8"
-          max="32"
-          value={length}
+          max={currentMax}
+          value={actualLength}
           onChange={(e) => setLength(parseInt(e.target.value))}
           className="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-emerald-500"
         />
@@ -147,48 +162,67 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
 
       {/* Option Toggles */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <label className="flex items-center gap-2.5 p-2 bg-slate-900/40 hover:bg-slate-900/70 rounded-lg cursor-pointer transition-colors border border-slate-800/80">
+        <label className={`flex items-center gap-2.5 p-2 bg-slate-900/40 rounded-lg cursor-pointer transition-colors border border-slate-800/80 ${!isPro ? 'opacity-65 cursor-not-allowed bg-slate-950/70' : 'hover:bg-slate-900/70'}`}>
           <input
             id="toggle-upper-cb"
             type="checkbox"
-            checked={includeUppercase}
+            checked={isPro ? includeUppercase : true}
+            disabled={!isPro}
             onChange={(e) => setIncludeUppercase(e.target.checked)}
-            className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800"
+            className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800 disabled:opacity-80"
           />
-          <span className="text-xs font-medium text-slate-300">{currentLang === 'vi' ? 'Viết hoa (A-Z)' : 'Uppercase (A-Z)'}</span>
+          <span className="text-xs font-medium text-slate-300">
+            {currentLang === 'vi' ? 'Viết hoa (A-Z)' : 'Uppercase (A-Z)'}
+          </span>
         </label>
 
-        <label className="flex items-center gap-2.5 p-2 bg-slate-900/40 hover:bg-slate-900/70 rounded-lg cursor-pointer transition-colors border border-slate-800/80">
+        <label className={`flex items-center gap-2.5 p-2 bg-slate-900/40 rounded-lg cursor-pointer transition-colors border border-slate-800/80 ${!isPro ? 'opacity-65 cursor-not-allowed bg-slate-950/70' : 'hover:bg-slate-900/70'}`}>
           <input
             id="toggle-lower-cb"
             type="checkbox"
-            checked={includeLowercase}
+            checked={isPro ? includeLowercase : true}
+            disabled={!isPro}
             onChange={(e) => setIncludeLowercase(e.target.checked)}
-            className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800"
+            className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800 disabled:opacity-80"
           />
-          <span className="text-xs font-medium text-slate-300">{currentLang === 'vi' ? 'Viết thường (a-z)' : 'Lowercase (a-z)'}</span>
+          <span className="text-xs font-medium text-slate-300">
+            {currentLang === 'vi' ? 'Viết thường (a-z)' : 'Lowercase (a-z)'}
+          </span>
         </label>
 
-        <label className="flex items-center gap-2.5 p-2 bg-slate-900/40 hover:bg-slate-900/70 rounded-lg cursor-pointer transition-colors border border-slate-800/80">
+        <label className={`flex items-center gap-2.5 p-2 bg-slate-900/40 rounded-lg cursor-pointer transition-colors border border-slate-800/80 ${!isPro ? 'opacity-65 cursor-not-allowed bg-slate-950/70' : 'hover:bg-slate-900/70'}`}>
           <input
             id="toggle-num-cb"
             type="checkbox"
-            checked={includeNumbers}
+            checked={isPro ? includeNumbers : true}
+            disabled={!isPro}
             onChange={(e) => setIncludeNumbers(e.target.checked)}
-            className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800"
+            className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800 disabled:opacity-80"
           />
-          <span className="text-xs font-medium text-slate-300">{currentLang === 'vi' ? 'Chữ số (0-9)' : 'Numbers (0-9)'}</span>
+          <span className="text-xs font-medium text-slate-300">
+            {currentLang === 'vi' ? 'Chữ số (0-9)' : 'Numbers (0-9)'}
+          </span>
         </label>
 
-        <label className="flex items-center gap-2.5 p-2 bg-slate-900/40 hover:bg-slate-900/70 rounded-lg cursor-pointer transition-colors border border-slate-800/80">
-          <input
-            id="toggle-symbol-cb"
-            type="checkbox"
-            checked={includeSymbols}
-            onChange={(e) => setIncludeSymbols(e.target.checked)}
-            className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800"
-          />
-          <span className="text-xs font-medium text-slate-300">{currentLang === 'vi' ? 'Ký tự đặc biệt (!@#)' : 'Symbols (!@#$)'}</span>
+        <label className={`flex items-center justify-between p-2 bg-slate-900/40 rounded-lg cursor-pointer transition-colors border border-slate-800/80 ${!isPro ? 'cursor-not-allowed bg-slate-950/70 border-rose-500/20' : 'hover:bg-slate-900/70'}`}>
+          <div className="flex items-center gap-2.5">
+            <input
+              id="toggle-symbol-cb"
+              type="checkbox"
+              checked={isPro ? includeSymbols : false}
+              disabled={!isPro}
+              onChange={(e) => setIncludeSymbols(e.target.checked)}
+              className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800 disabled:opacity-80"
+            />
+            <span className="text-xs font-medium text-slate-300">
+              {currentLang === 'vi' ? 'Đặc biệt (!@#)' : 'Symbols (!@#$)'}
+            </span>
+          </div>
+          {!isPro && (
+            <span className="text-[8px] bg-rose-500/10 text-rose-450 border border-rose-500/20 px-1 py-0.2 rounded font-extrabold uppercase font-sans scale-90 tracking-wider">
+              PRO
+            </span>
+          )}
         </label>
       </div>
 
