@@ -172,7 +172,15 @@ export default function App() {
   const [showGenTools, setShowGenTools] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSecurityAudit, setShowSecurityAudit] = useState(false);
-  const [isPro, setIsPro] = useState(() => localStorage.getItem('secure_vault_pro_active') === 'true');
+  const [isPro, setIsPro] = useState(() => {
+    const isPermanent = localStorage.getItem('secure_vault_pro_active') === 'true';
+    if (isPermanent) return true;
+    const trialExpiry = localStorage.getItem('secure_vault_pro_trial_expires');
+    if (trialExpiry && Date.now() < Number(trialExpiry)) {
+      return true;
+    }
+    return false;
+  });
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [appTheme, setAppTheme] = useState<string>(() => {
     return localStorage.getItem('secure_vault_theme') || 'slate';
