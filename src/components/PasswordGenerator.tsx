@@ -16,6 +16,9 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
   const [password, setPassword] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // Direct localStorage dynamic language query helper
+  const currentLang = (localStorage.getItem('secure_vault_lang') as 'vi' | 'en') || 'vi';
+
   const generatePassword = useCallback(() => {
     let charset = '';
     if (includeUppercase) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -54,7 +57,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
 
   // Evaluate password strength
   const getPasswordStrength = () => {
-    if (!password) return { label: 'Chưa tạo', color: 'bg-slate-700', text: 'text-slate-400', width: 'w-0' };
+    if (!password) return { label: currentLang === 'vi' ? 'Chưa tạo' : 'Not generated', color: 'bg-slate-700', text: 'text-slate-400', width: 'w-0' };
     
     let score = 0;
     if (password.length >= 8) score++;
@@ -70,11 +73,11 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
     score += varietyCount;
 
     if (score <= 3) {
-      return { label: 'Yếu', color: 'bg-rose-500', text: 'text-rose-400', width: 'w-1/3' };
+      return { label: currentLang === 'vi' ? 'Yếu' : 'Weak', color: 'bg-rose-500', text: 'text-rose-400', width: 'w-1/3' };
     } else if (score <= 5) {
-      return { label: 'Trung bình', color: 'bg-amber-500', text: 'text-amber-400', width: 'w-2/3' };
+      return { label: currentLang === 'vi' ? 'Trung bình' : 'Medium', color: 'bg-amber-500', text: 'text-amber-400', width: 'w-2/3' };
     } else {
-      return { label: 'Mạnh', color: 'bg-emerald-500', text: 'text-emerald-400', width: 'w-full' };
+      return { label: currentLang === 'vi' ? 'Mạnh' : 'Strong', color: 'bg-emerald-500', text: 'text-emerald-400', width: 'w-full' };
     }
   };
 
@@ -83,12 +86,12 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
   return (
     <div id="password-generator-container" className="p-6 bg-slate-800/60 rounded-2xl border border-slate-700/50 backdrop-blur-md">
       <h3 className="text-lg font-medium text-slate-100 mb-4 flex items-center gap-2">
-        <span>Trình tạo Mật khẩu Bảo mật</span>
+        <span>{currentLang === 'vi' ? 'Trình tạo Mật khẩu Bảo mật' : 'Secure Password Generator'}</span>
       </h3>
 
       {/* Generated Password Box */}
       <div className="relative mb-5 flex items-center bg-slate-950/70 p-4 rounded-xl border border-slate-800 font-mono text-lg text-emerald-400 select-all overflow-x-auto whitespace-nowrap scrollbar-none">
-        <span className="pr-12">{password || <span className="text-slate-600 font-sans italic text-sm">Vui lòng chọn ít nhất một tùy chọn</span>}</span>
+        <span className="pr-12">{password || <span className="text-slate-600 font-sans italic text-sm">{currentLang === 'vi' ? 'Vui lòng chọn ít nhất một tùy chọn' : 'Please select at least one option'}</span>}</span>
         
         <div className="absolute right-2 flex items-center gap-1">
           <button
@@ -96,7 +99,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
             onClick={generatePassword}
             type="button"
             className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-            title="Tạo lại"
+            title={currentLang === 'vi' ? 'Tạo lại' : 'Generate new'}
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -107,7 +110,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
             disabled={!password}
             type="button"
             className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 cursor-pointer"
-            title="Sao chép"
+            title={currentLang === 'vi' ? 'Sao chép' : 'Copy'}
           >
             {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
           </button>
@@ -117,7 +120,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
       {/* Strength Indicator */}
       <div className="mb-5">
         <div className="flex justify-between text-xs font-semibold mb-1.5">
-          <span className="text-slate-400">Độ an toàn:</span>
+          <span className="text-slate-400">{currentLang === 'vi' ? 'Độ an toàn:' : 'Security level:'}</span>
           <span className={strength.text}>{strength.label}</span>
         </div>
         <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
@@ -128,7 +131,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
       {/* Length Slider */}
       <div className="mb-5">
         <div className="flex justify-between text-sm mb-2">
-          <span className="text-slate-300 font-medium">Độ dài ký tự:</span>
+          <span className="text-slate-300 font-medium">{currentLang === 'vi' ? 'Độ dài ký tự:' : 'Password length:'}</span>
           <span id="password-length-val" className="text-emerald-400 font-mono font-bold">{length}</span>
         </div>
         <input
@@ -152,7 +155,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
             onChange={(e) => setIncludeUppercase(e.target.checked)}
             className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800"
           />
-          <span className="text-xs font-medium text-slate-300">Viết hoa (A-Z)</span>
+          <span className="text-xs font-medium text-slate-300">{currentLang === 'vi' ? 'Viết hoa (A-Z)' : 'Uppercase (A-Z)'}</span>
         </label>
 
         <label className="flex items-center gap-2.5 p-2 bg-slate-900/40 hover:bg-slate-900/70 rounded-lg cursor-pointer transition-colors border border-slate-800/80">
@@ -163,7 +166,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
             onChange={(e) => setIncludeLowercase(e.target.checked)}
             className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800"
           />
-          <span className="text-xs font-medium text-slate-300">Viết thường (a-z)</span>
+          <span className="text-xs font-medium text-slate-300">{currentLang === 'vi' ? 'Viết thường (a-z)' : 'Lowercase (a-z)'}</span>
         </label>
 
         <label className="flex items-center gap-2.5 p-2 bg-slate-900/40 hover:bg-slate-900/70 rounded-lg cursor-pointer transition-colors border border-slate-800/80">
@@ -174,7 +177,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
             onChange={(e) => setIncludeNumbers(e.target.checked)}
             className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800"
           />
-          <span className="text-xs font-medium text-slate-300">Chữ số (0-9)</span>
+          <span className="text-xs font-medium text-slate-300">{currentLang === 'vi' ? 'Chữ số (0-9)' : 'Numbers (0-9)'}</span>
         </label>
 
         <label className="flex items-center gap-2.5 p-2 bg-slate-900/40 hover:bg-slate-900/70 rounded-lg cursor-pointer transition-colors border border-slate-800/80">
@@ -185,7 +188,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
             onChange={(e) => setIncludeSymbols(e.target.checked)}
             className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-950 h-4 w-4 bg-slate-800"
           />
-          <span className="text-xs font-medium text-slate-300">Ký tự đặc biệt (!@#)</span>
+          <span className="text-xs font-medium text-slate-300">{currentLang === 'vi' ? 'Ký tự đặc biệt (!@#)' : 'Symbols (!@#$)'}</span>
         </label>
       </div>
 
@@ -201,7 +204,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
             type="button"
             className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20"
           >
-            Sử dụng mật khẩu này
+            {currentLang === 'vi' ? 'Sử dụng mật khẩu này' : 'Use this password'}
           </motion.button>
         )}
       </AnimatePresence>

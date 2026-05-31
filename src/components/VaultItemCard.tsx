@@ -31,6 +31,9 @@ export default function VaultItemCard({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Direct localStorage dynamic language query helper
+  const currentLang = (localStorage.getItem('secure_vault_lang') as 'vi' | 'en') || 'vi';
+
   const toggleValue = (fieldKey: string) => {
     setShowSecrets(prev => ({ ...prev, [fieldKey]: !prev[fieldKey] }));
   };
@@ -65,25 +68,25 @@ export default function VaultItemCard({
 
   const getCompactSummary = () => {
     if (entry.category === 'bank') {
-      return `${entry.bankName || 'Ngân hàng'} • ${entry.accountNumber || ''}`;
+      return `${entry.bankName || (currentLang === 'vi' ? 'Ngân hàng' : 'Bank')} • ${entry.accountNumber || ''}`;
     }
     if (entry.category === 'social') {
-      return `${entry.platformName || 'Mạng xã hội'} • ${entry.username || ''}`;
+      return `${entry.platformName || (currentLang === 'vi' ? 'Mạng xã hội' : 'Social account')} • ${entry.username || ''}`;
     }
     if (entry.category === 'web') {
       return `${entry.username || ''}`;
     }
     if (entry.category === 'wallet') {
-      return `${entry.walletName || 'Ví Crypto'} ${entry.address ? '• ' + entry.address.slice(0, 10) + '...' : ''}`;
+      return `${entry.walletName || (currentLang === 'vi' ? 'Ví Crypto' : 'Crypto space')} ${entry.address ? '• ' + entry.address.slice(0, 10) + '...' : ''}`;
     }
     if (entry.category === 'ewallet') {
-      return `${entry.ewalletName || 'Ví điện tử'} • ${entry.phoneNumber || ''}`;
+      return `${entry.ewalletName || (currentLang === 'vi' ? 'Ví điện tử' : 'E-wallet')} • ${entry.phoneNumber || ''}`;
     }
     if (entry.category === 'phoneapp') {
-      return `${entry.appName || 'Ứng dụng'} • ${entry.username || ''}`;
+      return `${entry.appName || (currentLang === 'vi' ? 'Ứng dụng' : 'Application')} • ${entry.username || ''}`;
     }
     if (entry.category === 'sheet') {
-      return `Bảng tính (${entry.headers?.length || 0} cột, ${entry.rows?.length || 0} hàng)`;
+      return currentLang === 'vi' ? `Bảng tính (${entry.headers?.length || 0} cột, ${entry.rows?.length || 0} hàng)` : `Spreadsheet (${entry.headers?.length || 0} columns, ${entry.rows?.length || 0} rows)`;
     }
     if (entry.category === 'note') {
       return '••••••••••••';
@@ -107,70 +110,73 @@ export default function VaultItemCard({
   const getCategoryStyles = () => {
     const matchedCat = categories?.find(c => c.id === entry.category);
     const catType = matchedCat ? matchedCat.iconType : entry.category;
-    const label = matchedCat ? matchedCat.label : null;
+    let fallbackLabel = null;
+    if (matchedCat) {
+      fallbackLabel = currentLang === 'en' ? (matchedCat.id === 'bank' ? 'Bank details' : matchedCat.id === 'social' ? 'Social Accounts' : matchedCat.id === 'web' ? 'Regular Web' : matchedCat.id === 'wallet' ? 'Crypto Wallets' : matchedCat.id === 'ewallet' ? 'E-Wallets' : matchedCat.id === 'phoneapp' ? 'Phone Apps' : matchedCat.id === 'note' ? 'Secure Notes' : matchedCat.id === 'sheet' ? 'Spreadsheets' : matchedCat.label) : matchedCat.label;
+    }
 
     switch (catType) {
       case 'bank':
         return {
           icon: <CreditCard className="h-5 w-5 text-blue-400" />,
           bgColor: 'bg-blue-500/10 border-blue-500/20',
-          badgeText: label || 'Ngân hàng',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Ngân hàng' : 'Bank detail'),
           badgeColor: 'bg-blue-500/20 text-blue-300',
         };
       case 'social':
         return {
           icon: <Smartphone className="h-5 w-5 text-teal-400" />,
           bgColor: 'bg-teal-500/10 border-teal-500/20',
-          badgeText: label || 'Mạng xã hội',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Mạng xã hội' : 'Social group'),
           badgeColor: 'bg-teal-500/20 text-teal-300',
         };
       case 'web':
         return {
           icon: <Globe className="h-5 w-5 text-purple-400" />,
           bgColor: 'bg-purple-500/10 border-purple-500/20',
-          badgeText: label || 'Tài khoản Web',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Tài khoản Web' : 'Web Account'),
           badgeColor: 'bg-purple-500/20 text-purple-300',
         };
       case 'note':
         return {
           icon: <FileText className="h-5 w-5 text-amber-400" />,
           bgColor: 'bg-amber-500/10 border-amber-500/20',
-          badgeText: label || 'Ghi chú',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Ghi chú' : 'Secure Note'),
           badgeColor: 'bg-amber-500/20 text-amber-300',
         };
       case 'wallet':
         return {
           icon: <Wallet className="h-5 w-5 text-emerald-400" />,
           bgColor: 'bg-emerald-500/10 border-emerald-500/20',
-          badgeText: label || 'Ví Crypto',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Ví Crypto' : 'Crypto tokens'),
           badgeColor: 'bg-emerald-500/20 text-emerald-300',
         };
       case 'ewallet':
         return {
           icon: <Smartphone className="h-5 w-5 text-pink-400" />,
           bgColor: 'bg-pink-500/10 border-pink-500/20',
-          badgeText: label || 'Ví điện tử',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Ví điện tử' : 'E-wallet'),
           badgeColor: 'bg-pink-500/20 text-pink-300',
         };
       case 'phoneapp':
         return {
           icon: <Fingerprint className="h-5 w-5 text-indigo-400" />,
           bgColor: 'bg-indigo-500/10 border-indigo-500/20',
-          badgeText: label || 'App Mobile',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'App Mobile' : 'Mobile Application'),
           badgeColor: 'bg-indigo-500/20 text-indigo-300',
         };
       case 'sheet':
         return {
           icon: <Table className="h-5 w-5 text-emerald-400" />,
           bgColor: 'bg-emerald-500/10 border-emerald-500/20',
-          badgeText: label || 'Bảng tính',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Bảng tính' : 'Spreadsheet'),
           badgeColor: 'bg-emerald-500/25 text-emerald-300',
         };
       default:
         return {
           icon: <FileText className="h-5 w-5 text-slate-400" />,
           bgColor: 'bg-slate-500/10 border-slate-500/20',
-          badgeText: label || 'Khác',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Khác' : 'Miscellaneous'),
           badgeColor: 'bg-slate-500/20 text-slate-300',
         };
     }
@@ -186,9 +192,48 @@ export default function VaultItemCard({
     const displayValue = isShowing ? value : '••••••••••••';
     const uniqueKey = `${entry.id}-${secretKey || label}`;
 
+    let translatedLabel = label;
+    if (currentLang === 'en') {
+      const fieldTranslations: { [key: string]: string } = {
+        'Ngân hàng': 'Bank Name',
+        'Số tài khoản': 'Account Number',
+        'Chủ tài khoản': 'Account Holder',
+        'Tên đăng nhập': 'Login Username',
+        'Mật khẩu': 'Password',
+        'Mã PIN': 'PIN Code',
+        'Chi nhánh': 'Branch Office',
+        'Nền tảng': 'Platform Platform',
+        'Username / Email': 'Username / Email',
+        'Tài khoản / Email': 'Account ID / Email',
+        'Tên đăng nhập / Số ĐT': 'Login Phone / Username',
+        'Nội dung ghi chú': 'Notes Freeform Body',
+        'Sàn / Loại Ví': 'Exchange / Wallet Type',
+        'Phân loại Ví': 'Wallet Classification',
+        'Tài khoản / Email đăng nhập': 'Exchange ID / Email',
+        'Mật khẩu / PIN bảo mật': 'Protective PIN',
+        'Địa chỉ ví (Address)': 'Wallet Address',
+        'Cụm từ khôi phục (12 - 24 từ)': 'Mnemonic Seed Phrase',
+        'Khóa riêng tư (Private Key)': 'Private Key',
+        'API Key': 'API Key',
+        'API Secret / Secret Key': 'API Secret Signature',
+        'Ví điện tử': 'E-Wallet Identifier',
+        'Số điện thoại / Tài khoản': 'Phone Number / Login Account',
+        'Mã PIN bảo mật': 'Security PIN Code',
+        'Mật khẩu đăng nhập': 'Sign-in Password',
+        'Ngân hàng liên kết': 'Associated Linked Bank',
+        'Ứng dụng di động': 'Mobile Phone Application',
+        'Số định danh / CCCD': 'National ID Card Number',
+        'Mã Passcode bảo mật': 'Entry Passcode',
+        'Mật khẩu chính': 'Core Password',
+        'Email liên kết': 'Linked Registered Email',
+        'Bảng tính lưu trữ': 'Spreadsheet Database'
+      };
+      translatedLabel = fieldTranslations[label] || label;
+    }
+
     return (
       <div className="flex flex-col gap-1 py-1.5 border-b border-slate-800/40 last:border-0 text-left">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{translatedLabel}</span>
         <div className="flex items-center justify-between gap-2.5">
           <span className={`text-base text-slate-200 select-all ${fontMono ? 'font-mono tracking-wider text-emerald-400' : ''}`}>
             {displayValue}
@@ -202,7 +247,7 @@ export default function VaultItemCard({
                   toggleValue(secretKey);
                 }}
                 className="p-1 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
-                title={isShowing ? 'Ẩn' : 'Hiện'}
+                title={isShowing ? (currentLang === 'vi' ? 'Ẩn' : 'Hide') : (currentLang === 'vi' ? 'Hiện' : 'Show')}
               >
                 {isShowing ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               </button>
@@ -214,7 +259,7 @@ export default function VaultItemCard({
                 handleCopy(value, uniqueKey);
               }}
               className="p-1 text-slate-500 hover:text-emerald-400 transition-colors cursor-pointer"
-              title="Sao chép"
+              title={currentLang === 'vi' ? 'Sao chép' : 'Copy'}
             >
               {copiedField === uniqueKey ? (
                 <Check className="h-3.5 w-3.5 text-emerald-400 animate-scale" />
@@ -289,17 +334,17 @@ export default function VaultItemCard({
                   if (val) handleCopy(val, `row-primary-${entry.id}`);
                 }}
                 className="flex items-center gap-1 px-2.5 py-1 bg-slate-950 hover:bg-slate-850 hover:text-emerald-400 border border-slate-850 text-slate-400 rounded-lg text-xs font-bold cursor-pointer transition-all"
-                title="Sao chép nhanh thông tin"
+                title={currentLang === 'vi' ? 'Sao chép nhanh thông tin' : 'Quick Copy Info'}
               >
                 {copiedField === `row-primary-${entry.id}` ? (
                   <>
                     <Check className="h-3 w-3 text-emerald-400 animate-scale" />
-                    <span className="text-emerald-400 font-sans font-semibold">Đã chép</span>
+                    <span className="text-emerald-400 font-sans font-semibold">{currentLang === 'vi' ? 'Đã chép' : 'Copied'}</span>
                   </>
                 ) : (
                   <>
                     <Copy className="h-3 w-3" />
-                    <span className="font-sans font-semibold">Copy nhanh</span>
+                    <span className="font-sans font-semibold">{currentLang === 'vi' ? 'Copy nhanh' : 'Quick Copy'}</span>
                   </>
                 )}
               </button>
@@ -314,7 +359,7 @@ export default function VaultItemCard({
                     onToggleFavorite(entry.id);
                   }}
                   className="p-1.5 bg-slate-950 hover:bg-slate-850 border border-slate-850 rounded-lg transition-colors text-slate-500 hover:text-amber-400 cursor-pointer"
-                  title={entry.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}
+                  title={entry.isFavorite ? (currentLang === 'vi' ? 'Bỏ yêu thích' : 'Unstar') : (currentLang === 'vi' ? 'Yêu thích' : 'Star')}
                 >
                   <Star className={`h-3.5 w-3.5 ${entry.isFavorite ? 'text-amber-500 fill-amber-500' : ''}`} />
                 </button>
@@ -327,7 +372,7 @@ export default function VaultItemCard({
                   onEdit(entry);
                 }}
                 className="p-1.5 bg-slate-950 hover:bg-slate-850 border border-slate-850 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer"
-                title="Sửa"
+                title={currentLang === 'vi' ? 'Sửa' : 'Edit'}
               >
                 <Edit2 className="h-3.5 w-3.5" />
               </button>
@@ -336,12 +381,12 @@ export default function VaultItemCard({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (window.confirm(`Bạn có chắc muốn xóa "${entry.title}"?`)) {
+                  if (window.confirm(currentLang === 'vi' ? `Bạn có chắc muốn xóa "${entry.title}"?` : `Are you sure you want to delete "${entry.title}"?`)) {
                     onDelete(entry.id);
                   }
                 }}
-                className="p-1.5 bg-slate-950 hover:bg-slate-850 border border-slate-850 rounded-lg text-slate-400 hover:text-rose-450 transition-colors cursor-pointer"
-                title="Xóa"
+                className="p-1.5 bg-slate-950 hover:bg-slate-855 border border-slate-850 rounded-lg text-slate-400 hover:text-rose-450 transition-colors cursor-pointer"
+                title={currentLang === 'vi' ? 'Xóa' : 'Delete'}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -469,10 +514,10 @@ export default function VaultItemCard({
             {entry.category === 'sheet' && (
               <div className="py-1 space-y-2 text-left">
                 <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  <span>Bảng tính lưu trữ</span>
+                  <span>{currentLang === 'vi' ? 'Bảng tính lưu trữ' : 'Secure Spreadsheet'}</span>
                   {entry.isIntegrated ? (
                     <div className="flex items-center gap-1 text-emerald-400 font-sans tracking-wide">
-                      <span>✓ Trực tuyến</span>
+                      <span>{currentLang === 'vi' ? '✓ Trực tuyến' : '✓ Online Sync'}</span>
                       {entry.spreadsheetUrl && (
                         <a
                           href={entry.spreadsheetUrl}
@@ -480,21 +525,21 @@ export default function VaultItemCard({
                           rel="noreferrer noopener"
                           onClick={(e) => e.stopPropagation()}
                           className="p-0.5 hover:bg-slate-800 rounded text-emerald-400 hover:text-emerald-300 transition-colors"
-                          title="Mở Google Sheets trực tuyến"
+                          title={currentLang === 'vi' ? 'Mở Google Sheets trực tuyến' : 'Open Google Sheets online'}
                         >
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
                     </div>
                   ) : (
-                    <span className="text-slate-500 font-sans tracking-wide">Nội bộ</span>
+                    <span className="text-slate-500 font-sans tracking-wide">{currentLang === 'vi' ? 'Nội bộ' : 'Local offline'}</span>
                   )}
                 </div>
 
                 {entry.isIntegrated && entry.lastSyncTime && (
                   <div className="text-xs text-slate-400 font-medium bg-emerald-950/10 border border-emerald-900/10 p-1.5 rounded-lg flex items-center justify-between">
-                    <span>Google Sheet Synced</span>
-                    <span className="font-mono text-slate-500 text-[10px]">Cập nhật: {new Date(entry.lastSyncTime).toLocaleTimeString('vi-VN')}</span>
+                    <span>{currentLang === 'vi' ? 'Đã đồng bộ Google Sheet' : 'Google Sheet Synced'}</span>
+                    <span className="font-mono text-slate-500 text-[10px]">{currentLang === 'vi' ? 'Cập nhật: ' : 'Updated: '} {new Date(entry.lastSyncTime).toLocaleTimeString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</span>
                   </div>
                 )}
 
@@ -508,7 +553,7 @@ export default function VaultItemCard({
                     className="w-full py-2 px-3 bg-slate-900 hover:bg-slate-850 hover:text-emerald-400 border border-slate-800 hover:border-emerald-500/20 text-slate-300 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                   >
                     <Maximize2 className="h-3.5 w-3.5 text-emerald-400" />
-                    <span>Mở bảng tính màn hình lớn ↗</span>
+                    <span>{currentLang === 'vi' ? 'Mở bảng tính màn hình lớn ↗' : 'Large Spreadsheet Workspace ↗'}</span>
                   </button>
                 )}
 
@@ -539,7 +584,7 @@ export default function VaultItemCard({
                                       handleCopy(cell, cellId);
                                     }}
                                     className="absolute right-1 top-1.5 opacity-0 group-hover/cell:opacity-100 transition-opacity p-0.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded cursor-pointer shrink-0"
-                                    title="Sao chép ô này"
+                                    title={currentLang === 'vi' ? 'Sao chép ô này' : 'Copy this cell'}
                                   >
                                     {copiedField === cellId ? (
                                       <Check className="h-2.5 w-2.5 text-emerald-400" />
@@ -561,7 +606,7 @@ export default function VaultItemCard({
 
             {entry.category === 'note' && (
               <div className="py-1 text-left animate-fade-in">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Nội dung ghi chú</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">{currentLang === 'vi' ? 'Nội dung ghi chú' : 'Note Content'}</span>
                 <div 
                   onClick={(e) => {
                     if (!showSecrets[`${entry.id}-noteContent`]) {
@@ -590,17 +635,17 @@ export default function VaultItemCard({
                       toggleValue(`${entry.id}-noteContent`);
                     }}
                     className="p-1 text-slate-500 hover:text-slate-305 transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-                    title={showSecrets[`${entry.id}-noteContent`] ? 'Ẩn ghi chú' : 'Hiện ghi chú'}
+                    title={showSecrets[`${entry.id}-noteContent`] ? (currentLang === 'vi' ? 'Ẩn ghi chú' : 'Hide Notes') : (currentLang === 'vi' ? 'Hiện ghi chú' : 'Show Notes')}
                   >
                     {showSecrets[`${entry.id}-noteContent`] ? (
                       <>
                         <EyeOff className="h-3.5 w-3.5" />
-                        <span className="font-sans">Ẩn nội dung</span>
+                        <span className="font-sans">{currentLang === 'vi' ? 'Ẩn nội dung' : 'Hide notes'}</span>
                       </>
                     ) : (
                       <>
                         <Eye className="h-3.5 w-3.5" />
-                        <span className="font-sans">Hiện nội dung</span>
+                        <span className="font-sans">{currentLang === 'vi' ? 'Hiện nội dung' : 'Reveal notes'}</span>
                       </>
                     )}
                   </button>
@@ -616,12 +661,12 @@ export default function VaultItemCard({
                     {copiedField === `note-${entry.id}` ? (
                       <>
                         <Check className="h-3.5 w-3.5 text-emerald-400" />
-                        <span className="text-emerald-400 font-sans font-semibold">Đã chép</span>
+                        <span className="text-emerald-400 font-sans font-semibold">{currentLang === 'vi' ? 'Đã chép' : 'Copied'}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="h-3.5 w-3.5" />
-                        <span className="font-sans">Sao chép ghi chú</span>
+                        <span className="font-sans">{currentLang === 'vi' ? 'Sao chép ghi chú' : 'Copy notes'}</span>
                       </>
                     )}
                   </button>
@@ -638,11 +683,11 @@ export default function VaultItemCard({
               <Bell className="h-4 w-4" />
             </div>
             <div className="text-left text-xs">
-              <div className="font-bold text-indigo-300">Nhắc nhở lịch hẹn:</div>
-              <div className="mt-0.5 text-slate-200 font-medium select-text">{entry.reminder.message || 'Thông báo tự động'}</div>
+              <div className="font-bold text-indigo-300">{currentLang === 'vi' ? 'Nhắc nhở lịch hẹn:' : 'Calendar Reminder:'}</div>
+              <div className="mt-0.5 text-slate-200 font-medium select-text">{entry.reminder.message || (currentLang === 'vi' ? 'Thông báo tự động' : 'System automated alarm')}</div>
               <div className="mt-1 font-mono text-[11px] text-slate-400 flex items-center gap-1.5">
                 <Calendar className="h-3 w-3 text-slate-500" />
-                Ngày: {entry.reminder.date.split('-').reverse().join('-')} • {entry.reminder.type === 'yearly' ? 'Lặp lại hàng năm 🎂' : 'Lời nhắc 1 lần 📌'}
+                {currentLang === 'vi' ? 'Ngày: ' : 'Date: '}{entry.reminder.date.split('-').reverse().join('/')} • {entry.reminder.type === 'yearly' ? (currentLang === 'vi' ? 'Lặp lại hàng năm 🎂' : 'Repeats Annually 🎂') : (currentLang === 'vi' ? 'Lời nhắc 1 lần 📌' : 'One-time notification 📌')}
               </div>
             </div>
           </div>
@@ -651,7 +696,7 @@ export default function VaultItemCard({
         {/* Notes block */}
         {isExpanded && entry.notes && entry.category !== 'note' && (
           <div className="mt-2.5 pt-2 border-t border-slate-850 text-slate-400 text-sm text-left italic select-text">
-            <span className="font-semibold text-slate-500 not-italic">Lưu ý: </span> {entry.notes}
+            <span className="font-semibold text-slate-500 not-italic">{currentLang === 'vi' ? 'Lưu ý: ' : 'Observations: '}</span> {entry.notes}
           </div>
         )}
       </div>
@@ -696,7 +741,7 @@ export default function VaultItemCard({
                       onToggleFavorite(entry.id);
                     }}
                     className="text-slate-600 hover:text-amber-400 transition-colors shrink-0 cursor-pointer"
-                    title={entry.isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}
+                    title={entry.isFavorite ? (currentLang === 'vi' ? 'Bỏ yêu thích' : 'Unstar') : (currentLang === 'vi' ? 'Yêu thích' : 'Star')}
                   >
                     <Star 
                       className={`h-4 w-4 ${entry.isFavorite ? 'text-amber-400 fill-amber-400' : ''}`} 
@@ -721,7 +766,7 @@ export default function VaultItemCard({
                 onEdit(entry);
               }}
               className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-              title="Sửa"
+              title={currentLang === 'vi' ? 'Sửa' : 'Edit'}
             >
               <Edit2 className="h-3.5 w-3.5" />
             </button>
@@ -729,12 +774,12 @@ export default function VaultItemCard({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (window.confirm(`Bạn có chắc muốn xóa "${entry.title}"?`)) {
+                if (window.confirm(currentLang === 'vi' ? `Bạn có chắc muốn xóa "${entry.title}"?` : `Are you sure you want to delete "${entry.title}"?`)) {
                   onDelete(entry.id);
                 }
               }}
-              className="p-1.5 text-slate-400 hover:text-rose-450 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-              title="Xóa"
+              className="p-1.5 text-slate-400 hover:text-rose-455 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              title={currentLang === 'vi' ? 'Xóa' : 'Delete'}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

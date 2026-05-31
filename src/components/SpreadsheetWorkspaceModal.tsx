@@ -19,6 +19,9 @@ export default function SpreadsheetWorkspaceModal({
   onSave 
 }: SpreadsheetWorkspaceModalProps) {
   
+  // Direct localStorage dynamic language query helper
+  const currentLang = (localStorage.getItem('secure_vault_lang') as 'vi' | 'en') || 'vi';
+
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<string[][]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,7 +35,7 @@ export default function SpreadsheetWorkspaceModal({
   // Load entry data when it is opened or changed
   useEffect(() => {
     if (isOpen && entry) {
-      setHeaders(entry.headers || ['Cột 1', 'Cột 2', 'Cột 3']);
+      setHeaders(entry.headers || [currentLang === 'vi' ? 'Cột 1' : 'Col 1', currentLang === 'vi' ? 'Cột 2' : 'Col 2', currentLang === 'vi' ? 'Cột 3' : 'Col 3']);
       setRows(entry.rows || [['', '', ''], ['', '', '']]);
       setLastSyncTime(entry.lastSyncTime);
       setSyncError('');
@@ -87,7 +90,7 @@ export default function SpreadsheetWorkspaceModal({
 
   // Add Column
   const handleAddColumn = () => {
-    const newColName = `Cột ${headers.length + 1}`;
+    const newColName = currentLang === 'vi' ? `Cột ${headers.length + 1}` : `Col ${headers.length + 1}`;
     setHeaders([...headers, newColName]);
     setRows(rows.map(row => [...row, '']));
     setIsDirty(true);
@@ -96,10 +99,10 @@ export default function SpreadsheetWorkspaceModal({
   // Delete Column
   const handleDeleteColumn = (colIndex: number) => {
     if (headers.length <= 1) {
-      alert('Không thể xóa cột cuối cùng. Bảng tính cần có ít nhất 1 cột.');
+      alert(currentLang === 'vi' ? 'Không thể xóa cột cuối cùng. Bảng tính cần có ít nhất 1 cột.' : 'Cannot delete the only column. Spreadsheets must have at least 1 column.');
       return;
     }
-    if (confirm(`Bạn có chắc chắn muốn xóa cột "${headers[colIndex]}" không?`)) {
+    if (confirm(currentLang === 'vi' ? `Bạn có chắc chắn muốn xóa cột "${headers[colIndex]}" không?` : `Are you sure you want to delete column "${headers[colIndex]}"?`)) {
       const updatedHeaders = headers.filter((_, idx) => idx !== colIndex);
       const updatedRows = rows.map(r => r.filter((_, idx) => idx !== colIndex));
       setHeaders(updatedHeaders);
@@ -125,7 +128,7 @@ export default function SpreadsheetWorkspaceModal({
     }
 
     if (!spreadsheetId) {
-      setSyncError('URL hoặc ID của Google Sheet không hợp lệ.');
+      setSyncError(currentLang === 'vi' ? 'URL hoặc ID của Google Sheet không hợp lệ.' : 'Invalid Google Sheets URL or Spreadsheet ID.');
       setIsSyncing(false);
       return;
     }
@@ -135,7 +138,7 @@ export default function SpreadsheetWorkspaceModal({
         const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`;
         const response = await fetch(csvUrl);
         if (!response.ok) {
-          throw new Error('Không thể fetch dữ liệu. Vui lòng kiểm tra lại quyền chia sẻ "Bất kỳ ai có liên kết đều xem được" trên Google Sheets của tài khoản bên kia.');
+          throw new Error(currentLang === 'vi' ? 'Không thể fetch dữ liệu. Vui lòng kiểm tra lại quyền chia sẻ "Bất kỳ ai có liên kết đều xem được" trên Google Sheets của tài khoản bên kia.' : 'Failed to fetch. Verify that the Google Sheet is shared with public view permissions ("Anyone with link can view").');
         }
         const text = await response.text();
         
@@ -171,7 +174,7 @@ export default function SpreadsheetWorkspaceModal({
 
         const filteredLines = lines.filter(r => r.some(c => c.trim() !== ""));
         if (filteredLines.length === 0) {
-          throw new Error('Biểu mẫu trống.');
+          throw new Error(currentLang === 'vi' ? 'Biểu mẫu trống.' : 'The spreadsheet spreadsheet is empty.');
         }
 
         const pulledHeaders = filteredLines[0];
@@ -184,7 +187,7 @@ export default function SpreadsheetWorkspaceModal({
         setIsDirty(true); // marked dirty so changes are ready to be saved locally
       } else {
         // Private google sheet mode integration
-        const token = window.prompt("Nhập Google OAuth Access Token để thao tác bảng tính an toàn:");
+        const token = window.prompt(currentLang === 'vi' ? "Nhập Google OAuth Access Token để thao tác bảng tính an toàn:" : "Enter Google OAuth Access Token for secure sheet access:");
         if (!token || !token.trim()) {
           setIsSyncing(false);
           return;
@@ -196,12 +199,12 @@ export default function SpreadsheetWorkspaceModal({
         });
         
         if (!response.ok) {
-          throw new Error('Kết nối thất bại. Token lỗi hoặc hết hạn truy cập.');
+          throw new Error(currentLang === 'vi' ? 'Kết nối thất bại. Token lỗi hoặc hết hạn truy cập.' : 'Connection failed. Access token is invalid or expired.');
         }
 
         const data = await response.json();
         if (!data.values || data.values.length === 0) {
-          throw new Error('Dữ liệu trống.');
+          throw new Error(currentLang === 'vi' ? 'Dữ liệu trống.' : 'Spreadsheet contains no data values.');
         }
 
         setHeaders(data.values[0]);
@@ -212,7 +215,7 @@ export default function SpreadsheetWorkspaceModal({
       }
     } catch (err: any) {
       console.error(err);
-      setSyncError(err.message || 'Lỗi chưa rõ khi đồng bộ.');
+      setSyncError(err.message || (currentLang === 'vi' ? 'Lỗi chưa rõ khi đồng bộ.' : 'Unknown error during synchronization.'));
     } finally {
       setIsSyncing(false);
     }
@@ -230,7 +233,7 @@ export default function SpreadsheetWorkspaceModal({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `${entry.title || 'bảng-tính'}_xuất_kho_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.setAttribute('download', `${entry.title || 'bảng-tính'}_export_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -266,7 +269,7 @@ export default function SpreadsheetWorkspaceModal({
   // Handle close action with dirty verification
   const handleCloseAttempt = () => {
     if (isDirty) {
-      if (confirm('Bảng tính có thay đổi thủ công hoặc đồng bộ chưa được lưu vào Kho Mã Hóa. Bạn có thực sự muốn đóng và hủy bỏ những thay đổi này?')) {
+      if (confirm(currentLang === 'vi' ? 'Bảng tính có thay đổi thủ công hoặc đồng bộ chưa được lưu vào Kho Mã Hóa. Bạn có thực sự muốn đóng và hủy bỏ những thay đổi này?' : 'You have unsaved workspace changes. Are you sure you want to discard them and close?')) {
         onClose();
       }
     } else {
@@ -287,16 +290,16 @@ export default function SpreadsheetWorkspaceModal({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider bg-emerald-500/10">
-                  {entry.isIntegrated ? 'Liên kết trực tuyến' : 'Bảng tính nội bộ'}
+                  {entry.isIntegrated ? (currentLang === 'vi' ? 'Liên kết trực tuyến' : 'Cloud Sync Link') : (currentLang === 'vi' ? 'Bảng tính nội bộ' : 'Local Spreadsheet')}
                 </span>
                 {isDirty && (
                   <span className="text-[10px] bg-amber-500/10 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded font-bold animate-pulse">
-                    Có dữ liệu mới chưa lưu
+                    {currentLang === 'vi' ? 'Có dữ liệu mới chưa lưu' : 'Unsaved manual edits'}
                   </span>
                 )}
               </div>
               <h1 className="text-sm md:text-base font-bold text-white tracking-tight flex items-center gap-1.5 uppercase mt-1">
-                {entry.title} - Chế độ màn hình lớn
+                {entry.title} {currentLang === 'vi' ? '- Chế độ màn hình lớn' : '- Large screen workspace'}
               </h1>
             </div>
           </div>
@@ -308,10 +311,10 @@ export default function SpreadsheetWorkspaceModal({
                 onClick={handleSyncOnline}
                 disabled={isSyncing}
                 className="px-3.5 py-2 hover:bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400 disabled:opacity-40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Đồng bộ cập nhật nội dung từ tài khoản Google"
+                title={currentLang === 'vi' ? 'Đồng bộ cập nhật nội dung từ tài khoản Google' : 'Sync updates from linked Google Sheet'}
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>Đồng bộ Trang tính</span>
+                <span>{currentLang === 'vi' ? 'Đồng bộ Trang tính' : 'Sync Sheet'}</span>
               </button>
             )}
 
@@ -319,10 +322,10 @@ export default function SpreadsheetWorkspaceModal({
               type="button"
               onClick={handleExportCSV}
               className="px-3.5 py-2 hover:bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-              title="Xuất bảng dữ liệu hiện tại làm file CSV"
+              title={currentLang === 'vi' ? 'Xuất bảng dữ liệu hiện tại làm file CSV' : 'Export current worksheet as CSV'}
             >
               <Download className="h-3.5 w-3.5" />
-              <span>Xuất CSV tệp</span>
+              <span>{currentLang === 'vi' ? 'Xuất CSV tệp' : 'Export CSV'}</span>
             </button>
 
             <button
@@ -332,14 +335,14 @@ export default function SpreadsheetWorkspaceModal({
               className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Save className="h-3.5 w-3.5" />
-              <span>Lưu vào Kho an toàn</span>
+              <span>{currentLang === 'vi' ? 'Lưu vào Kho an toàn' : 'Save to Vault'}</span>
             </button>
 
             <button
               type="button"
               onClick={handleCloseAttempt}
               className="p-2 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-white rounded-xl transition-all cursor-pointer ml-1"
-              title="Thoát chế độ"
+              title={currentLang === 'vi' ? 'Thoát chế độ' : 'Close Workspace'}
             >
               <X className="h-4 w-4" />
             </button>
@@ -350,7 +353,7 @@ export default function SpreadsheetWorkspaceModal({
         {entry.isIntegrated && (
           <div className="bg-slate-900/40 border-b border-slate-900 px-5 py-2 text-xs flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 text-slate-400">
-              <span className="font-semibold text-slate-500">Nguồn liên kết:</span>
+              <span className="font-semibold text-slate-500">{currentLang === 'vi' ? 'Nguồn liên kết:' : 'Linked Source URL:'}</span>
               <span className="truncate max-w-md font-mono text-[11px] text-slate-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-850">
                 {entry.spreadsheetUrl}
               </span>
@@ -360,7 +363,7 @@ export default function SpreadsheetWorkspaceModal({
                   target="_blank"
                   rel="noreferrer noopener"
                   className="p-1 hover:bg-slate-800 text-emerald-450 hover:text-emerald-400 rounded flex items-center justify-center"
-                  title="Mở tệp Google Sheets gốc ở thẻ trình duyệt mới"
+                  title={currentLang === 'vi' ? 'Mở tệp Google Sheets gốc ở thẻ trình duyệt mới' : 'Open destination Google Sheet'}
                 >
                   <ExternalLink className="h-3 w-3" />
                 </a>
@@ -369,7 +372,7 @@ export default function SpreadsheetWorkspaceModal({
             {lastSyncTime && (
               <div className="text-slate-400 flex items-center gap-2 font-medium">
                 <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full"></span>
-                <span>Đã nạp qua CSV: <strong className="text-slate-200">{new Date(lastSyncTime).toLocaleString('vi-VN')}</strong></span>
+                <span>{currentLang === 'vi' ? 'Đã nạp qua CSV:' : 'Last Synced:'} <strong className="text-slate-200">{new Date(lastSyncTime).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</strong></span>
               </div>
             )}
           </div>
@@ -382,14 +385,14 @@ export default function SpreadsheetWorkspaceModal({
               <div className="flex items-start gap-2 text-xs text-rose-400 bg-rose-950/20 border border-rose-900/35 p-3 rounded-xl">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="font-bold">Đồng bộ thất bại:</strong> {syncError}
+                  <strong className="font-bold">{currentLang === 'vi' ? 'Đồng bộ thất bại:' : 'Sync Failed:'}</strong> {syncError}
                 </div>
               </div>
             )}
             {syncSuccess && (
               <div className="flex items-center gap-2 text-xs text-emerald-450 bg-emerald-950/20 border border-emerald-900/35 p-3 rounded-xl">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
-                <span>✓ Đồng bộ hóa trực tiếp thành công! Dữ liệu mới đã hiển thị trong bảng. Nhấn <strong className="text-emerald-400">Lưu vào Kho an toàn</strong> ở trên để hoàn tất bảo mật ngoại tuyến.</span>
+                <span>{currentLang === 'vi' ? '✓ Đồng bộ hóa trực tiếp thành công! Dữ liệu mới đã hiển thị trong bảng. Nhấn Lưu vào Kho an toàn ở trên để hoàn tất bảo mật ngoại tuyến.' : '✓ Real-time Sync Succeeded! New records are fetched. Please click "Save to Vault" above to encrypt your changes offline.'}</span>
               </div>
             )}
           </div>
@@ -402,7 +405,7 @@ export default function SpreadsheetWorkspaceModal({
             <input
               id="ws-search-input"
               type="text"
-              placeholder="Tìm kiếm dòng, dữ liệu bất kỳ..."
+              placeholder={currentLang === 'vi' ? 'Tìm kiếm dòng, dữ liệu bất kỳ...' : 'Filter rows or copy values...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-slate-900/80 border border-slate-850 rounded-xl text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500 focus:bg-slate-900"
@@ -413,14 +416,14 @@ export default function SpreadsheetWorkspaceModal({
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 text-xs font-bold"
               >
-                Xóa
+                {currentLang === 'vi' ? 'Xóa' : 'Clear'}
               </button>
             )}
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <span className="text-xs text-slate-500 font-medium mr-2">
-              Bộ lọc: <strong className="text-slate-300 font-bold">{filteredRows.length}</strong> / {rows.length} hàng
+              {currentLang === 'vi' ? 'Bộ lọc:' : 'Filter:'} <strong className="text-slate-300 font-bold">{filteredRows.length}</strong> / {rows.length} {currentLang === 'vi' ? 'hàng' : 'rows'}
             </span>
             
             <button
@@ -429,7 +432,7 @@ export default function SpreadsheetWorkspaceModal({
               className="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-200 hover:text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>Thêm dòng dữ liệu mới</span>
+              <span>{currentLang === 'vi' ? 'Thêm dòng dữ liệu mới' : 'Add New Row'}</span>
             </button>
 
             <button
@@ -438,7 +441,7 @@ export default function SpreadsheetWorkspaceModal({
               className="px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-200 hover:text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Columns className="h-3.5 w-3.5" />
-              <span>Thêm cột cột</span>
+              <span>{currentLang === 'vi' ? 'Thêm cột cột' : 'Add New Column'}</span>
             </button>
           </div>
         </div>
@@ -457,27 +460,27 @@ export default function SpreadsheetWorkspaceModal({
                         value={hdr || ''}
                         onChange={(e) => handleHeaderChange(colIdx, e.target.value)}
                         className="w-full bg-transparent text-xs font-bold text-emerald-400 px-1 py-1 outline-none text-left rounded border-b border-transparent focus:bg-slate-900 border-dashed focus:border-emerald-500/50"
-                        placeholder={`Cột ${colIdx + 1}`}
+                        placeholder={currentLang === 'vi' ? `Cột ${colIdx + 1}` : `Column ${colIdx + 1}`}
                       />
                       <button
                         type="button"
                         onClick={() => handleDeleteColumn(colIdx)}
                         className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition-opacity rounded cursor-pointer duration-100 shrink-0"
-                        title="Xóa cột này"
+                        title={currentLang === 'vi' ? 'Xóa cột này' : 'Delete this column'}
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
                   </th>
                 ))}
-                <th className="p-2 w-14 border-r border-slate-850">Thao tác</th>
+                <th className="p-2 w-14 border-r border-slate-850">{currentLang === 'vi' ? 'Thao tác' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={headers.length + 2} className="p-12 text-center text-slate-500 italic font-medium bg-slate-950/10">
-                    {searchQuery ? 'Không tìm thấy kết quả phù hợp với bộ lọc tìm kiếm.' : 'Bảng tính trống hoặc chưa có dữ liệu.'}
+                    {searchQuery ? (currentLang === 'vi' ? 'Không tìm thấy kết quả phù hợp với bộ lọc tìm kiếm.' : 'No filtered results found.') : (currentLang === 'vi' ? 'Bảng tính trống hoặc chưa có dữ liệu.' : 'Worksheet spreadsheet is currently empty.')}
                   </td>
                 </tr>
               ) : (
@@ -516,7 +519,7 @@ export default function SpreadsheetWorkspaceModal({
                                   type="button"
                                   onClick={() => handleTriggerCopy(cellValue, cellId)}
                                   className="absolute right-1.5 opacity-0 group-hover/cell:opacity-100 p-1 bg-slate-800 hover:bg-slate-705 text-slate-400 rounded transition-opacity cursor-pointer z-10"
-                                  title="Sao chép nội dung ô này"
+                                  title={currentLang === 'vi' ? 'Sao chép nội dung ô này' : 'Copy field cell'}
                                 >
                                   {copiedField === cellId ? (
                                     <Check className="h-3 w-3 text-emerald-400" />
@@ -537,7 +540,7 @@ export default function SpreadsheetWorkspaceModal({
                             type="button"
                             onClick={() => handleDeleteRow(activeRowIdx)}
                             className="p-1.5 text-slate-500 hover:text-rose-500 hover:bg-rose-950/15 rounded-lg transition-all cursor-pointer opacity-30 group-hover/row:opacity-100 duration-100"
-                            title="Xóa dòng này"
+                            title={currentLang === 'vi' ? 'Xóa dòng này' : 'Delete this row'}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -555,10 +558,10 @@ export default function SpreadsheetWorkspaceModal({
         <div className="px-5 py-3.5 bg-slate-950 border-t border-slate-900 text-slate-550 flex flex-col sm:flex-row items-center justify-between text-[11px] gap-2 shrink-0">
           <div className="flex items-center gap-1.5 text-slate-500">
             <AlertCircle className="h-3.5 w-3.5 text-emerald-500/80" />
-            <span>Mẹo: Bạn có thể nhập trực tiếp vào bất kỳ ô nào ở bảng trên để sửa giá trị, bấm tiêu đề cột để sửa tên cột.</span>
+            <span>{currentLang === 'vi' ? 'Mẹo: Bạn có thể nhập trực tiếp vào bất kỳ ô nào ở bảng trên để sửa giá trị, bấm tiêu đề cột để sửa tên cột.' : 'Tip: Double click/type directly in any cell above to edit. Choose a column header to rename it.'}</span>
           </div>
           <div className="text-slate-500 font-mono">
-            Mã hóa AES-256 an toàn tại chỗ • Không tải thông tin của bạn lên máy chủ ngoài
+            {currentLang === 'vi' ? 'Mã hóa AES-256 an toàn tại chỗ • Không tải thông tin của bạn lên máy chủ ngoài' : 'End-to-end AES-256 local storage encryption • Zero server data transmissions'}
           </div>
         </div>
 

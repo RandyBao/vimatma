@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Lock, Unlock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Shield, Lock, Unlock, Eye, EyeOff, AlertTriangle, Globe } from 'lucide-react';
 import { motion } from 'motion/react';
 import { encryptText, decryptText, generateRandomHexSalt } from '../utils/crypto';
 import { EncryptedDatabase } from '../types';
+import { LangType, translations } from '../utils/lang';
 
 interface LockScreenProps {
   onUnlock: (password: string, decryptedEntries: any[]) => void;
+  lang: LangType;
+  onLangChange: (lang: LangType) => void;
 }
 
-export default function LockScreen({ onUnlock }: LockScreenProps) {
+export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenProps) {
   const [isSetupMode, setIsSetupMode] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const t = translations[lang];
 
   useEffect(() => {
     const savedDb = localStorage.getItem('secure_vault_db');
@@ -30,11 +35,11 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
     setErrorCode(null);
 
     if (password.length < 8) {
-      setErrorCode('Mật khẩu Master phải dài ít nhất 8 ký tự.');
+      setErrorCode(t.lock_masterMinError);
       return;
     }
     if (password !== confirmPassword) {
-      setErrorCode('Mật khẩu xác nhận không trùng khớp.');
+      setErrorCode(t.lock_masterMatchError);
       return;
     }
 
@@ -61,7 +66,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
       onUnlock(password, []);
     } catch (err) {
       console.error(err);
-      setErrorCode('Không thể thiết lập mật khẩu Master. Đã xảy ra lỗi hệ thống.');
+      setErrorCode(t.lock_failSetupSystem);
     } finally {
       setLoading(false);
     }
@@ -72,7 +77,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
     setErrorCode(null);
 
     if (!password) {
-      setErrorCode('Vui lòng nhập mật khẩu Master.');
+      setErrorCode(t.lock_enterMasterAlert);
       return;
     }
 
@@ -83,7 +88,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
     try {
       const savedDbStr = localStorage.getItem('secure_vault_db');
       if (!savedDbStr) {
-        setErrorCode('Không tìm thấy dữ liệu kho khóa.');
+        setErrorCode(t.lock_failDbNotFound);
         setIsSetupMode(true);
         setLoading(false);
         return;
@@ -100,20 +105,47 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
         const decryptedEntries = JSON.parse(decryptedEntriesStr);
         onUnlock(password, decryptedEntries);
       } else {
-        setErrorCode('Mật khẩu Master không đúng hoặc định dạng sai.');
+        setErrorCode(t.lock_incorrectPwd);
       }
     } catch (err) {
       console.error(err);
-      setErrorCode('Nhập sai mật khẩu Master hoặc dữ liệu lưu trữ đã bị thay đổi.');
+      setErrorCode(t.lock_genericError);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div id="lockscreen-root" className="min-h-screen flex items-center justify-center p-4 bg-slate-950 text-slate-100 overflow-y-auto">
+    <div id="lockscreen-root" className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-950 text-slate-100 overflow-y-auto relative">
       {/* Absolute ambient background light */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+      {/* Floating Language Switcher at the top right */}
+      <div className="absolute top-6 right-6 z-50 flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 p-1.5 rounded-xl shadow-lg">
+        <Globe className="h-4 w-4 text-slate-450 shrink-0 ml-1" />
+        <button
+          type="button"
+          onClick={() => onLangChange('vi')}
+          className={`px-2 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+            lang === 'vi' 
+              ? 'bg-emerald-500 text-slate-950 shadow-md' 
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          VN
+        </button>
+        <button
+          type="button"
+          onClick={() => onLangChange('en')}
+          className={`px-2 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+            lang === 'en' 
+              ? 'bg-emerald-500 text-slate-950 shadow-md' 
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          EN
+        </button>
+      </div>
 
       <motion.div
         id="lockscreen-card"
@@ -131,13 +163,11 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
               <Shield className="h-7 w-7 text-emerald-400" />
             )}
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white">
-            {isSetupMode ? 'Thiết lập Kho bảo mật' : 'Giải mã Kho lưu trữ'}
+          <h1 className="text-2xl font-bold tracking-tight text-white font-sans sm:text-2xl">
+            {isSetupMode ? t.lock_setupState : t.lock_decryptState}
           </h1>
-          <p className="text-slate-400 text-sm mt-1 max-w-xs">
-            {isSetupMode
-              ? 'Mã hóa thông tin cá nhân của bạn trực triếp trên trình duyệt'
-              : 'Nhập mật khẩu Master để truy cập các mật khẩu đã được mã hóa của bạn'}
+          <p className="text-slate-400 text-sm mt-1.5 max-w-xs leading-relaxed">
+            {isSetupMode ? t.lock_setupSubtext : t.lock_decryptSubtext}
           </p>
         </div>
 
@@ -145,24 +175,24 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
           <form id="setup-form" onSubmit={handleSetup} className="space-y-5">
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Mật khẩu Master mới
+                {t.lock_masterPwdLabel}
               </label>
               <div className="relative">
                 <input
                   id="new-master-pwd"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  placeholder="Nhập tối thiểu 8 ký tự..."
+                  placeholder={t.lock_enterMinText}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-mono tracking-wide placeholder-slate-600 outline-none transition-all"
+                  className="w-full pl-10 pr-10 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-mono tracking-wide placeholder-slate-650 outline-none transition-all"
                 />
-                <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
+                <Lock className="absolute left-3.5 top-4 h-4 w-4 text-slate-500" />
                 <button
                   id="toggle-setup-pwd-btn"
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3.5 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                  className="absolute right-3.5 top-4 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -171,32 +201,32 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
 
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Xác nhận Mật khẩu Master
+                {t.lock_masterConfirmLabel}
               </label>
               <div className="relative">
                 <input
                   id="confirm-master-pwd"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  placeholder="Nhập lại mật khẩu Master..."
+                  placeholder={t.lock_enterConfirmPlc}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-mono tracking-wide placeholder-slate-600 outline-none transition-all"
+                  className="w-full pl-10 pr-10 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-mono tracking-wide placeholder-slate-650 outline-none transition-all"
                 />
-                <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
+                <Lock className="absolute left-3.5 top-4 h-4 w-4 text-slate-500" />
               </div>
             </div>
 
             {/* Crucial Security Warning */}
-            <div className="flex gap-3 bg-amber-500/15 border border-amber-500/25 p-3.5 rounded-xl text-amber-300 text-xs leading-relaxed">
+            <div className="flex gap-3 bg-amber-500/15 border border-amber-500/25 p-4 rounded-xl text-amber-300 text-xs leading-relaxed">
               <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400 mt-0.5" />
               <div>
-                <span className="font-bold">Lưu ý quan trọng:</span> Mật khẩu này không thể khôi phục hay đổi lại nếu bạn quên. Tất cả dữ liệu của bạn được mã hóa an toàn offline. Hãy lưu mật khẩu Master ở nơi thích hợp.
+                <span className="font-bold">{t.lock_warningTitle}</span> {t.lock_warningText}
               </div>
             </div>
 
             {errorCode && (
-              <div id="setup-err-msg" className="text-rose-400 text-xs font-medium text-center bg-rose-500/10 border border-rose-500/20 py-2.5 px-3 rounded-lg">
+              <div id="setup-err-msg" className="text-rose-400 text-xs font-semibold text-center bg-rose-500/10 border border-rose-500/20 py-3 px-3 rounded-xl">
                 {errorCode}
               </div>
             )}
@@ -207,7 +237,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
               disabled={loading}
               className="w-full flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 text-slate-950 font-bold py-3.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
             >
-              {loading ? 'Đang tạo khóa mã hóa...' : 'Khởi tạo Kho mật khẩu'}
+              {loading ? t.lock_setupLoading : t.lock_initButton}
             </button>
           </form>
         ) : (
@@ -215,7 +245,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Mật khẩu Master
+                  {t.lock_decryptState}
                 </label>
               </div>
               <div className="relative">
@@ -223,18 +253,18 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
                   id="login-master-pwd"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  placeholder="Nhập mật khẩu Master..."
+                  placeholder={t.lock_enterPwdPlc}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-mono tracking-wide placeholder-slate-600 outline-none transition-all"
+                  className="w-full pl-10 pr-10 py-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-mono tracking-wide placeholder-slate-650 outline-none transition-all"
                   autoFocus
                 />
-                <Lock className="absolute left-3.5 top-4 h-4 w-4 text-slate-500" />
+                <Lock className="absolute left-3.5 top-4.5 h-4 w-4 text-slate-500" />
                 <button
                   id="toggle-login-pwd-btn"
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-4 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                  className="absolute right-3.5 top-4.5 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -242,7 +272,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
             </div>
 
             {errorCode && (
-              <div id="login-err-msg" className="text-rose-400 text-xs font-medium text-center bg-rose-500/10 border border-rose-500/20 py-3 px-3 rounded-lg">
+              <div id="login-err-msg" className="text-rose-400 text-xs font-semibold text-center bg-rose-500/10 border border-rose-500/20 py-3 px-3 rounded-xl">
                 {errorCode}
               </div>
             )}
@@ -253,7 +283,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
               disabled={loading}
               className="w-full flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 text-slate-950 font-bold py-3.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
             >
-              {loading ? 'Đang giải mã dữ liệu...' : 'Giải mã và Đăng nhập'}
+              {loading ? t.lock_decryptLoading : t.lock_loginButton}
             </button>
 
             <div className="text-center pt-2">
@@ -261,11 +291,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
                 id="reset-vault-link"
                 type="button"
                 onClick={() => {
-                  if (
-                    window.confirm(
-                      'CẢNH BÁO: Hành động này sẽ XÓA TOÀN BỘ dữ liệu mật khẩu hiện có trong thiết bị và bắt đầu lại kho mới. Khôi phục lại là KHÔNG thể trừ khi bạn có tệp sao lưu. Bạn có chắc chắn muốn tiếp tục?'
-                    )
-                  ) {
+                  if (window.confirm(t.lock_resetWarning)) {
                     localStorage.removeItem('secure_vault_db');
                     setIsSetupMode(true);
                     setPassword('');
@@ -273,17 +299,17 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
                     setErrorCode(null);
                   }
                 }}
-                className="text-xs text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                className="text-xs text-rose-400 hover:text-rose-300 transition-colors cursor-pointer font-medium"
               >
-                Xóa sạch kho dữ liệu & tạo lại Master Password
+                {t.lock_resetLink}
               </button>
             </div>
           </form>
         )}
 
         <div className="mt-8 pt-6 border-t border-slate-800/80 text-center">
-          <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5 leading-relaxed max-w-[280px] mx-auto">
-            <span>Mã hóa bảo mật cao 256-bit AES-GCM cục bộ. Dữ liệu của bạn được an toàn tuyệt đối.</span>
+          <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5 leading-relaxed max-w-[280px] mx-auto font-medium">
+            <span>{t.lock_aesgcmText}</span>
           </p>
         </div>
       </motion.div>

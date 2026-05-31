@@ -14,6 +14,7 @@ import SpreadsheetWorkspaceModal from './components/SpreadsheetWorkspaceModal';
 import PasswordGenerator from './components/PasswordGenerator';
 import { VaultEntry, VaultCategory, CustomCategory, GoogleSheetEntry } from './types';
 import { encryptText } from './utils/crypto';
+import { LangType, translations } from './utils/lang';
 
 // Tính toán ngày nhắc nhở còn lại (hỗ trợ nhắc nhở một lần hoặc lặp lại hàng năm như sinh nhật)
 function getReminderDaysLeft(reminderDateStr: string, reminderType: 'once' | 'yearly'): { daysLeft: number; isToday: boolean; formattedDate: string } {
@@ -56,6 +57,17 @@ export default function App() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [masterPassword, setMasterPassword] = useState('');
   const [dbSalt, setDbSalt] = useState('');
+
+  const [lang, setLang] = useState<LangType>(() => {
+    return (localStorage.getItem('secure_vault_lang') as LangType) || 'vi';
+  });
+
+  const handleLangChange = (newLang: LangType) => {
+    setLang(newLang);
+    localStorage.setItem('secure_vault_lang', newLang);
+  };
+
+  const t = translations[lang];
   
   // Decrypted entries loaded in memory
   const [entries, setEntries] = useState<VaultEntry[]>([]);
@@ -96,8 +108,9 @@ export default function App() {
 
   // Visual branding title state with suggestions
   const [vaultTitle, setVaultTitle] = useState(() => {
-    return localStorage.getItem('secure_vault_app_title') || 'Kho Bảo Mật';
+    return localStorage.getItem('secure_vault_app_title') || '';
   });
+  const currentVaultTitle = vaultTitle || t.app_title;
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
   const [customAppTitle, setCustomAppTitle] = useState('');
 
@@ -161,8 +174,11 @@ export default function App() {
   // --- AUTO LOCK MECHANISM ---
   const [autoLockMinutes, setAutoLockMinutes] = useState<number>(() => {
     const saved = localStorage.getItem('secure_vault_auto_lock_time');
-    return saved !== null ? Number(saved) : 5; // Mặc định 5 Phút
+    return saved !== null ? Number(saved) : 3; // Mặc định 3 Phút
   });
+
+  const [isEditingAutoLock, setIsEditingAutoLock] = useState<boolean>(false);
+  const [tempAutoLockVal, setTempAutoLockVal] = useState<string>('3');
 
   const [isCountdownHidden, setIsCountdownHidden] = useState<boolean>(() => {
     return localStorage.getItem('secure_vault_hide_countdown') === 'true';
@@ -195,7 +211,7 @@ export default function App() {
           setIsUnlocked(false);
           setShowSettings(false);
           setShowGenTools(false);
-          setToast({ text: 'Kho đã tự động khóa do bạn không hoạt động.', type: 'info' });
+          setToast({ text: t.head_toastAutoLock, type: 'info' });
           setTimeout(() => setToast(null), 3000);
           return 0;
         }
@@ -222,12 +238,20 @@ export default function App() {
       window.removeEventListener('touchstart', resetTimer);
       window.removeEventListener('scroll', resetTimer);
     };
-  }, [isUnlocked, autoLockMinutes]);
+  }, [isUnlocked, autoLockMinutes, t]);
 
   const handleAutoLockMinutesChange = (val: number) => {
     setAutoLockMinutes(val);
     localStorage.setItem('secure_vault_auto_lock_time', String(val));
-    triggerToast(`Đã đổi thời gian tự khóa kho: ${val > 0 ? val + ' phút' : 'không tự khóa'}`, 'info');
+    triggerToast(`${t.head_toastChangeTime} ${val > 0 ? val + ' ' + (lang === 'vi' ? 'phút' : 'min') : (lang === 'vi' ? 'không tự khóa' : 'never')}`, 'info');
+  };
+
+  const handleSaveAutoLock = () => {
+    setIsEditingAutoLock(false);
+    const val = parseInt(tempAutoLockVal, 10);
+    if (!isNaN(val) && val >= 0) {
+      handleAutoLockMinutesChange(Math.min(1440, val));
+    }
   };
 
   const toggleCountdownVisibility = () => {
@@ -256,7 +280,7 @@ export default function App() {
     }
     
     setIsUnlocked(true);
-    triggerToast('Đã mở khóa thành công! Chào mừng trở lại.', 'success');
+    triggerToast(t.head_toastUnlocked, 'success');
   };
 
   // Lock vault / Log out safely
@@ -267,7 +291,7 @@ export default function App() {
     setIsUnlocked(false);
     setShowSettings(false);
     setShowGenTools(false);
-    triggerToast(reason || 'Đã khóa kho dữ liệu an toàn.', 'info');
+    triggerToast(reason || t.head_toastLocked, 'info');
   };
 
   // Encrypt and write to localStorage
@@ -636,7 +660,7 @@ export default function App() {
   };
 
   if (!isUnlocked) {
-    return <LockScreen onUnlock={handleUnlock} />;
+    return <LockScreen onUnlock={handleUnlock} lang={lang} onLangChange={handleLangChange} />;
   }
 
   return (
@@ -682,10 +706,10 @@ export default function App() {
                   ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5' 
                   : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
-              title="Trình tạo mật khẩu"
+              title={t.head_createPwd}
             >
               <KeyRound className="h-4 w-4 shrink-0 text-emerald-500/70" />
-              <span>Tạo mật khẩu</span>
+              <span>{t.head_createPwd}</span>
             </button>
 
             {/* Settings and Backup/Restore Panel Link */}
@@ -701,14 +725,14 @@ export default function App() {
                   ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5' 
                   : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
-              title="Cài đặt kho mật khẩu"
+              title={t.head_backup}
             >
               <Settings className="h-4 w-4 shrink-0 text-emerald-500/70" />
-              <span>Sao lưu lưu trữ</span>
+              <span>{t.head_backup}</span>
             </button>
           </div>
 
-          {/* CENTER COLUMN: Ví Mật Mã Identity (Prominent, Centered, Aesthetic) */}
+          {/* CENTER COLUMN: Identity (Prominent, Centered, Aesthetic) */}
           <div className="flex flex-col items-center justify-center order-1 md:order-2 text-center md:h-full">
             <div className="flex items-center gap-3 bg-gradient-to-b from-slate-900 to-slate-950/60 pl-4 pr-5 py-2.5 rounded-2xl border border-emerald-500/20 shadow-xl shadow-emerald-500/5 hover:border-emerald-500/35 transition-all group/header">
               <div className="h-9.5 w-9.5 bg-emerald-500/10 rounded-xl border border-emerald-500/35 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner group-hover/header:border-emerald-400 transition-colors">
@@ -718,75 +742,78 @@ export default function App() {
               <div className="relative text-left">
                 <div className="flex items-center gap-1.5">
                   <h1 className="text-base sm:text-lg font-black text-white tracking-wide uppercase select-none font-sans">
-                    {vaultTitle}
+                    {currentVaultTitle}
                   </h1>
                   <button
                     id="rename-app-btn"
                     type="button"
                     onClick={() => setShowTitleSuggestions(!showTitleSuggestions)}
                     className="p-1 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-emerald-450 transition-colors cursor-pointer"
-                    title="Gợi ý & Thay đổi tên ứng dụng"
+                    title={t.head_renameBtn}
                   >
                     <Edit2 className="h-3 w-3" />
                   </button>
                 </div>
-                <p className="text-[9px] text-emerald-400/80 font-bold uppercase tracking-widest font-mono select-none">Mã hóa AES-256 nội bộ</p>
+                <p className="text-[9px] text-emerald-400/80 font-bold uppercase tracking-widest font-mono select-none">{t.head_encryptionText}</p>
 
                 {showTitleSuggestions && (
                   <div className="absolute top-14 left-1/2 -translate-x-1/2 w-72 bg-slate-950 border border-slate-800/80 p-4 rounded-2xl shadow-2xl z-50 text-left animate-slide-up">
                     <div className="flex items-center justify-between mb-3 border-b border-slate-900 pb-2">
-                      <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Gợi ý tên ứng dụng</span>
+                      <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">{t.head_renameSuggestionsTitle}</span>
                       <button 
                         type="button"
                         onClick={() => setShowTitleSuggestions(false)}
                         className="text-slate-500 hover:text-slate-400 text-xs font-semibold cursor-pointer"
                       >
-                        Đóng
+                        {lang === 'vi' ? 'Đóng' : 'Close'}
                       </button>
                     </div>
-                    <p className="text-[11px] text-slate-400 mb-2.5 leading-relaxed">Chọn một cái tên chuyên nghiệp hoặc tự đặt theo ý muốn:</p>
+                    <p className="text-[11px] text-slate-400 mb-2.5 leading-relaxed">{t.head_renameDesc}</p>
                     
                     {/* Suggestion list */}
                     <div className="grid grid-cols-2 gap-1.5 mb-3.5">
                       {[
-                        'Ví Mật Mã',
-                        'Quản Lí Mật Khẩu',
-                        'Két Sắt Mật Mã',
-                        'Mật Mã Bảo Mật',
-                        'Trình Giữ Mật Mã',
-                        'Kho Biệt Lập'
-                      ].map((name) => (
-                        <button
-                          key={name}
-                          type="button"
-                          onClick={() => {
-                            setVaultTitle(name);
-                            localStorage.setItem('secure_vault_app_title', name);
-                            setShowTitleSuggestions(false);
-                            triggerToast(`Đã đổi tên ứng dụng thành "${name}"!`);
-                          }}
-                          className={`text-left px-2 py-1.5 text-[11px] font-medium rounded-lg border transition-all cursor-pointer truncate ${
-                            vaultTitle.toLowerCase() === name.toLowerCase()
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-semibold'
-                              : 'bg-slate-900/40 border-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                          }`}
-                          title={name}
-                        >
-                          {name}
-                        </button>
-                      ))}
+                        { vi: 'Ví Mật Mã', en: 'Secret Lockbox' },
+                        { vi: 'Quản Lí Mật Khẩu', en: 'Password Locker' },
+                        { vi: 'Két Sắt Mật Mã', en: 'Confidential Safe' },
+                        { vi: 'Mật Mã Bảo Mật', en: 'Crypto Secure' },
+                        { vi: 'Trình Giữ Mật Mã', en: 'Secret Keeper' },
+                        { vi: 'Kho Biệt Lập', en: 'Isolated Vault' }
+                      ].map((item) => {
+                        const name = lang === 'vi' ? item.vi : item.en;
+                        return (
+                          <button
+                            key={item.vi}
+                            type="button"
+                            onClick={() => {
+                              setVaultTitle(name);
+                              localStorage.setItem('secure_vault_app_title', name);
+                              setShowTitleSuggestions(false);
+                              triggerToast(lang === 'vi' ? `Đã đổi tên ứng dụng thành "${name}"!` : `Vault title changed to "${name}"!`);
+                            }}
+                            className={`text-left px-2 py-1.5 text-[11px] font-medium rounded-lg border transition-all cursor-pointer truncate ${
+                              currentVaultTitle.toLowerCase() === name.toLowerCase()
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-semibold'
+                                : 'bg-slate-900/40 border-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                            }`}
+                            title={name}
+                          >
+                            {name}
+                          </button>
+                        );
+                      })}
                     </div>
 
                     {/* Manual Rename field */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Đặt tên tùy chỉnh</label>
+                      <label className="block text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{t.head_renameCustomField}</label>
                       <div className="flex gap-1.5">
                         <input
                           id="custom-rename-input"
                           type="text"
                           value={customAppTitle}
                           onChange={(e) => setCustomAppTitle(e.target.value)}
-                          placeholder="Đặt tên riêng..."
+                          placeholder={t.head_renameCustomPlc}
                           className="flex-1 px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
                         />
                         <button
@@ -797,12 +824,12 @@ export default function App() {
                               setVaultTitle(trimmed);
                               localStorage.setItem('secure_vault_app_title', trimmed);
                               setShowTitleSuggestions(false);
-                              triggerToast(`Đã đổi tên ứng dụng thành "${trimmed}"!`);
+                              triggerToast(lang === 'vi' ? `Đã đổi tên ứng dụng thành "${trimmed}"!` : `Vault title changed to "${trimmed}"!`);
                             }
                           }}
                           className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-lg transition-all cursor-pointer shrink-0"
                         >
-                          Lưu
+                          {t.head_renameSave}
                         </button>
                       </div>
                     </div>
@@ -814,53 +841,87 @@ export default function App() {
 
           {/* RIGHT COLUMN: Auto lock settings & Locked actions */}
           <div className="flex items-center gap-2 justify-center md:justify-end w-full md:w-auto order-3 md:h-full">
-            <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800/80 rounded-xl p-1 shrink-0">
-              <div className="flex items-center gap-1.5 text-slate-400 pl-1.5 pr-1 text-xs font-semibold select-none">
-                <span className="text-slate-500 text-[11px]">Tự khóa:</span>
-                
-                {/* Numeric input to let user choose any number of minutes */}
-                <input
-                  type="number"
-                  min="0"
-                  max="1440"
-                  value={autoLockMinutes === 0 ? '' : autoLockMinutes}
-                  placeholder="0"
-                  onChange={(e) => {
-                    const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10));
-                    handleAutoLockMinutesChange(val);
-                  }}
-                  className="w-10 text-center bg-slate-950 border border-slate-850 rounded px-1 py-0.5 text-xs text-slate-200 font-bold outline-none focus:border-indigo-500 transition-colors focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  title="Đặt số phút tự khóa (nhập 0 để tắt)"
-                />
-                <span className="text-[10px] text-slate-500 pr-1.5 border-r border-slate-850/60 font-medium">phút</span>
-
-                {/* Countdown display */}
-                <span className="font-mono text-[11px] font-bold text-indigo-400 min-w-[34px] px-1 text-center">
-                  {isCountdownHidden ? '••:••' : formatCountdown(timeLeftSeconds)}
+            
+            {/* 1. Language Toggle Icon Displayed at Top Right */}
+            <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-xl p-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleLangChange(lang === 'vi' ? 'en' : 'vi')}
+                className="p-1 px-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+                title={lang === 'vi' ? 'Lockscreen language settings (EN / VN)' : 'Chuyển đổi ngôn ngữ hiển thị (VI / EN)'}
+              >
+                <Globe className="h-3.5 w-3.5 text-emerald-400" />
+                <span className="text-[10px] font-extrabold uppercase font-mono tracking-wider">
+                  {lang === 'vi' ? 'VI' : 'EN'}
                 </span>
-              </div>
+              </button>
+            </div>
+
+            {/* 2. Unified Auto-Lock Countdown + Timer Configuration Pill Capsule */}
+            <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-xl p-1 shrink-0">
+              {isEditingAutoLock ? (
+                <div className="flex items-center gap-1 bg-slate-950 border border-indigo-500/50 rounded-lg px-2 py-0.5 shadow-inner">
+                  <Clock className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
+                  <input
+                    type="number"
+                    min={0}
+                    max={1440}
+                    value={tempAutoLockVal}
+                    onChange={(e) => setTempAutoLockVal(e.target.value)}
+                    onBlur={handleSaveAutoLock}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSaveAutoLock();
+                      } else if (e.key === 'Escape') {
+                        setIsEditingAutoLock(false);
+                      }
+                    }}
+                    className="font-mono font-extrabold text-indigo-400 text-[11px] w-12 bg-transparent text-center outline-none border-b border-indigo-500/30 focus:border-indigo-400 pb-0.5"
+                    autoFocus
+                    placeholder="3"
+                  />
+                  <span className="text-[9px] text-slate-500 font-bold font-mono uppercase pb-0.5 select-none shrink-0">
+                    m
+                  </span>
+                </div>
+              ) : (
+                <div 
+                  onClick={() => {
+                    setIsEditingAutoLock(true);
+                    setTempAutoLockVal(String(autoLockMinutes));
+                  }}
+                  className="flex items-center gap-1.5 text-slate-400 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-950/45 border border-slate-850 hover:bg-slate-900/40 hover:border-slate-800 hover:text-slate-200 transition-all select-none cursor-pointer group"
+                  title={lang === 'vi' ? 'Bấm để đổi thời gian tự khóa (phút, 0 để tắt)' : 'Click to customize auto-lock minutes (0 to disable)'}
+                >
+                  <Clock className={`h-3.5 w-3.5 group-hover:text-indigo-400 transition-colors ${autoLockMinutes > 0 ? 'text-indigo-400 animate-pulse' : 'text-slate-500'}`} />
+                  <span className="font-mono font-extrabold text-indigo-400 text-[11px] min-w-[34px] text-center pb-0.5 border-b border-transparent group-hover:border-indigo-400/40 transition-colors">
+                    {autoLockMinutes === 0 ? '00:00' : (isCountdownHidden ? '••:••' : formatCountdown(timeLeftSeconds))}
+                  </span>
+                </div>
+              )}
 
               {/* Eye toggle check countdown visibility */}
               <button
                 type="button"
                 onClick={toggleCountdownVisibility}
-                className="p-1 hover:bg-slate-800 rounded-lg text-slate-450 hover:text-slate-200 transition-colors flex items-center justify-center shrink-0"
-                title={isCountdownHidden ? "Hiện đếm ngược" : "Ẩn đếm ngược"}
+                className="p-1 hover:bg-slate-800 rounded-lg text-slate-450 hover:text-slate-200 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                title={isCountdownHidden ? (lang === 'vi' ? 'Hiện đếm ngược' : 'Show countdown') : (lang === 'vi' ? 'Ẩn đếm ngược' : 'Hide countdown')}
               >
-                {isCountdownHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5 text-indigo-400" />}
+                {isCountdownHidden ? <EyeOff className="h-3.5 w-3.5 text-slate-500" /> : <Eye className="h-3.5 w-3.5 text-indigo-400" />}
               </button>
 
-              {/* Icon-only Safely Lock App Button (No text "Khóa kho") */}
+              {/* Lock app button */}
               <button
                 id="app-lock-btn"
                 type="button"
                 onClick={() => handleLock()}
                 className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/35 text-rose-400 hover:text-rose-300 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-sm"
-                title="Khóa kho ngay lập tức"
+                title={t.head_lockBtn}
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>
             </div>
+
           </div>
 
         </div>
@@ -880,12 +941,12 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                    Nhắc nhở & Sự kiện sắp tới
+                    {t.rem_title}
                     <span className="bg-indigo-500 text-slate-950 font-mono font-bold text-[10px] px-2 py-0.5 rounded-full leading-none">
                       {remindersToShow.length}
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Đặt lịch nhắc cho vợ yêu ❤️, hóa đơn dịch vụ ngân hàng, thẻ căn cước hay bảo mật cần thiết.</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{t.rem_desc}</p>
                 </div>
               </div>
             </div>
@@ -894,15 +955,15 @@ export default function App() {
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {remindersToShow.map(({ entry, reminder, daysLeft, isToday, formattedDate }) => (
                 <div 
-                  key={entry.id}
-                  onClick={() => handleFocusReminderItem(entry.id, entry.category)}
-                  className={`p-3.5 rounded-xl border transition-all cursor-pointer text-left flex flex-col justify-between hover:scale-[1.01] hover:bg-slate-900 ${
-                    isToday 
-                      ? 'bg-indigo-500/10 border-indigo-500/35 shadow-lg shadow-indigo-500/5 hover:border-indigo-400' 
-                      : daysLeft < 0
-                      ? 'bg-slate-900/40 border-slate-900 opacity-65 hover:opacity-100'
-                      : 'bg-slate-900/70 border-slate-850 hover:border-slate-700'
-                  }`}
+                   key={entry.id}
+                   onClick={() => handleFocusReminderItem(entry.id, entry.category)}
+                   className={`p-3.5 rounded-xl border transition-all cursor-pointer text-left flex flex-col justify-between hover:scale-[1.01] hover:bg-slate-900 ${
+                     isToday 
+                       ? 'bg-indigo-500/10 border-indigo-500/35 shadow-lg shadow-indigo-500/5 hover:border-indigo-400' 
+                       : daysLeft < 0
+                       ? 'bg-slate-900/40 border-slate-900 opacity-65 hover:opacity-100'
+                       : 'bg-slate-900/70 border-slate-850 hover:border-slate-705'
+                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2">
@@ -916,10 +977,10 @@ export default function App() {
                           : 'bg-slate-800 text-indigo-300'
                       }`}>
                         {isToday 
-                          ? 'Hôm nay ⭐' 
+                          ? t.rem_today 
                           : daysLeft < 0
-                          ? `Đã qua ${Math.abs(daysLeft)} ngày`
-                          : `Còn ${daysLeft} ngày`
+                          ? t.rem_daysPassed.replace('{n}', String(Math.abs(daysLeft)))
+                          : t.rem_daysLeft.replace('{n}', String(daysLeft))
                         }
                       </span>
                       <span className="text-[10px] font-semibold text-slate-500 font-mono">
@@ -939,8 +1000,8 @@ export default function App() {
                   </div>
                   
                   <div className="mt-3.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                    <span>{reminder.type === 'yearly' ? 'Hàng năm 🎂' : 'Một lần 📌'}</span>
-                    <span className="text-indigo-400 font-semibold">Xem nhanh →</span>
+                    <span>{reminder.type === 'yearly' ? t.rem_yearly : t.rem_once}</span>
+                    <span className="text-indigo-400 font-semibold">{t.rem_quickView}</span>
                   </div>
                 </div>
               ))}
@@ -963,7 +1024,7 @@ export default function App() {
             className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/25 transition-all cursor-pointer"
           >
             <PlusCircle className="h-5 w-5" />
-            <span>Thêm tài khoản mới</span>
+            <span>{t.side_addNewAccount}</span>
           </button>
 
           {/* Stats quick board */}
@@ -972,12 +1033,12 @@ export default function App() {
             <div>
               <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                 <Layers className="h-3.5 w-3.5 text-slate-500" />
-                <span>Bộ lọc nhanh</span>
+                <span>{t.side_quickFilters}</span>
               </h3>
               <div className="space-y-1">
                 {[
-                  { id: 'all', label: 'Tất cả tài khoản', count: stats.total, icon: <Layers className="h-4 w-4" /> },
-                  { id: 'fav', label: 'Yêu thích (Ghim)', count: stats.fav, icon: <Star className="h-4 w-4 text-amber-500" /> },
+                  { id: 'all', label: t.side_allAccounts, count: stats.total, icon: <Layers className="h-4 w-4" /> },
+                  { id: 'fav', label: t.side_starred, count: stats.fav, icon: <Star className="h-4 w-4 text-amber-500" /> },
                 ].map((filter) => {
                   const isActive = activeCategory === filter.id;
                   return (
@@ -1016,7 +1077,7 @@ export default function App() {
               <div className="flex items-center justify-between mb-2.5">
                 <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                   <KeyRound className="h-3.5 w-3.5 text-slate-500" />
-                  <span>Loại lưu trữ</span>
+                  <span>{t.side_storageTypes}</span>
                 </h3>
                 
                 <div className="flex items-center gap-1.5 font-sans">
@@ -1029,10 +1090,10 @@ export default function App() {
                         ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5'
                         : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                     }`}
-                    title="Tùy chọn hiển thị"
+                    title={t.side_displayBtn}
                   >
                     <Settings className={`h-3 w-3 transition-transform duration-500 ${showSidebarOptions ? 'rotate-45 text-emerald-400' : 'text-slate-400'}`} />
-                    <span className="hidden sm:inline">Hiển thị</span>
+                    <span className="hidden sm:inline">{t.side_displayBtn}</span>
                   </button>
 
                   {/* Lock button */}
@@ -1051,22 +1112,24 @@ export default function App() {
                         ? 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' 
                         : 'bg-amber-500/10 border-amber-500/40 text-amber-400 font-semibold shadow-lg shadow-amber-500/5'
                     }`}
-                    title={isCategoriesLocked ? "Bấm để mở khóa chỉnh sửa" : "Bấm để lưu lại & khóa mục"}
+                    title={isCategoriesLocked ? t.side_unlockEditTooltip : t.side_lockEditTooltip}
                   >
                     {isCategoriesLocked ? (
                       <>
                         <Lock className="h-3 w-3 text-slate-400" />
-                        <span className="hidden sm:inline">Đã khóa</span>
+                        <span className="hidden sm:inline">{t.side_lockedState}</span>
                       </>
                     ) : (
                       <>
                         <Unlock className="h-3 w-3 text-amber-400 animate-pulse" />
-                        <span className="hidden sm:inline">Chỉnh sửa</span>
+                        <span className="hidden sm:inline">{t.side_editState}</span>
                       </>
                     )}
                   </button>
                 </div>
-              </div>              {/* Collapsible Display Options right below header */}
+              </div>
+
+              {/* Collapsible Display Options right below header */}
               {showSidebarOptions && (
                 <div className="bg-slate-950/60 border border-slate-850 rounded-xl p-3 mb-3 space-y-3 text-left animate-fade-in">
                   <div className="flex flex-col gap-2">
@@ -1080,7 +1143,7 @@ export default function App() {
                           className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 accent-emerald-500 cursor-pointer transition-all"
                         />
                       </div>
-                      <span className="transition-colors group-hover/opt:text-slate-300">Giao diện danh mục thu gọn</span>
+                      <span className="transition-colors group-hover/opt:text-slate-300">{t.side_optCompact}</span>
                     </label>
 
                     {/* Hide empty categories mode toggle */}
@@ -1094,7 +1157,7 @@ export default function App() {
                         />
                       </div>
                       <span className="transition-colors group-hover/opt:text-slate-300">
-                        Ẩn loại chưa có tài khoản ({categories.filter(c => (stats.counts[c.id] || 0) === 0).length})
+                        {t.side_optHideEmpty} ({categories.filter(c => (stats.counts[c.id] || 0) === 0).length})
                       </span>
                     </label>
 
@@ -1108,7 +1171,7 @@ export default function App() {
                           className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-emerald-505/20 h-4 w-4 accent-emerald-500 cursor-pointer transition-all"
                         />
                       </div>
-                      <span className="transition-colors group-hover/opt:text-slate-300">Ẩn chỉ số đếm số lượng</span>
+                      <span className="transition-colors group-hover/opt:text-slate-300">{t.side_optHideCounts}</span>
                     </label>
 
                     {/* Hide compact summaries toggle */}
@@ -1121,18 +1184,18 @@ export default function App() {
                           className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 accent-emerald-500 cursor-pointer transition-all"
                         />
                       </div>
-                      <span className="transition-colors group-hover/opt:text-slate-300">Ẩn tóm tắt dòng khi thu gọn (Facebook, Mobile, Email...)</span>
+                      <span className="transition-colors group-hover/opt:text-slate-300">{t.side_optHideSums}</span>
                     </label>
                   </div>
 
                   {/* Sắp xếp phân loại */}
                   <div className="space-y-1.5 pt-1.5 border-t border-slate-850/60 pb-1">
-                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">Sắp xếp danh mục</span>
+                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">{t.side_sortHeading}</span>
                     <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850/60">
                       {[
-                        { id: 'default', label: 'Tự xếp' },
-                        { id: 'alpha', label: 'Tên A-Z' },
-                        { id: 'count', label: 'Số lượng' },
+                        { id: 'default', label: t.side_sortManual },
+                        { id: 'alpha', label: t.side_sortAlpha },
+                        { id: 'count', label: t.side_sortCount },
                       ].map((opt) => (
                         <button
                           key={opt.id}
@@ -1152,11 +1215,11 @@ export default function App() {
 
                   {/* Bố cục danh mục */}
                   <div className="space-y-1.5 pt-1.5 border-t border-slate-850/60 pb-1">
-                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">Bố cục danh mục</span>
+                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">{t.side_layoutHeading}</span>
                     <div className="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850/60">
                       {[
-                        { id: 'list', label: 'Danh sách', icon: <List className="h-3 w-3" /> },
-                        { id: 'grid', label: 'Dạng lưới', icon: <LayoutGrid className="h-3 w-3" /> },
+                        { id: 'list', label: t.side_layoutList, icon: <List className="h-3 w-3" /> },
+                        { id: 'grid', label: t.side_layoutGrid, icon: <LayoutGrid className="h-3 w-3" /> },
                       ].map((opt) => (
                         <button
                           key={opt.id}
@@ -1186,6 +1249,7 @@ export default function App() {
                 {displayedCategories.map((cat) => {
                   const isActive = activeCategory === cat.id;
                   const originalIdx = categories.findIndex(c => c.id === cat.id);
+                  const displayLabel = lang === 'en' ? (cat.id === 'bank' ? 'Bank details' : cat.id === 'social' ? 'Social Accounts' : cat.id === 'web' ? 'Regular Web' : cat.id === 'wallet' ? 'Crypto Wallets' : cat.id === 'ewallet' ? 'E-Wallets' : cat.id === 'phoneapp' ? 'Phone Apps' : cat.id === 'note' ? 'Secure Notes' : cat.id === 'sheet' ? 'Spreadsheets' : cat.label) : cat.label;
                   
                   return (
                     <div 
@@ -1212,7 +1276,7 @@ export default function App() {
                         <span className={isActive ? 'text-emerald-400 shrink-0' : 'text-slate-500 group-hover:text-slate-300 flex-shrink-0'}>
                           {getCategoryIcon(cat.iconType)}
                         </span>
-                        <span className="truncate" title={cat.label}>{cat.label}</span>
+                        <span className="truncate" title={displayLabel}>{displayLabel}</span>
                       </button>
 
                       {/* Right: counter or control actions */}
@@ -1236,7 +1300,7 @@ export default function App() {
                             disabled={originalIdx === 0}
                             onClick={() => moveCategory(originalIdx, 'up')}
                             className="p-1 hover:bg-slate-800 rounded disabled:opacity-20 text-slate-400 hover:text-slate-200 cursor-pointer"
-                            title="Di chuyển lên"
+                            title={t.side_moveUp}
                           >
                             <ArrowUp className="h-3 w-3" />
                           </button>
@@ -1247,7 +1311,7 @@ export default function App() {
                             disabled={originalIdx === categories.length - 1}
                             onClick={() => moveCategory(originalIdx, 'down')}
                             className="p-1 hover:bg-slate-800 rounded disabled:opacity-20 text-slate-400 hover:text-slate-200 cursor-pointer"
-                            title="Di chuyển xuống"
+                            title={t.side_moveDown}
                           >
                             <ArrowDown className="h-3 w-3" />
                           </button>
@@ -1257,7 +1321,7 @@ export default function App() {
                             type="button"
                             onClick={() => renameCategory(cat.id, cat.label)}
                             className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-indigo-400 cursor-pointer"
-                            title="Sửa tên"
+                            title={t.side_renameCatTooltip}
                           >
                             <Edit2 className="h-3 w-3" />
                           </button>
@@ -1267,7 +1331,7 @@ export default function App() {
                             type="button"
                             onClick={() => deleteCategory(cat.id, cat.label)}
                             className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-rose-500 cursor-pointer"
-                            title="Xóa loại"
+                            title={t.side_deleteCatTooltip}
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -1287,22 +1351,22 @@ export default function App() {
                       onClick={() => setShowAddCatForm(true)}
                       className="w-full flex items-center justify-center gap-1 border border-dashed border-slate-800 hover:border-emerald-500/40 text-slate-500 hover:text-emerald-400 py-2 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer bg-slate-950/20"
                     >
-                      <span>+ Thêm loại mới</span>
+                      <span>+ {t.side_addNewCatBtn}</span>
                     </button>
                   ) : (
                     <form onSubmit={addCustomCategorySubmit} className="bg-slate-950/70 p-3 rounded-xl border border-slate-850 space-y-2.5 animate-slide-up text-left">
                       <div className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                        Loại lưu trữ mới
+                        {t.side_newCatHeader}
                       </div>
                       
                       <div>
                         <label className="block text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
-                          Tên hiển thị
+                          {t.side_newCatLabelField}
                         </label>
                         <input
                           type="text"
                           required
-                          placeholder="Ví dụ: Tài khoản VNeID, Ví Momo"
+                          placeholder={t.side_newCatLabelPlc}
                           value={newCatLabel}
                           onChange={(e) => setNewCatLabel(e.target.value)}
                           className="w-full px-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm outline-none text-slate-200 focus:border-emerald-500 transition-all placeholder:text-slate-600"
@@ -1311,21 +1375,21 @@ export default function App() {
 
                       <div>
                         <label className="block text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
-                          Mẫu cấu trúc nhập liệu
+                          {t.side_newCatSchemaField}
                         </label>
                         <select
                           value={newCatIconType}
                           onChange={(e) => setNewCatIconType(e.target.value as any)}
                           className="w-full px-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm outline-none text-slate-355 cursor-pointer focus:border-emerald-500"
                         >
-                          <option value="bank">Ngân hàng (Tài khoản, PIN...)</option>
-                          <option value="social">Mạng xã hội (E-mail, Mật khẩu...)</option>
-                          <option value="web">Web thông thường (URL, Username...)</option>
-                          <option value="wallet">Ví Crypto (Sàn, Address, Seed Phrase...)</option>
-                          <option value="ewallet">Ví điện tử (Momo, ZaloPay, PIN...)</option>
-                          <option value="phoneapp">App di động (Đăng nhập, PIN, CCCD...)</option>
-                          <option value="sheet">Bảng tính (Google Sheet tự dựng)</option>
-                          <option value="note">Ghi chú (Văn bản tự do)</option>
+                          <option value="bank">{lang === 'vi' ? 'Ngân hàng (Tài khoản, PIN...)' : 'Bank Details (Accounts & PIN)'}</option>
+                          <option value="social">{lang === 'vi' ? 'Mạng xã hội (E-mail, Mật khẩu...)' : 'Social Medias (E-mail, Password)'}</option>
+                          <option value="web">{lang === 'vi' ? 'Web thông thường (URL, Username...)' : 'Generic Websites (URLs)'}</option>
+                          <option value="wallet">{lang === 'vi' ? 'Ví Crypto (Sàn, Address, Seed Phrase...)' : 'Crypto Wallets (Seeds & Keys)'}</option>
+                          <option value="ewallet">{lang === 'vi' ? 'Ví điện tử (Momo, ZaloPay, PIN...)' : 'E-Wallets (Momo, Pin)'}</option>
+                          <option value="phoneapp">{lang === 'vi' ? 'App di động (Đăng nhập, PIN, CCCD...)' : 'Phone Apps (Login & PIN)'}</option>
+                          <option value="sheet">{lang === 'vi' ? 'Bảng tính (Google Sheet tự dựng)' : 'Excel/Spreadsheets context'}</option>
+                          <option value="note">{lang === 'vi' ? 'Ghi chú (Văn bản tự do)' : 'Secure Freeform Notes'}</option>
                         </select>
                       </div>
 
@@ -1338,13 +1402,13 @@ export default function App() {
                           }}
                           className="px-2 py-1 bg-slate-800 hover:bg-slate-755 text-slate-400 rounded-lg text-xs font-bold cursor-pointer"
                         >
-                          Hủy
+                          {lang === 'vi' ? 'Hủy' : 'Cancel'}
                         </button>
                         <button
                           type="submit"
                           className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-lg text-xs font-bold cursor-pointer transition-all"
                         >
-                          Lưu
+                          {lang === 'vi' ? 'Lưu' : 'Save'}
                         </button>
                       </div>
                     </form>
@@ -1358,14 +1422,10 @@ export default function App() {
           <div className="bg-slate-950/40 border border-slate-900 p-4.5 rounded-2xl text-sm text-slate-500 leading-relaxed space-y-2">
             <div className="flex items-center gap-1.5 text-slate-400 font-semibold uppercase tracking-wider text-xs">
               <Shield className="h-3.5 w-3.5 text-emerald-500/60" />
-              <span>Lời khuyên an toàn</span>
+              <span>{t.side_adviceHeader}</span>
             </div>
-            <p>
-              Tài khoản của bạn được mã hóa hoàn toàn trên máy bằng tệp dữ liệu duy nhất. Không có dữ liệu thô nào được gửi lên mây hay chia sẻ với người thứ ba.
-            </p>
-            <p className="font-medium text-slate-400">
-              Hãy xuất tệp sao lưu (Backup) thường xuyên và lưu trữ ở một nơi an toàn.
-            </p>
+            <p>{t.side_advicePara1}</p>
+            <p className="font-medium text-slate-400">{t.side_advicePara2}</p>
           </div>
         </section>
 
@@ -1379,7 +1439,7 @@ export default function App() {
               <input
                 id="search-input"
                 type="text"
-                placeholder="Tìm kiếm tài khoản, số TK hay nội dung..."
+                placeholder={t.work_searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 placeholder-slate-655 rounded-xl text-base outline-none transition-all"
@@ -1391,7 +1451,7 @@ export default function App() {
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white text-sm font-semibold cursor-pointer"
                 >
-                  Xóa
+                  {lang === 'vi' ? 'Xóa' : 'Clear'}
                 </button>
               )}
             </div>
@@ -1399,7 +1459,7 @@ export default function App() {
             {/* Sort & Display Controls */}
             <div className="flex flex-wrap items-center gap-4 shrink-0 justify-between md:justify-end">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-500 font-medium">Sắp xếp:</span>
+                <span className="text-sm text-slate-500 font-medium">{t.work_sortByLabel}</span>
                 <div className="flex gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
                   <button
                     id="sort-recent"
@@ -1411,7 +1471,7 @@ export default function App() {
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    Mới nhất
+                    {t.work_sortByRecent}
                   </button>
                   <button
                     id="sort-alpha"
@@ -1423,13 +1483,13 @@ export default function App() {
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    Tên A-Z
+                    {t.work_sortByAlpha}
                   </button>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 border-l border-slate-800 pl-3 md:pl-4 md:ml-1">
-                <span className="text-sm text-slate-500 font-medium">Chế độ xem:</span>
+                <span className="text-sm text-slate-500 font-medium">{t.work_viewModeLabel}</span>
                 <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
                   <button
                     id="view-grid-btn"
@@ -1440,7 +1500,7 @@ export default function App() {
                         ? 'bg-slate-900 text-emerald-400' 
                         : 'text-slate-500 hover:text-slate-350'
                     }`}
-                    title="Hiển thị dạng lưới"
+                    title={t.work_viewGridTooltip}
                   >
                     <LayoutGrid className="h-4 w-4" />
                   </button>
@@ -1453,7 +1513,7 @@ export default function App() {
                         ? 'bg-slate-900 text-emerald-400' 
                         : 'text-slate-500 hover:text-slate-350'
                     }`}
-                    title="Hiển thị dạng bảng, danh sách"
+                    title={t.work_viewTableTooltip}
                   >
                     <List className="h-4 w-4" />
                   </button>
@@ -1474,9 +1534,9 @@ export default function App() {
               >
                 <div className="bg-slate-900 border border-emerald-500/10 p-6 rounded-2xl space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold text-white">Xuất & Nhập Tệp Sao Lưu Kho Khóa</h3>
+                    <h3 className="text-base font-semibold text-white">{t.sett_title}</h3>
                     <p className="text-xs text-slate-400 mt-1">
-                      Toàn bộ bản sao lưu xuất ra đều được MÃ HÓA bằng mật khẩu Master của bạn. Chỉ có những người sở hữu Mật khẩu Master mới có thể giải mã và khôi phục nó.
+                      {t.sett_desc}
                     </p>
                   </div>
 
@@ -1486,10 +1546,10 @@ export default function App() {
                       <div>
                         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                           <Download className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>Sao lưu dữ liệu</span>
+                          <span>{t.sett_exportHeader}</span>
                         </h4>
                         <p className="text-[11px] text-slate-500 mt-1">
-                          Tải xuống tệp dữ liệu đã mã hóa (.json). Sử dụng để sao lưu dữ liệu cá nhân định kỳ hoặc chuyển sang thiết bị khác mà không sợ lộ mật khẩu.
+                          {t.sett_exportDesc}
                         </p>
                       </div>
                       <button
@@ -1499,7 +1559,7 @@ export default function App() {
                         className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-emerald-400 font-bold border border-slate-850 py-2.5 px-4 rounded-xl text-xs transition-all cursor-pointer"
                       >
                         <Download className="h-4 w-4" />
-                        <span>Tải tệp sao lưu mã hóa (.json)</span>
+                        <span>{t.sett_exportBtn}</span>
                       </button>
                     </div>
 
@@ -1508,16 +1568,16 @@ export default function App() {
                       <div>
                         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                           <Upload className="h-3.5 w-3.5 text-blue-400" />
-                          <span>Khôi phục dữ liệu</span>
+                          <span>{t.sett_importHeader}</span>
                         </h4>
                         <p className="text-[11px] text-slate-500 mt-1">
-                          <span className="text-rose-400 font-semibold">CẢNH BÁO:</span> Nhập tệp mới sẽ ghi đè toàn bộ dữ liệu đang có trên máy này. Tệp khôi phục sẽ yêu cầu mở khóa bằng mật khẩu Master tương ứng với tệp đó.
+                          <span className="text-rose-400 font-semibold">{t.sett_importWarningLabel}:</span> {t.sett_importWarningDesc}
                         </p>
                       </div>
 
                       <label className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold border border-slate-850 py-2.5 px-4 rounded-xl text-xs transition-all cursor-pointer select-none text-center">
                         <Upload className="h-4 w-4" />
-                        <span>Chọn tệp sao lưu (.json)</span>
+                        <span>{t.sett_importBtn}</span>
                         <input
                           id="backup-import-file"
                           type="file"
@@ -1555,11 +1615,11 @@ export default function App() {
                   <Shield className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-200">Kho lưu trữ của bạn trống</h3>
+                  <h3 className="text-base font-semibold text-slate-200">{t.work_emptyTitle}</h3>
                   <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto leading-relaxed">
                     {searchQuery 
-                      ? 'Không tìm thấy kết quả phù hợp với từ khóa của bạn. Thử tìm kiếm bằng từ khóa khác.'
-                      : 'Hãy tạo hoặc nhập thêm tài khoản ngân hàng, mạng xã hội, các nội dung dặn dò đầu tiên để bảo vệ an toàn.'}
+                      ? t.work_emptySearch
+                      : t.work_emptyDesc}
                   </p>
                 </div>
                 {!searchQuery && (
@@ -1570,7 +1630,7 @@ export default function App() {
                     className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold py-2.5 px-5 rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-emerald-500/5 mt-2"
                   >
                     <PlusCircle className="h-4 w-4" />
-                    <span>Tạo bản ghi đầu tiên</span>
+                    <span>{t.work_createFirst}</span>
                   </button>
                 )}
               </div>
