@@ -773,7 +773,7 @@ export default function App() {
                     {/* Suggestion list */}
                     <div className="grid grid-cols-2 gap-1.5 mb-3.5">
                       {[
-                        { vi: 'Ví Mật Mã', en: 'Secret Lockbox' },
+                        { vi: 'Ví Mật Mã', en: 'Save Code' },
                         { vi: 'Quản Lí Mật Khẩu', en: 'Password Locker' },
                         { vi: 'Két Sắt Mật Mã', en: 'Confidential Safe' },
                         { vi: 'Mật Mã Bảo Mật', en: 'Crypto Secure' },
