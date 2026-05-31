@@ -624,19 +624,38 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                 </div>
               )}
 
+              {/* Special blink effect style for Free Trial banner */}
+              <style>{`
+                @keyframes yellowBlink {
+                  0%, 100% {
+                    border-color: rgba(234, 179, 8, 1);
+                    box-shadow: 0 0 15px rgba(234, 179, 8, 0.4);
+                    background-color: rgba(234, 179, 8, 0.08);
+                  }
+                  50% {
+                    border-color: rgba(234, 179, 8, 0.25);
+                    box-shadow: 0 0 3px rgba(234, 179, 8, 0.05);
+                    background-color: rgba(234, 179, 8, 0.02);
+                  }
+                }
+                .animate-yellow-blink {
+                  animation: yellowBlink 1.4s infinite ease-in-out;
+                }
+              `}</style>
+
               {/* Interactive 3-Day Free Pro Trial activation section */}
-              <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl space-y-4">
-                {trialStatus === 'none' && (
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2.5">
-                      <div className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400 shrink-0">
-                        <Gift className="h-5 w-5" />
+              {trialStatus === 'none' ? (
+                <div className="p-5 sm:p-6 border-2 rounded-2xl space-y-5 animate-yellow-blink transition-all duration-300">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="p-2 sm:p-2.5 bg-yellow-500/20 rounded-xl text-yellow-400 shrink-0">
+                        <Gift className="h-6 w-6 sm:h-7 sm:w-7" />
                       </div>
                       <div>
-                        <h4 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider">
-                          {lang === 'vi' ? '🎁 Dùng thử PRO 3 ngày miễn phí' : '🎁 3-Day Free PRO Trial'}
+                        <h4 className="text-lg sm:text-[20px] font-black text-yellow-400 uppercase tracking-widest flex items-center gap-1.5 leading-tight">
+                          <span>🎁 {lang === 'vi' ? 'DÙNG THỬ PRO 3 NGÀY MIỄN PHÍ' : '3-Day Free PRO Trial'}</span>
                         </h4>
-                        <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
+                        <p className="text-xs sm:text-[13px] md:text-sm text-slate-200 mt-2.5 leading-relaxed font-semibold">
                           {lang === 'vi' 
                             ? 'Bỏ qua thanh toán và trải nghiệm ngay 100% tất cả đặc quyền PRO Elite cực hạn (Ngăn Bí Mật Code, Quét Mã 2FA, Tự Khóa nhanh...) hoàn toàn miễn phí!' 
                             : 'Skip payment and instantly experience 100% of all PRO Elite perks (Secret Cabinet Code, 2FA, Fast Auto-lock...) with zero fees.'}
@@ -647,82 +666,84 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     <button
                       type="button"
                       onClick={handleStartTrial}
-                      className="w-full bg-gradient-to-r from-emerald-500/15 via-indigo-500/10 to-indigo-500/20 hover:from-emerald-500/25 hover:via-indigo-500/20 hover:to-indigo-500/30 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 font-extrabold text-xs py-2.5 rounded-xl transition-all duration-300 cursor-pointer shadow-sm select-none text-center"
+                      className="w-full bg-gradient-to-r from-yellow-450 via-amber-500 to-yellow-500 hover:from-yellow-400 hover:via-amber-450 hover:to-yellow-450 text-slate-950 font-black text-[15px] sm:text-base md:text-[18px] py-3.5 sm:py-4 px-5 rounded-xl sm:rounded-2xl transition-all duration-350 cursor-pointer shadow-[0_6px_20px_rgba(234,179,8,0.35)] hover:shadow-[0_8px_28px_rgba(234,179,8,0.55)] select-none text-center animate-pulse uppercase tracking-wider border border-yellow-300/50"
                     >
                       {lang === 'vi' ? '🚀 KÍCH HOẠT DÙNG THỬ 3 NGÀY NGAY LẬP TỨC' : '🚀 ACTIVATE 3-DAY FREE TRIAL INSTANTLY'}
                     </button>
                   </div>
-                )}
-
-                {trialStatus === 'active' && (
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2.5">
-                      <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-400 shrink-0">
-                        <Sparkles className="h-5 w-5 animate-pulse" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-extrabold text-indigo-400 uppercase tracking-wider">
-                            {lang === 'vi' ? '🎉 Đang Dùng Thử PRO Cận Vệ' : '🎉 Active PRO Free Trial'}
-                          </h4>
-                          <span className="flex h-2 w-2 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                          </span>
+                </div>
+              ) : (
+                <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl space-y-4">
+                  {trialStatus === 'active' && (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2.5">
+                        <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-400 shrink-0">
+                          <Sparkles className="h-5 w-5 animate-pulse" />
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-                          {lang === 'vi'
-                            ? `Bạn đang trong thời hạn vàng trải nghiệm tính năng. Thời gian còn lại: `
-                            : `You are in your golden trial period. Remaining countdown: `}
-                          <span className="font-mono text-emerald-400 font-extrabold text-[11px] bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded ml-1">
-                            {trialTimeLeft}
-                          </span>
-                        </p>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-extrabold text-indigo-400 uppercase tracking-wider">
+                              {lang === 'vi' ? '🎉 Đang Dùng Thử PRO Cận Vệ' : '🎉 Active PRO Free Trial'}
+                            </h4>
+                            <span className="flex h-2 w-2 relative">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                            {lang === 'vi'
+                              ? `Bạn đang trong thời hạn vàng trải nghiệm tính năng. Thời gian còn lại: `
+                              : `You are in your golden trial period. Remaining countdown: `}
+                            <span className="font-mono text-emerald-400 font-extrabold text-[11px] bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded ml-1">
+                              {trialTimeLeft}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <button
+                          type="button"
+                          onClick={handleResetTrialTesting}
+                          className="text-[9px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
+                        >
+                          {lang === 'vi' ? '[Khởi tạo lại dùng thử / Reset state]' : '[Reset trial state]'}
+                        </button>
                       </div>
                     </div>
+                  )}
 
-                    <div className="text-right">
-                      <button
-                        type="button"
-                        onClick={handleResetTrialTesting}
-                        className="text-[9px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
-                      >
-                        {lang === 'vi' ? '[Khởi tạo lại dùng thử / Reset state]' : '[Reset trial state]'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {trialStatus === 'expired' && (
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2.5">
-                      <div className="p-1.5 bg-rose-500/10 rounded-lg text-rose-400 shrink-0">
-                        <Lock className="h-5 w-5 text-rose-500" />
+                  {trialStatus === 'expired' && (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2.5">
+                        <div className="p-1.5 bg-rose-500/10 rounded-lg text-rose-400 shrink-0">
+                          <Lock className="h-5 w-5 text-rose-500" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-xs font-bold text-rose-450 uppercase tracking-wider">
+                            {lang === 'vi' ? '🔒 Đã Hết Hạn Dùng Thử 3 Ngày' : '🔒 3-Day Free Trial Expired'}
+                          </h4>
+                          <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                            {lang === 'vi'
+                              ? 'Thời hạn thử nghiệm PRO miễn phí đã kết thúc. Hãy nâng cấp gói vĩnh viễn để giữ các mục bảo mật mở rộng.'
+                              : 'Your 3-day trial has expired. Upgrade your lifetime tier to retain advanced vault limits.'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-xs font-bold text-rose-450 uppercase tracking-wider">
-                          {lang === 'vi' ? '🔒 Đã Hết Hạn Dùng Thử 3 Ngày' : '🔒 3-Day Free Trial Expired'}
-                        </h4>
-                        <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
-                          {lang === 'vi'
-                            ? 'Thời hạn thử nghiệm PRO miễn phí đã kết thúc. Hãy nâng cấp gói vĩnh viễn để giữ các mục bảo mật mở rộng.'
-                            : 'Your 3-day trial has expired. Upgrade your lifetime tier to retain advanced vault limits.'}
-                        </p>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <button
+                          type="button"
+                          onClick={handleResetTrialTesting}
+                          className="text-[9px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
+                        >
+                          {lang === 'vi' ? '[Gia hạn lại dùng thử / Reset testing]' : '[Reset trial back to demo]'}
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <button
-                        type="button"
-                        onClick={handleResetTrialTesting}
-                        className="text-[9px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
-                      >
-                        {lang === 'vi' ? '[Gia hạn lại dùng thử / Reset testing]' : '[Reset trial back to demo]'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
               {/* Final Error Prompt Display */}
               {errorMsg && (

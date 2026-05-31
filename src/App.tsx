@@ -208,6 +208,19 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const handleToggleProPreviewMode = () => {
+    const nextProState = !isPro;
+    setIsPro(nextProState);
+    if (nextProState) {
+      localStorage.setItem('secure_vault_pro_active', 'true');
+      triggerToast(lang === 'vi' ? 'Đã bật chế độ xem trước PRO Elite!' : 'PRO Elite preview mode enabled!', 'success');
+    } else {
+      localStorage.removeItem('secure_vault_pro_active');
+      localStorage.removeItem('secure_vault_pro_trial_expires');
+      triggerToast(lang === 'vi' ? 'Đã chuyển về bản FREE cơ bản!' : 'Switched back to standard FREE mode!', 'info');
+    }
+  };
+
   const [isEditingAutoLock, setIsEditingAutoLock] = useState<boolean>(false);
   const [tempAutoLockVal, setTempAutoLockVal] = useState<string>('3');
 
@@ -953,6 +966,24 @@ export default function App() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
               <span className="tracking-wide uppercase">v1.2.0-LTS</span>
             </div>
+
+            {/* Quick Preview Toggle Switch (For Fast Admin/User Testing) */}
+            <button
+              id="preview-mode-toggle"
+              type="button"
+              onClick={handleToggleProPreviewMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border font-sans text-[9px] sm:text-[10px] font-black cursor-pointer transition-all duration-300 shadow-md shrink-0 select-none ${
+                isPro 
+                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-400 shadow-amber-500/5 hover:bg-amber-500/20 active:scale-95' 
+                  : 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/40 text-indigo-400 hover:text-indigo-300 active:scale-95'
+              }`}
+              title={lang === 'vi' ? 'Chuyển nhanh giữa chế độ xem FREE và PRO để trải nghiệm/kiểm tra' : 'Switch preview modes between FREE & PRO instantly'}
+            >
+              <span className={`inline-block h-2 w-2 rounded-full ${isPro ? 'bg-amber-400 animate-ping' : 'bg-indigo-500'} shrink-0`}></span>
+              <span className="tracking-wider uppercase">
+                {lang === 'vi' ? `Xem: ${isPro ? 'PRO 👑' : 'FREE 🔒'}` : `View: ${isPro ? 'PRO 👑' : 'FREE 🔒'}`}
+              </span>
+            </button>
 
             {/* Subscription Tier Pill */}
             {isPro ? (
@@ -1880,6 +1911,75 @@ export default function App() {
                           </button>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* Hướng dẫn Đồng bộ & Cài đặt Ngoại tuyến PWA */}
+                  <div className="pt-5 border-t border-slate-800/60 mt-4 text-left select-none">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                      <Smartphone className="h-4 w-4 text-amber-500" />
+                      <span>{lang === 'vi' ? 'Hướng dẫn Tải Ngoại tuyến & Đồng bộ Điện thoại' : 'Offline Download & Phone Sync Guide'}</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      {lang === 'vi' 
+                        ? 'Vì dữ liệu bảo mật được mã hóa AES-256 nội bộ (Zero-Knowledge) độc lập ngay trên thiết bị của bạn, việc đồng bộ giữa Máy tính và Điện thoại diễn ra cực kỳ an toàn mà không qua máy chủ trung gian.' 
+                        : 'Since security data is encrypted client-side using military-grade AES-256 (Zero-Knowledge), synchronization between PC and Mobile is highly secure and runs completely serverless.'}
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                      {/* Bước 1: Hướng dẫn cài đặt PWA */}
+                      <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-xl space-y-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-black">1</span>
+                          <h5 className="text-[11px] font-bold text-slate-350 tracking-wide uppercase">
+                            {lang === 'vi' ? 'Cài đặt App Ngoại tuyến (PWA)' : 'Install Offline Desktop / App'}
+                          </h5>
+                        </div>
+                        <p className="text-[10px] sm:text-[11px] text-slate-400 leading-relaxed space-y-1">
+                          {lang === 'vi' ? (
+                            <>
+                              Ứng dụng tự động tối ưu hóa để chạy như một app cục bộ trên mọi hệ điều hành:
+                              <span className="block mt-1"><strong className="text-slate-300">• Trên Máy tính (Chrome/Edge):</strong> Bấm vào biểu tượng cài đặt / tải app trên thanh địa chỉ để chuyển sang dạng ứng dụng riêng biệt.</span>
+                              <span className="block mt-0.5"><strong className="text-slate-300">• Trên iPhone (iOS Safari):</strong> Nhấp vào nút <strong className="text-indigo-400">Chia sẻ</strong> rồi chọn <strong className="text-indigo-400">Thêm vào MH chính</strong>.</span>
+                              <span className="block mt-0.5"><strong className="text-slate-300">• Trên Android (Chrome):</strong> Nhấp vào dấu <strong className="text-indigo-400">3 chấm</strong> và chọn <strong className="text-indigo-400">Cài đặt ứng dụng</strong>.</span>
+                            </>
+                          ) : (
+                            <>
+                              The app responds smoothly as a native application across all mobile/desktop platforms:
+                              <span className="block mt-1"><strong className="text-slate-300">• PC/Mac (Chrome/Edge):</strong> Click the install icon on the browser address bar to add it directly to your Desktop.</span>
+                              <span className="block mt-0.5"><strong className="text-slate-300">• iPhone/iOS (Safari):</strong> Tap the <strong className="text-indigo-400">Share</strong> menu, then choose <strong className="text-indigo-400">Add to Home Screen</strong>.</span>
+                              <span className="block mt-0.5"><strong className="text-slate-300">• Android (Chrome):</strong> Tap the <strong className="text-indigo-400">3-dots menu</strong> and select <strong className="text-indigo-400">Install app</strong>.</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Bước 2: Hướng dẫn đồng bộ mã hóa */}
+                      <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-xl space-y-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-black">2</span>
+                          <h5 className="text-[11px] font-bold text-slate-350 tracking-wide uppercase">
+                            {lang === 'vi' ? 'Liên kết & Đồng bộ dữ liệu' : 'Secure Data Synchronization'}
+                          </h5>
+                        </div>
+                        <p className="text-[10px] sm:text-[11px] text-slate-400 leading-relaxed space-y-1">
+                          {lang === 'vi' ? (
+                            <>
+                              Để đồng bộ tài liệu an toàn từ Máy tính sang Điện thoại mà không lo lộ lọt bí mật:
+                              <span className="block mt-1"><strong className="text-slate-200">1.</strong> Trên máy tính, bấm <strong className="text-emerald-400">"Xuất tệp sao lưu"</strong> tải về file khóa <strong className="text-indigo-300 font-mono">.json</strong> mã hóa cường độ cao.</span>
+                              <span className="block mt-0.5"><strong className="text-slate-200">2.</strong> Gửi tệp này sang điện thoại qua tin nhắn tự truyền, Cloud Drive hoặc ứng dụng nhắn tin cá nhân.</span>
+                              <span className="block mt-0.5"><strong className="text-slate-200">3.</strong> Trên thiết bị điện thoại, truy cập Settings, nhấp chọn <strong className="text-emerald-400">"Nhập tệp sao lưu"</strong> và nạp file này. Nhập Master Password của bạn để giải nén tức thì!</span>
+                            </>
+                          ) : (
+                            <>
+                              To securely link and sync your vault data from Desktop to Mobile smoothly:
+                              <span className="block mt-1"><strong className="text-slate-200">1.</strong> On your primary device, click <strong className="text-emerald-400">"Export backup file"</strong> above to retrieve your secure <strong className="text-indigo-300 font-mono">.json</strong> file.</span>
+                              <span className="block mt-0.5"><strong className="text-slate-200">2.</strong> Send this file to your mobile phone via private channels or private Drive.</span>
+                              <span className="block mt-0.5"><strong className="text-slate-200">3.</strong> Open settings on your destination, tap <strong className="text-emerald-400">"Import/Restore backup"</strong> and load the file with your Master Password!</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
