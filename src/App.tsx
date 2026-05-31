@@ -568,7 +568,8 @@ export default function App() {
   // Statistics calculation helpers
   const stats = useMemo(() => {
     const counts: Record<string, number> = {};
-    const visibleEntries = entries.filter((e) => showSecretDrawer ? !!(e as any).isSecret : !(e as any).isSecret);
+    const isSecretActive = showSecretDrawer && isPro;
+    const visibleEntries = entries.filter((e) => isSecretActive ? !!(e as any).isSecret : !(e as any).isSecret);
     categories.forEach((cat) => {
       counts[cat.id] = visibleEntries.filter((e) => e.category === cat.id).length;
     });
@@ -577,7 +578,7 @@ export default function App() {
       fav: visibleEntries.filter((e) => e.isFavorite).length,
       counts,
     };
-  }, [entries, categories, showSecretDrawer]);
+  }, [entries, categories, showSecretDrawer, isPro]);
 
   // Computed categories considering display settings
   const displayedCategories = useMemo(() => {
@@ -603,7 +604,7 @@ export default function App() {
     let result = [...entries];
 
     // Secret compartment filter
-    if (showSecretDrawer) {
+    if (showSecretDrawer && isPro) {
       result = result.filter((e) => !!(e as any).isSecret);
     } else {
       result = result.filter((e) => !(e as any).isSecret);
@@ -667,7 +668,7 @@ export default function App() {
     }
 
     return result;
-  }, [entries, activeCategory, searchQuery, sortBy, showSecretDrawer]);
+  }, [entries, activeCategory, searchQuery, sortBy, showSecretDrawer, isPro]);
 
   // Open Edit Dialog
   const handleEditInit = (entry: VaultEntry) => {
@@ -682,7 +683,8 @@ export default function App() {
 
   // Tập hợp danh sách các nhắc nhở cần lưu ý hiển thị
   const remindersToShow = useMemo(() => {
-    const visibleEntries = entries.filter((e) => showSecretDrawer ? !!(e as any).isSecret : !(e as any).isSecret);
+    const isSecretActive = showSecretDrawer && isPro;
+    const visibleEntries = entries.filter((e) => isSecretActive ? !!(e as any).isSecret : !(e as any).isSecret);
     return visibleEntries
       .filter(e => e.reminder && e.reminder.enabled && e.reminder.date)
       .map(e => {
@@ -702,7 +704,7 @@ export default function App() {
         if (!a.isToday && b.isToday) return 1;
         return a.daysLeft - b.daysLeft;
       });
-  }, [entries, showSecretDrawer]);
+  }, [entries, showSecretDrawer, isPro]);
 
   // Điều hướng và trượt tới xem nhanh mục có lời nhắc
   const handleFocusReminderItem = (itemId: string, category: string) => {
@@ -1210,6 +1212,13 @@ export default function App() {
                   id="secret-drawer-code-trigger"
                   type="button"
                   onClick={() => {
+                    if (!isPro) {
+                      triggerToast(lang === 'vi' 
+                        ? '🔒 Tính năng Ngăn Bí Mật (Code) yêu cầu nâng cấp tài khoản PRO Elite!' 
+                        : '🔒 Secret Cabinet (Code) feature requires upgrading to PRO Elite!', 'error');
+                      setIsUpgradeModalOpen(true);
+                      return;
+                    }
                     // Explains double-click trick in a localized toast helper
                     triggerToast(lang === 'vi' 
                       ? '💡 MẸO: Hãy kích đúp (bấm liên tục 2 lần) vào biểu tượng cái khiên hoặc chữ "Code" này để mở/khóa Ngăn bí mật!' 
@@ -1217,6 +1226,13 @@ export default function App() {
                   }}
                   onDoubleClick={(e) => {
                     e.preventDefault();
+                    if (!isPro) {
+                      triggerToast(lang === 'vi' 
+                        ? '🔒 Tính năng Ngăn Bí Mật (Code) yêu cầu nâng cấp tài khoản PRO Elite!' 
+                        : '🔒 Secret Cabinet (Code) feature requires upgrading to PRO Elite!', 'error');
+                      setIsUpgradeModalOpen(true);
+                      return;
+                    }
                     setActiveCategory('all');
                     setShowSecretDrawer(prev => !prev);
                     triggerToast(!showSecretDrawer 
@@ -1226,18 +1242,21 @@ export default function App() {
                     );
                   }}
                   className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-300 border font-semibold select-none cursor-pointer ${
-                    showSecretDrawer 
+                    showSecretDrawer && isPro
                       ? 'bg-rose-500/10 border-rose-500/50 text-rose-400 font-bold shadow-lg shadow-rose-500/5' 
                       : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
                   }`}
                   title={lang === 'vi' ? 'Bấm đúp liên tục để truy cập Ngăn bí mật' : 'Double-click to access Secret Cabinet'}
                 >
                   <div className={`p-1.5 rounded-lg transition-all duration-200 ${
-                    showSecretDrawer ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-900 text-rose-500'
+                    showSecretDrawer && isPro ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-900 text-rose-500'
                   }`}>
                     <Shield className="h-4.5 w-4.5 shrink-0" />
                   </div>
-                  <span className="text-sm font-sans font-bold tracking-wide">Code</span>
+                  <span className="text-sm font-sans font-bold tracking-wide flex items-center gap-1.5">
+                    <span>Code</span>
+                    {!isPro && <Lock className="h-3 w-3 text-amber-500/90 shrink-0" />}
+                  </span>
                 </button>
               </div>
             </div>

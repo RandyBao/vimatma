@@ -409,6 +409,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       title: title.trim(),
       notes: notes.trim() || undefined,
       isFavorite,
+      isSecret: isPro ? isSecret : false,
       totpSecret: totpSecret.trim() || undefined,
       updatedAt: Date.now(),
       createdAt: editingEntry?.createdAt || Date.now()
