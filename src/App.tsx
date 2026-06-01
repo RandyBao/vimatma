@@ -948,6 +948,36 @@ export default function App() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Developer/Testing Preview Toggle (Nested secretly within edit menu) */}
+                    <div className="pt-3 border-t border-slate-900 mt-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider">
+                          {lang === 'vi' ? '🧪 CHẾ ĐỘ XEM THỬ' : '🧪 PREVIEW MODE'}
+                        </span>
+                        <span className="text-[9px] font-mono font-medium text-slate-500">
+                          {isPro ? 'PRO 👑' : 'FREE 🔒'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleToggleProPreviewMode}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl border font-sans text-[10px] font-black cursor-pointer transition-all duration-300 shadow-md ${
+                          isPro 
+                            ? 'bg-amber-550/10 border-amber-500/40 text-amber-400 hover:bg-amber-550/20 active:scale-98' 
+                            : 'bg-slate-900 border-slate-800 text-indigo-400 hover:text-indigo-300 hover:border-slate-700 active:scale-98'
+                        }`}
+                        title={lang === 'vi' ? 'Thay đổi chế độ xem thử để phát triển/kiểm tra nhanh' : 'Modify views instantly for quick development testing'}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className={`inline-block h-2 w-2 rounded-full ${isPro ? 'bg-amber-400 animate-ping' : 'bg-slate-700'} shrink-0`}></span>
+                          <span>{lang === 'vi' ? 'Bật tính năng PRO Elite' : 'Toggle PRO Elite'}</span>
+                        </span>
+                        <span className="tracking-wide text-[9px] px-1.5 py-0.5 rounded bg-slate-950 border border-slate-850">
+                          {isPro ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -966,24 +996,6 @@ export default function App() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
               <span className="tracking-wide uppercase">v1.2.0-LTS</span>
             </div>
-
-            {/* Quick Preview Toggle Switch (For Fast Admin/User Testing) */}
-            <button
-              id="preview-mode-toggle"
-              type="button"
-              onClick={handleToggleProPreviewMode}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border font-sans text-[9px] sm:text-[10px] font-black cursor-pointer transition-all duration-300 shadow-md shrink-0 select-none ${
-                isPro 
-                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-400 shadow-amber-500/5 hover:bg-amber-500/20 active:scale-95' 
-                  : 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/40 text-indigo-400 hover:text-indigo-300 active:scale-95'
-              }`}
-              title={lang === 'vi' ? 'Chuyển nhanh giữa chế độ xem FREE và PRO để trải nghiệm/kiểm tra' : 'Switch preview modes between FREE & PRO instantly'}
-            >
-              <span className={`inline-block h-2 w-2 rounded-full ${isPro ? 'bg-amber-400 animate-ping' : 'bg-indigo-500'} shrink-0`}></span>
-              <span className="tracking-wider uppercase">
-                {lang === 'vi' ? `Xem: ${isPro ? 'PRO 👑' : 'FREE 🔒'}` : `View: ${isPro ? 'PRO 👑' : 'FREE 🔒'}`}
-              </span>
-            </button>
 
             {/* Subscription Tier Pill */}
             {isPro ? (

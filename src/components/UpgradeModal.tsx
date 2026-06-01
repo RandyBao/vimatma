@@ -370,11 +370,13 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
               </div>
 
               {/* Informative Pro Banner */}
-              <div className="p-4 bg-slate-950 border border-slate-850 rounded-2xl flex items-start gap-3">
-                <ShieldAlert className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <h4 className="font-bold text-slate-300">{lang === 'vi' ? 'Tại sao nên bảo mật với bản PRO?' : 'Why secure your vaults with PRO Edition?'}</h4>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+              <div className="p-5 sm:p-6 bg-slate-950 border border-slate-850 rounded-2xl flex items-start gap-4">
+                <ShieldAlert className="h-6 w-6 sm:h-7 sm:w-7 text-indigo-400 shrink-0 mt-0.5" />
+                <div className="text-left">
+                  <h4 className="text-base sm:text-lg md:text-[20px] font-bold text-slate-200 leading-snug mb-1.5">
+                    {lang === 'vi' ? 'Tại sao nên bảo mật với bản PRO?' : 'Why secure your vaults with PRO Edition?'}
+                  </h4>
+                  <p className="text-xs sm:text-[13px] md:text-sm text-slate-350 leading-relaxed font-medium">
                     {lang === 'vi' 
                       ? 'Nền tảng bảo mật của chúng tôi hỗ trợ mã hóa biệt lập tại chỗ hoàn toàn. Phiên bản PRO cho phép bạn mở khóa tối đa số tài khoản, đồng bộ Google Drive chuẩn cao cấp, hỗ trợ kỹ thuật và bảo trì lâu dài không lo sợ mất dữ liệu.'
                       : 'Our security platform handles offline-first military lock schemes. Pro licensing grants limitless categories, deep health analytics, premium themes, auto backups and continuous priority care.'
