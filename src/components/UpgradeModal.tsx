@@ -279,7 +279,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                   : (lang === 'vi' ? 'Cổng thanh toán bảo mật USD - Kích hoạt bản cao cấp' : 'Secure USD Gateway - Activate Premium Version')
                 }
               </h2>
-              <p className="text-[9px] sm:text-[10px] text-indigo-400/80 font-bold uppercase tracking-widest font-mono mt-0.5">
+              <p className="text-[10px] sm:text-[11px] text-indigo-400/80 font-bold uppercase tracking-widest font-mono mt-0.5">
                 {step === 'comparison' 
                   ? (lang === 'vi' ? 'Tìm giải pháp lưu trữ an toàn nhất' : 'Identify your best secure storage path')
                   : (lang === 'vi' ? 'Mã hóa hoàn tất giao dịch tự động' : 'Automatic military grade order safety')
@@ -325,7 +325,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
               <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed font-semibold">
                 {t.tier_successUpgrade}
               </p>
-              <p className="text-[10px] text-slate-500 font-mono">
+              <p className="text-[11px] text-slate-500 font-mono">
                 {lang === 'vi' ? 'Hệ thống đang tải lại giấy phép...' : 'Securing local device license nodes...'}
               </p>
             </div>
@@ -373,10 +373,10 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
               <div className="p-5 sm:p-6 bg-slate-950 border border-slate-850 rounded-2xl flex items-start gap-4">
                 <ShieldAlert className="h-6 w-6 sm:h-7 sm:w-7 text-indigo-400 shrink-0 mt-0.5" />
                 <div className="text-left">
-                  <h4 className="text-base sm:text-lg md:text-[20px] font-bold text-slate-200 leading-snug mb-1.5">
+                  <h4 className="text-base sm:text-lg md:text-[21px] font-bold text-slate-200 leading-snug mb-1.5">
                     {lang === 'vi' ? 'Tại sao nên bảo mật với bản PRO?' : 'Why secure your vaults with PRO Edition?'}
                   </h4>
-                  <p className="text-xs sm:text-[13px] md:text-sm text-slate-350 leading-relaxed font-medium">
+                  <p className="text-xs sm:text-[14px] md:text-sm text-slate-350 leading-relaxed font-medium">
                     {lang === 'vi' 
                       ? 'Nền tảng bảo mật của chúng tôi hỗ trợ mã hóa biệt lập tại chỗ hoàn toàn. Phiên bản PRO cho phép bạn mở khóa tối đa số tài khoản, đồng bộ Google Drive chuẩn cao cấp, hỗ trợ kỹ thuật và bảo trì lâu dài không lo sợ mất dữ liệu.'
                       : 'Our security platform handles offline-first military lock schemes. Pro licensing grants limitless categories, deep health analytics, premium themes, auto backups and continuous priority care.'
@@ -433,8 +433,8 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                       <span className="text-xs font-bold text-slate-300">{lang === 'vi' ? 'Gói Tháng' : 'Monthly'}</span>
                       {selectedPlan === 'monthly' && <CheckCircle2 className="h-4 w-4 text-indigo-400" />}
                     </div>
-                    <p className="text-base font-black text-white mt-1.5">$4.99 <span className="text-[10px] text-slate-500 font-normal">/mo</span></p>
-                    <p className="text-[9px] text-slate-500 mt-1">{lang === 'vi' ? 'Hỗ trợ ngắn hạn' : 'Short-term support'}</p>
+                    <p className="text-base font-black text-white mt-1.5">$4.99 <span className="text-[11px] text-slate-500 font-normal">/mo</span></p>
+                    <p className="text-[10px] text-slate-500 mt-1">{lang === 'vi' ? 'Hỗ trợ ngắn hạn' : 'Short-term support'}</p>
                   </button>
 
                   {/* Annual */}
@@ -447,13 +447,13 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                         : 'bg-slate-950/50 border-slate-850 hover:bg-slate-900/60'
                     }`}
                   >
-                    <span className="absolute -top-2 right-2 px-1.5 py-0.5 bg-indigo-500 text-white font-extrabold text-[8px] rounded uppercase tracking-wider scale-90">SAVE 50%</span>
+                    <span className="absolute -top-2 right-2 px-1.5 py-0.5 bg-indigo-500 text-white font-extrabold text-[9px] rounded uppercase tracking-wider scale-90">SAVE 50%</span>
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-indigo-400">{lang === 'vi' ? 'Gói Năm' : 'Annual Plan'}</span>
                       {selectedPlan === 'annual' && <CheckCircle2 className="h-4 w-4 text-indigo-400" />}
                     </div>
-                    <p className="text-base font-black text-white mt-1.5">$29.99 <span className="text-[10px] text-slate-500 font-normal">/yr</span></p>
-                    <p className="text-[9px] text-slate-400 mt-1">{lang === 'vi' ? 'Khuyên dùng, tiết kiệm' : 'Best budget balance'}</p>
+                    <p className="text-base font-black text-white mt-1.5">$29.99 <span className="text-[11px] text-slate-500 font-normal">/yr</span></p>
+                    <p className="text-[10px] text-slate-400 mt-1">{lang === 'vi' ? 'Khuyên dùng, tiết kiệm' : 'Best budget balance'}</p>
                   </button>
 
                   {/* Lifetime */}
@@ -466,13 +466,13 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                         : 'bg-slate-950/50 border-slate-850 hover:bg-slate-900/60'
                     }`}
                   >
-                    <span className="absolute -top-2 right-2 px-1.5 py-0.5 bg-emerald-500 text-slate-950 font-black text-[8px] rounded uppercase tracking-wider scale-90">{lang === 'vi' ? 'SỞ HỮU VĨNH VIỄN' : 'BEST DEAL'}</span>
+                    <span className="absolute -top-2 right-2 px-1.5 py-0.5 bg-emerald-500 text-slate-950 font-black text-[9px] rounded uppercase tracking-wider scale-90">{lang === 'vi' ? 'SỞ HỮU VĨNH VIỄN' : 'BEST DEAL'}</span>
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-emerald-400">{lang === 'vi' ? 'Trọn Đời' : 'Lifetime License'}</span>
                       {selectedPlan === 'lifetime' && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
                     </div>
-                    <p className="text-base font-black text-white mt-1.5">$49.99 <span className="text-[9px] text-slate-500 font-normal">{lang === 'vi' ? 'Một lần' : 'One-time'}</span></p>
-                    <p className="text-[9px] text-emerald-400/80 font-bold mt-1">{lang === 'vi' ? 'Trọn đời không gia hạn' : 'Own forever, zero monthly fees'}</p>
+                    <p className="text-base font-black text-white mt-1.5">$49.99 <span className="text-[10px] text-slate-500 font-normal">{lang === 'vi' ? 'Một lần' : 'One-time'}</span></p>
+                    <p className="text-[10px] text-emerald-400/80 font-bold mt-1">{lang === 'vi' ? 'Trọn đời không gia hạn' : 'Own forever, zero monthly fees'}</p>
                   </button>
                 </div>
               </div>
@@ -495,8 +495,8 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     }`}
                   >
                     <CreditCard className="h-5 w-5 text-indigo-400 shrink-0" />
-                    <span className="text-[11px] font-black tracking-wide font-sans">Credit Card</span>
-                    <span className="text-[8px] text-slate-500 font-mono tracking-widest">VISA/AMEX/MC</span>
+                    <span className="text-[12px] font-black tracking-wide font-sans">Credit Card</span>
+                    <span className="text-[9px] text-slate-500 font-mono tracking-widest">VISA/AMEX/MC</span>
                   </button>
 
                   {/* Option PayPal */}
@@ -510,8 +510,8 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     }`}
                   >
                     <Globe className="h-5 w-5 text-yellow-500 shrink-0" />
-                    <span className="text-[11px] font-black tracking-wide font-sans">PayPal USD</span>
-                    <span className="text-[8px] text-yellow-500 font-mono tracking-wider">Fast International</span>
+                    <span className="text-[12px] font-black tracking-wide font-sans">PayPal USD</span>
+                    <span className="text-[9px] text-yellow-500 font-mono tracking-wider">Fast International</span>
                   </button>
 
                   {/* Option Stripe */}
@@ -525,8 +525,8 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     }`}
                   >
                     <Sparkles className="h-5 w-5 text-indigo-400 shrink-0" />
-                    <span className="text-[11px] font-black tracking-wide font-sans">Stripe Secure</span>
-                    <span className="text-[8px] text-teal-400 font-mono tracking-wider">Instant Setup</span>
+                    <span className="text-[12px] font-black tracking-wide font-sans">Stripe Secure</span>
+                    <span className="text-[9px] text-teal-400 font-mono tracking-wider">Instant Setup</span>
                   </button>
 
                   {/* Option Apple/Google Pay */}
@@ -540,8 +540,8 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     }`}
                   >
                     <Fingerprint className="h-5 w-5 text-emerald-400 shrink-0" />
-                    <span className="text-[11px] font-black tracking-wide font-sans">1-Click Express</span>
-                    <span className="text-[8px] text-slate-500 font-mono">Apple/Google Pay</span>
+                    <span className="text-[12px] font-black tracking-wide font-sans">1-Click Express</span>
+                    <span className="text-[9px] text-slate-500 font-mono">Apple/Google Pay</span>
                   </button>
 
                 </div>
@@ -550,14 +550,14 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
               {/* Dynamic form inputs based on selected Payment method */}
               {paymentMethod === 'card' && (
                 <div className="p-4 bg-slate-950/70 border border-slate-850 rounded-2xl space-y-3.5 animate-slide-up">
-                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2">
+                  <h4 className="text-[12px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2">
                     <CreditCard className="h-3.5 w-3.5 text-indigo-400" />
                     {lang === 'vi' ? 'Nhập thông tin thẻ Visa / Mastercard (Ví dụ minh họa)' : 'Secure Card Checkout Details (Simulated)'}
                   </h4>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'vi' ? 'Họ tên trên thẻ' : 'Cardholder Name'}</label>
+                      <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{lang === 'vi' ? 'Họ tên trên thẻ' : 'Cardholder Name'}</label>
                       <input
                         type="text"
                         value={cardName}
@@ -568,7 +568,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     </div>
                     
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'vi' ? 'Số thẻ tín dụng' : 'Card Number'}</label>
+                      <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{lang === 'vi' ? 'Số thẻ tín dụng' : 'Card Number'}</label>
                       <input
                         type="text"
                         value={cardNumber}
@@ -582,7 +582,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
 
                   <div className="grid grid-cols-2 gap-3 pt-1">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{lang === 'vi' ? 'Ngày hết hạn Mẫu MM/YY' : 'Expiry Date (MM/YY)'}</label>
+                      <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{lang === 'vi' ? 'Ngày hết hạn Mẫu MM/YY' : 'Expiry Date (MM/YY)'}</label>
                       <input
                         type="text"
                         value={cardExpiry}
@@ -594,7 +594,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     </div>
                     
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">CVC / CVV</label>
+                      <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">CVC / CVV</label>
                       <input
                         type="password"
                         value={cardCvv}
@@ -618,7 +618,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     {paymentMethod === 'stripe' && 'Instant Stripe Direct Access'}
                     {paymentMethod === 'gpay_applepay' && 'Apple Pay / Google Pay Express Token'}
                   </h4>
-                  <p className="text-[10px] text-slate-500 max-w-sm mx-auto">
+                  <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
                     {lang === 'vi' 
                       ? 'Nền tảng sẽ kích hoạt thanh toán một chạm USD an toàn qua cổng liên kết quốc tế.' 
                       : 'You will slide directly into automatic redirection and verification tokens on complete button.'}
@@ -654,10 +654,10 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                         <Gift className="h-6 w-6 sm:h-7 sm:w-7" />
                       </div>
                       <div>
-                        <h4 className="text-lg sm:text-[20px] font-black text-yellow-400 uppercase tracking-widest flex items-center gap-1.5 leading-tight">
+                        <h4 className="text-lg sm:text-[21px] font-black text-yellow-400 uppercase tracking-widest flex items-center gap-1.5 leading-tight">
                           <span>🎁 {lang === 'vi' ? 'DÙNG THỬ PRO 3 NGÀY MIỄN PHÍ' : '3-Day Free PRO Trial'}</span>
                         </h4>
-                        <p className="text-xs sm:text-[13px] md:text-sm text-slate-200 mt-2.5 leading-relaxed font-semibold">
+                        <p className="text-xs sm:text-[14px] md:text-sm text-slate-200 mt-2.5 leading-relaxed font-semibold">
                           {lang === 'vi' 
                             ? 'Bỏ qua thanh toán và trải nghiệm ngay 100% tất cả đặc quyền PRO Elite cực hạn (Ngăn Bí Mật Code, Quét Mã 2FA, Tự Khóa nhanh...) hoàn toàn miễn phí!' 
                             : 'Skip payment and instantly experience 100% of all PRO Elite perks (Secret Cabinet Code, 2FA, Fast Auto-lock...) with zero fees.'}
@@ -668,7 +668,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     <button
                       type="button"
                       onClick={handleStartTrial}
-                      className="w-full bg-gradient-to-r from-yellow-450 via-amber-500 to-yellow-500 hover:from-yellow-400 hover:via-amber-450 hover:to-yellow-450 text-slate-950 font-black text-[15px] sm:text-base md:text-[18px] py-3.5 sm:py-4 px-5 rounded-xl sm:rounded-2xl transition-all duration-350 cursor-pointer shadow-[0_6px_20px_rgba(234,179,8,0.35)] hover:shadow-[0_8px_28px_rgba(234,179,8,0.55)] select-none text-center animate-pulse uppercase tracking-wider border border-yellow-300/50"
+                      className="w-full bg-gradient-to-r from-yellow-450 via-amber-500 to-yellow-500 hover:from-yellow-400 hover:via-amber-450 hover:to-yellow-450 text-slate-950 font-black text-[16px] sm:text-base md:text-[19px] py-3.5 sm:py-4 px-5 rounded-xl sm:rounded-2xl transition-all duration-350 cursor-pointer shadow-[0_6px_20px_rgba(234,179,8,0.35)] hover:shadow-[0_8px_28px_rgba(234,179,8,0.55)] select-none text-center animate-pulse uppercase tracking-wider border border-yellow-300/50"
                     >
                       {lang === 'vi' ? '🚀 KÍCH HOẠT DÙNG THỬ 3 NGÀY NGAY LẬP TỨC' : '🚀 ACTIVATE 3-DAY FREE TRIAL INSTANTLY'}
                     </button>
@@ -692,11 +692,11 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                          <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
                             {lang === 'vi'
                               ? `Bạn đang trong thời hạn vàng trải nghiệm tính năng. Thời gian còn lại: `
                               : `You are in your golden trial period. Remaining countdown: `}
-                            <span className="font-mono text-emerald-400 font-extrabold text-[11px] bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded ml-1">
+                            <span className="font-mono text-emerald-400 font-extrabold text-[12px] bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded ml-1">
                               {trialTimeLeft}
                             </span>
                           </p>
@@ -707,7 +707,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                         <button
                           type="button"
                           onClick={handleResetTrialTesting}
-                          className="text-[9px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
+                          className="text-[10px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
                         >
                           {lang === 'vi' ? '[Khởi tạo lại dùng thử / Reset state]' : '[Reset trial state]'}
                         </button>
@@ -725,7 +725,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                           <h4 className="text-xs font-bold text-rose-450 uppercase tracking-wider">
                             {lang === 'vi' ? '🔒 Đã Hết Hạn Dùng Thử 3 Ngày' : '🔒 3-Day Free Trial Expired'}
                           </h4>
-                          <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                          <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
                             {lang === 'vi'
                               ? 'Thời hạn thử nghiệm PRO miễn phí đã kết thúc. Hãy nâng cấp gói vĩnh viễn để giữ các mục bảo mật mở rộng.'
                               : 'Your 3-day trial has expired. Upgrade your lifetime tier to retain advanced vault limits.'}
@@ -737,7 +737,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                         <button
                           type="button"
                           onClick={handleResetTrialTesting}
-                          className="text-[9px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
+                          className="text-[10px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
                         >
                           {lang === 'vi' ? '[Gia hạn lại dùng thử / Reset testing]' : '[Reset trial back to demo]'}
                         </button>
@@ -749,13 +749,13 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
 
               {/* Final Error Prompt Display */}
               {errorMsg && (
-                <p className="text-[11px] text-rose-450 font-bold bg-rose-500/10 border border-rose-500/20 rounded-xl p-2.5 animate-shake text-center">{errorMsg}</p>
+                <p className="text-[12px] text-rose-450 font-bold bg-rose-500/10 border border-rose-500/20 rounded-xl p-2.5 animate-shake text-center">{errorMsg}</p>
               )}
 
               {/* ACTION TRIGGER BUTTONS IN PAYMENT FORM */}
               <div className="pt-2 border-t border-slate-850 flex flex-col sm:flex-row items-center gap-3 justify-between">
                 <div>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[11px] text-slate-500">
                     {lang === 'vi' ? 'Giao dịch được bảo mật bởi mã hóa 256-bit đầu-cuối SSL.' : 'All payments are protected with 256-bit secure end-to-end SSL.'}
                   </p>
                 </div>

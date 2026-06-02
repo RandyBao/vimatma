@@ -289,11 +289,11 @@ export default function SpreadsheetWorkspaceModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider bg-emerald-500/10">
+                <span className="text-[11px] font-bold text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider bg-emerald-500/10">
                   {entry.isIntegrated ? (currentLang === 'vi' ? 'Liên kết trực tuyến' : 'Cloud Sync Link') : (currentLang === 'vi' ? 'Bảng tính nội bộ' : 'Local Spreadsheet')}
                 </span>
                 {isDirty && (
-                  <span className="text-[10px] bg-amber-500/10 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded font-bold animate-pulse">
+                  <span className="text-[11px] bg-amber-500/10 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded font-bold animate-pulse">
                     {currentLang === 'vi' ? 'Có dữ liệu mới chưa lưu' : 'Unsaved manual edits'}
                   </span>
                 )}
@@ -354,7 +354,7 @@ export default function SpreadsheetWorkspaceModal({
           <div className="bg-slate-900/40 border-b border-slate-900 px-5 py-2 text-xs flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 text-slate-400">
               <span className="font-semibold text-slate-500">{currentLang === 'vi' ? 'Nguồn liên kết:' : 'Linked Source URL:'}</span>
-              <span className="truncate max-w-md font-mono text-[11px] text-slate-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-850">
+              <span className="truncate max-w-md font-mono text-[12px] text-slate-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-850">
                 {entry.spreadsheetUrl}
               </span>
               {entry.spreadsheetUrl && (
@@ -451,7 +451,7 @@ export default function SpreadsheetWorkspaceModal({
           <table className="w-full border-collapse text-xs text-slate-300 min-w-max relative table-fixed">
             <thead className="sticky top-0 z-10 bg-slate-950 border-b border-slate-850">
               <tr className="bg-slate-900/60 font-bold">
-                <th className="p-2 border-r border-slate-850 text-center text-[10px] text-slate-500 select-none bg-slate-950 w-12 sticky left-0 z-20">#</th>
+                <th className="p-2 border-r border-slate-850 text-center text-[11px] text-slate-500 select-none bg-slate-950 w-12 sticky left-0 z-20">#</th>
                 {headers.map((hdr, colIdx) => (
                   <th key={colIdx} className="p-1 px-1 border-r border-slate-850 text-emerald-400 font-bold bg-slate-950 min-w-[150px]">
                     <div className="flex items-center justify-between group px-1">
@@ -494,7 +494,7 @@ export default function SpreadsheetWorkspaceModal({
                       key={activeRowIdx} 
                       className="border-b border-slate-900/40 hover:bg-slate-900/10 group/row"
                     >
-                      <td className="p-2 text-center text-[10px] text-slate-500 bg-slate-950 border-r border-slate-850 sticky left-0 z-10 w-12 font-mono">
+                      <td className="p-2 text-center text-[11px] text-slate-500 bg-slate-950 border-r border-slate-850 sticky left-0 z-10 w-12 font-mono">
                         {activeRowIdx + 1}
                       </td>
 
@@ -555,7 +555,7 @@ export default function SpreadsheetWorkspaceModal({
         </div>
 
         {/* Dashboard Modal Bottom instructions line footer */}
-        <div className="px-5 py-3.5 bg-slate-950 border-t border-slate-900 text-slate-550 flex flex-col sm:flex-row items-center justify-between text-[11px] gap-2 shrink-0">
+        <div className="px-5 py-3.5 bg-slate-950 border-t border-slate-900 text-slate-550 flex flex-col sm:flex-row items-center justify-between text-[12px] gap-2 shrink-0">
           <div className="flex items-center gap-1.5 text-slate-500">
             <AlertCircle className="h-3.5 w-3.5 text-emerald-500/80" />
             <span>{currentLang === 'vi' ? 'Mẹo: Bạn có thể nhập trực tiếp vào bất kỳ ô nào ở bảng trên để sửa giá trị, bấm tiêu đề cột để sửa tên cột.' : 'Tip: Double click/type directly in any cell above to edit. Choose a column header to rename it.'}</span>

@@ -18,6 +18,7 @@ export interface BaseVaultEntry {
   isSecret?: boolean;          // Đánh dấu thuộc ngăn bí mật (Code) hay không
   reminder?: ReminderConfig;   // Cấu hình nhắc nhở
   totpSecret?: string;         // Mã khóa bí mật TOTP 2FA
+  isSafeForTravel?: boolean;   // Đánh dấu an toàn khi bật Travel Mode
 }
 
 export interface BankAccountEntry extends BaseVaultEntry {

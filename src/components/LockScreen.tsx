@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Lock, Unlock, Eye, EyeOff, AlertTriangle, Globe } from 'lucide-react';
+import { Vault, Lock, Unlock, Eye, EyeOff, AlertTriangle, Globe } from 'lucide-react';
 import { motion } from 'motion/react';
 import { encryptText, decryptText, generateRandomHexSalt } from '../utils/crypto';
 import { EncryptedDatabase } from '../types';
@@ -160,7 +160,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
             {loading ? (
               <Unlock className="h-7 w-7 text-emerald-400 animate-pulse" />
             ) : (
-              <Shield className="h-7 w-7 text-emerald-400" />
+              <Vault className="h-7 w-7 text-emerald-400" />
             )}
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white font-sans sm:text-2xl">
@@ -174,7 +174,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
         {isSetupMode ? (
           <form id="setup-form" onSubmit={handleSetup} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
                 {t.lock_masterPwdLabel}
               </label>
               <div className="relative">
@@ -200,7 +200,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
                 {t.lock_masterConfirmLabel}
               </label>
               <div className="relative">
@@ -244,7 +244,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
           <form id="login-form" onSubmit={handleLogin} className="space-y-5">
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <label className="block text-sm font-semibold text-slate-300">
                   {t.lock_decryptState}
                 </label>
               </div>

@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Shield, Lock, Unlock, Search, PlusCircle, LogOut, Download, Upload, 
   Settings, KeyRound, Star, CreditCard, Smartphone, Globe, Code,
   FileText, ArrowUpDown, ChevronRight, RefreshCw, Layers, Wallet,
   Fingerprint, Table, ArrowUp, ArrowDown, Eye, EyeOff, ChevronUp, ChevronDown,
-  Trash2, Edit2, LayoutGrid, List, Bell, Calendar, Clock, ShieldAlert, Sparkles, Gift
+  Trash2, Edit2, LayoutGrid, List, Bell, Calendar, Clock, ShieldAlert, Sparkles, Gift,
+  Menu, X, Database, Gem, Vault
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LockScreen from './components/LockScreen';
@@ -14,6 +15,7 @@ import SpreadsheetWorkspaceModal from './components/SpreadsheetWorkspaceModal';
 import PasswordGenerator from './components/PasswordGenerator';
 import SecurityAudit from './components/SecurityAudit';
 import UpgradeModal from './components/UpgradeModal';
+import ProUtilities from './components/ProUtilities';
 import { VaultEntry, VaultCategory, CustomCategory, GoogleSheetEntry } from './types';
 import { encryptText } from './utils/crypto';
 import { LangType, translations } from './utils/lang';
@@ -137,6 +139,8 @@ export default function App() {
   };
 
   // Additional display options for sidebar / categories
+  const [showNavbarMenu, setShowNavbarMenu] = useState(false);
+
   const [showSidebarOptions, setShowSidebarOptions] = useState(false);
   const [hideEmptyCategories, setHideEmptyCategories] = useState(false);
   const [hideCounts, setHideCounts] = useState(false);
@@ -171,7 +175,11 @@ export default function App() {
   
   const [showGenTools, setShowGenTools] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showProUtilities, setShowProUtilities] = useState(false);
+  const [isAllAccountsExpanded, setIsAllAccountsExpanded] = useState(true);
+  const [isTravelModeActive, setIsTravelModeActive] = useState(() => localStorage.getItem('secure_vault_travel_mode') === 'true');
   const [showSecurityAudit, setShowSecurityAudit] = useState(false);
+  const [showSystemConfig, setShowSystemConfig] = useState(false);
   const [isPro, setIsPro] = useState(() => {
     const isPermanent = localStorage.getItem('secure_vault_pro_active') === 'true';
     if (isPermanent) return true;
@@ -255,6 +263,7 @@ export default function App() {
           setIsUnlocked(false);
           setShowSettings(false);
           setShowGenTools(false);
+          setShowSystemConfig(false);
           setToast({ text: t.head_toastAutoLock, type: 'info' });
           setTimeout(() => setToast(null), 3000);
           return 0;
@@ -335,6 +344,7 @@ export default function App() {
     setIsUnlocked(false);
     setShowSettings(false);
     setShowGenTools(false);
+    setShowSystemConfig(false);
     triggerToast(reason || t.head_toastLocked, 'info');
   };
 
@@ -624,6 +634,11 @@ export default function App() {
   const filteredEntries = useMemo(() => {
     let result = [...entries];
 
+    // Travel Mode filter
+    if (isTravelModeActive && isPro) {
+      result = result.filter((e) => !!(e as any).isSafeForTravel);
+    }
+
     // Secret compartment filter
     if (showSecretDrawer && isPro) {
       result = result.filter((e) => !!(e as any).isSecret);
@@ -689,7 +704,7 @@ export default function App() {
     }
 
     return result;
-  }, [entries, activeCategory, searchQuery, sortBy, showSecretDrawer, isPro]);
+  }, [entries, activeCategory, searchQuery, sortBy, showSecretDrawer, isPro, isTravelModeActive]);
 
   // Open Edit Dialog
   const handleEditInit = (entry: VaultEntry) => {
@@ -758,7 +773,7 @@ export default function App() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5  py-3.5 rounded-2xl flex items-center gap-2.5 font-medium shadow-2xl border text-sm backdrop-blur-md ${
+            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 rounded-2xl flex items-center gap-2.5 font-medium shadow-2xl border text-sm backdrop-blur-md ${
               toast.type === 'error'
                 ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
                 : toast.type === 'info'
@@ -773,272 +788,106 @@ export default function App() {
       </AnimatePresence>
 
       {/* Primary Header Navbar */}
-      <header className="border-b border-slate-900 bg-slate-950/80 sticky top-0 z-30 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-0 md:h-20 flex flex-col gap-4 md:gap-0 md:grid md:grid-cols-3 items-center">
+      <header className="border-b border-slate-900 bg-slate-950/90 sticky top-0 z-30 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
           
-          {/* LEFT COLUMN: Tool Buttons (Tạo mật khẩu, Báo cáo an toàn, Sao lưu lưu trữ) */}
-          <div className="flex items-center gap-1.5 md:gap-2.5 w-full md:w-auto justify-center md:justify-start order-2 md:order-1 md:h-full">
-            {/* Password Generator Sidebar Toggle */}
+          {/* LEFT: Menu button (dấu 3 -), Logo, Title */}
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            {/* Hamburger / Menu button */}
             <button
-              id="gen-tools-toggle"
+              id="navbar-hamburger"
               type="button"
-              onClick={() => {
-                setShowGenTools(!showGenTools);
-                setShowSettings(false);
-                setShowSecurityAudit(false);
-              }}
-              className={`px-2 py-1.5 md:px-3 md:py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 md:gap-1.5 text-[11px] md:text-xs font-semibold shrink-0 ${
-                showGenTools 
-                  ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5' 
-                  : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              onClick={() => setShowNavbarMenu(!showNavbarMenu)}
+              className={`p-1.5 md:p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+                showNavbarMenu
+                  ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5'
+                  : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:text-slate-100 hover:bg-slate-900'
               }`}
-              title={t.head_createPwd}
+              title={lang === 'vi' ? 'Menu tính năng' : 'Features Menu'}
             >
-              <KeyRound className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0 text-emerald-500/70" />
-              <span className="hidden sm:inline">{t.head_createPwd}</span>
-              <span className="sm:hidden">{lang === 'vi' ? 'Tạo Pass' : 'Pwd Gen'}</span>
+              {showNavbarMenu ? <X className="h-4.5 w-4.5 text-emerald-450" /> : <Menu className="h-4.5 w-4.5" />}
             </button>
 
-            {/* Password Audit & Vulnerability Report button */}
+            {/* Custom Sized Logo Icon - Interactive Ruby Gemstone */}
             <button
-              id="audit-dashboard-toggle"
+              id="header-logo-badge"
               type="button"
               onClick={() => {
-                setShowSecurityAudit(!showSecurityAudit);
-                setShowSettings(false);
-                setShowGenTools(false);
+                if (!isPro) {
+                  triggerToast(lang === 'vi' 
+                    ? '🔒 Tính năng Ngăn Bí Mật (Code) yêu cầu nâng cấp tài khoản PRO Elite!' 
+                    : '🔒 Secret Cabinet (Code) feature requires upgrading to PRO Elite!', 'error');
+                  setIsUpgradeModalOpen(true);
+                  return;
+                }
+                triggerToast(lang === 'vi' 
+                  ? '💡 MẸO: Hãy kích đúp (bấm liên tục 2 lần) vào Viên Kim Cương Đỏ này để mở/khóa Ngăn Bí Mật!' 
+                  : '💡 TIP: Double-click this Red Gem to unlock or lock the Secret Area!', 'info');
               }}
-              className={`px-2 py-1.5 md:px-3 md:py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 md:gap-1.5 text-[11px] md:text-xs font-semibold shrink-0 ${
-                showSecurityAudit 
-                  ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 shadow-md shadow-indigo-500/5' 
-                  : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                if (!isPro) {
+                  triggerToast(lang === 'vi' 
+                    ? '🔒 Tính năng Ngăn Bí Mật (Code) yêu cầu nâng cấp tài khoản PRO Elite!' 
+                    : '🔒 Secret Cabinet (Code) feature requires upgrading to PRO Elite!', 'error');
+                  setIsUpgradeModalOpen(true);
+                  return;
+                }
+                setActiveCategory('all');
+                setShowSecretDrawer(prev => !prev);
+                triggerToast(!showSecretDrawer 
+                  ? (lang === 'vi' ? '💎 Đã kích hoạt Viên Kim Cương Đỏ (Ngăn bí mật) thành công!' : '💎 Activated the Red Gem (Secret Drawer) successfully!')
+                  : (lang === 'vi' ? '🔒 Đã khóa ngăn bí mật & tệp tin an toàn!' : '🔒 Locked & secured the Secret Drawer successfully!'),
+                  !showSecretDrawer ? 'success' : 'info'
+                );
+              }}
+              className={`h-[32px] w-[32px] rounded-lg border flex items-center justify-center shrink-0 shadow-inner cursor-pointer transition-all duration-300 outline-none select-none ${
+                showSecretDrawer && isPro
+                  ? 'bg-rose-500/20 border-rose-500/80 text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.85)] scale-105 active:scale-95 animate-pulse'
+                  : 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400 hover:border-rose-500/40 hover:bg-rose-550/5 hover:text-rose-400'
               }`}
-              title={t.audit_title}
+              title={lang === 'vi' ? 'Kích đúp liên tục để truy cập Ngăn bí mật' : 'Double-click to access Secret Drawer'}
             >
-              <ShieldAlert className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0 text-indigo-400" />
-              <span className="hidden sm:inline">{lang === 'vi' ? 'Kiểm toán 2FA' : 'Audit 2FA'}</span>
-              <span className="sm:hidden">{lang === 'vi' ? 'Kiểm toán' : 'Audit'}</span>
-              {!isPro && (
-                <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-extrabold text-[8px] px-1 py-0.2 rounded uppercase tracking-widest scale-90 origin-right">PRO</span>
-              )}
+              <Gem className={`h-[18px] w-[18px] shrink-0 transition-all duration-500 ${
+                showSecretDrawer && isPro 
+                  ? 'fill-rose-500 text-rose-200 scale-110 animate-[spin_4s_linear_infinite]' 
+                  : 'text-emerald-400 hover:text-rose-400'
+              }`} />
             </button>
 
-            {/* Settings and Backup/Restore Panel Link */}
-            <button
-              id="settings-panel-toggle"
-              type="button"
-              onClick={() => {
-                setShowSettings(!showSettings);
-                setShowGenTools(false);
-                setShowSecurityAudit(false);
-              }}
-              className={`px-2 py-1.5 md:px-3 md:py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1 md:gap-1.5 text-[11px] md:text-xs font-semibold shrink-0 ${
-                showSettings 
-                  ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5' 
-                  : 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-              }`}
-              title={t.head_backup}
-            >
-              <Settings className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0 text-emerald-500/70" />
-              <span className="hidden sm:inline">{t.head_backup}</span>
-              <span className="sm:hidden">{lang === 'vi' ? 'Sao lưu' : 'Backup'}</span>
-            </button>
-          </div>
-
-          {/* CENTER COLUMN: Identity (Prominent, Centered, Aesthetic) */}
-          <div className="flex flex-col items-center justify-center order-1 md:order-2 text-center md:h-full">
-            <div className="flex items-center gap-3 bg-gradient-to-b from-slate-900 to-slate-950/60 pl-4 pr-5 py-2.5 rounded-2xl border border-emerald-500/20 shadow-xl shadow-emerald-500/5 hover:border-emerald-500/35 transition-all group/header">
-              <div className="h-9.5 w-9.5 bg-emerald-500/10 rounded-xl border border-emerald-500/35 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner group-hover/header:border-emerald-400 transition-colors">
-                <Shield className="h-4.5 w-4.5 fill-emerald-550/10 group-hover/header:scale-105 transition-transform" />
-              </div>
-              
-              <div className="relative text-left">
-                <div className="flex items-center gap-1.5">
-                  <h1 className="text-base sm:text-lg font-black text-white tracking-wide uppercase select-none font-sans">
-                    {currentVaultTitle}
-                  </h1>
-                  {!isDeployedOnGithubOrVercel && (
-                    <button
-                      id="rename-app-btn"
-                      type="button"
-                      onClick={() => setShowTitleSuggestions(!showTitleSuggestions)}
-                      className="p-1 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-emerald-450 transition-colors cursor-pointer"
-                      title={t.head_renameBtn}
-                    >
-                      <Edit2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-                <p className="text-[9px] text-emerald-400/80 font-bold uppercase tracking-widest font-mono select-none">{t.head_encryptionText}</p>
-
-                {showTitleSuggestions && !isDeployedOnGithubOrVercel && (
-                  <div className="absolute top-14 left-1/2 -translate-x-1/2 w-72 bg-slate-950 border border-slate-800/80 p-4 rounded-2xl shadow-2xl z-50 text-left animate-slide-up">
-                    <div className="flex items-center justify-between mb-3 border-b border-slate-900 pb-2">
-                      <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">{t.head_renameSuggestionsTitle}</span>
-                      <button 
-                        type="button"
-                        onClick={() => setShowTitleSuggestions(false)}
-                        className="text-slate-500 hover:text-slate-400 text-xs font-semibold cursor-pointer"
-                      >
-                        {lang === 'vi' ? 'Đóng' : 'Close'}
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-400 mb-2.5 leading-relaxed">{t.head_renameDesc}</p>
-                    
-                    {/* Suggestion list */}
-                    <div className="grid grid-cols-2 gap-1.5 mb-3.5">
-                      {[
-                        { vi: 'Ví Mật Mã', en: 'Save Code' },
-                        { vi: 'Quản Lí Mật Khẩu', en: 'Password Locker' },
-                        { vi: 'Két Sắt Mật Mã', en: 'Confidential Safe' },
-                        { vi: 'Mật Mã Bảo Mật', en: 'Crypto Secure' },
-                        { vi: 'Trình Giữ Mật Mã', en: 'Secret Keeper' },
-                        { vi: 'Kho Biệt Lập', en: 'Isolated Vault' }
-                      ].map((item) => {
-                        const name = lang === 'vi' ? item.vi : item.en;
-                        return (
-                          <button
-                            key={item.vi}
-                            type="button"
-                            onClick={() => {
-                              setVaultTitle(name);
-                              localStorage.setItem('secure_vault_app_title', name);
-                              setShowTitleSuggestions(false);
-                              triggerToast(lang === 'vi' ? `Đã đổi tên ứng dụng thành "${name}"!` : `Vault title changed to "${name}"!`);
-                            }}
-                            className={`text-left px-2 py-1.5 text-[11px] font-medium rounded-lg border transition-all cursor-pointer truncate ${
-                              currentVaultTitle.toLowerCase() === name.toLowerCase()
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-semibold'
-                                : 'bg-slate-900/40 border-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                            }`}
-                            title={name}
-                          >
-                            {name}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Manual Rename field */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] text-slate-500 font-semibold uppercase tracking-wider">{t.head_renameCustomField}</label>
-                      <div className="flex gap-1.5">
-                        <input
-                          id="custom-rename-input"
-                          type="text"
-                          value={customAppTitle}
-                          onChange={(e) => setCustomAppTitle(e.target.value)}
-                          placeholder={t.head_renameCustomPlc}
-                          className="flex-1 px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (customAppTitle.trim()) {
-                              const trimmed = customAppTitle.trim();
-                              setVaultTitle(trimmed);
-                              localStorage.setItem('secure_vault_app_title', trimmed);
-                              setShowTitleSuggestions(false);
-                              triggerToast(lang === 'vi' ? `Đã đổi tên ứng dụng thành "${trimmed}"!` : `Vault title changed to "${trimmed}"!`);
-                            }
-                          }}
-                          className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-lg transition-all cursor-pointer shrink-0"
-                        >
-                          {t.head_renameSave}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Developer/Testing Preview Toggle (Nested secretly within edit menu) */}
-                    <div className="pt-3 border-t border-slate-900 mt-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider">
-                          {lang === 'vi' ? '🧪 CHẾ ĐỘ XEM THỬ' : '🧪 PREVIEW MODE'}
-                        </span>
-                        <span className="text-[9px] font-mono font-medium text-slate-500">
-                          {isPro ? 'PRO 👑' : 'FREE 🔒'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleToggleProPreviewMode}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl border font-sans text-[10px] font-black cursor-pointer transition-all duration-300 shadow-md ${
-                          isPro 
-                            ? 'bg-amber-550/10 border-amber-500/40 text-amber-400 hover:bg-amber-550/20 active:scale-98' 
-                            : 'bg-slate-900 border-slate-800 text-indigo-400 hover:text-indigo-300 hover:border-slate-700 active:scale-98'
-                        }`}
-                        title={lang === 'vi' ? 'Thay đổi chế độ xem thử để phát triển/kiểm tra nhanh' : 'Modify views instantly for quick development testing'}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <span className={`inline-block h-2 w-2 rounded-full ${isPro ? 'bg-amber-400 animate-ping' : 'bg-slate-700'} shrink-0`}></span>
-                          <span>{lang === 'vi' ? 'Bật tính năng PRO Elite' : 'Toggle PRO Elite'}</span>
-                        </span>
-                        <span className="tracking-wide text-[9px] px-1.5 py-0.5 rounded bg-slate-950 border border-slate-850">
-                          {isPro ? 'ACTIVE' : 'INACTIVE'}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
+            {/* App branding title */}
+            <div className="flex flex-col select-none">
+              <div className="flex items-center gap-1.5">
+                <h1 id="header-app-title" className="font-extrabold uppercase tracking-wide select-none font-sans text-xs md:text-sm text-slate-100">
+                  {currentVaultTitle}
+                </h1>
+                {!isDeployedOnGithubOrVercel && (
+                  <button
+                    id="rename-app-btn"
+                    type="button"
+                    onClick={() => setShowTitleSuggestions(!showTitleSuggestions)}
+                    className="p-1 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-emerald-450 transition-colors cursor-pointer"
+                    title={t.head_renameBtn}
+                  >
+                    <Edit2 className="h-2.5 w-2.5" />
+                  </button>
                 )}
               </div>
+              
+              {/* Secure Subtitle line under the title */}
+              <p id="header-app-subtitle" className="uppercase tracking-widest font-mono text-[9px] text-emerald-400/80 font-bold exclude-min-size leading-none">
+                {t.head_encryptionText}
+              </p>
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Auto lock settings & Locked actions */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-center md:justify-end w-full md:w-auto order-3 md:h-full">
-            
-            {/* Release Version Indicator */}
-            <div 
-              id="release-version-badge"
-              className="flex items-center bg-slate-900/50 border border-slate-800/80 rounded-xl px-2 py-1.5 sm:px-2.5 sm:py-1.5 shrink-0 select-none font-mono text-[9px] sm:text-[10px] font-bold text-slate-400 gap-1.5 hover:text-emerald-400 hover:border-emerald-500/30 transition-all duration-300"
-              title={lang === 'vi' ? 'Phiên bản phát hành chính thức lâu dài (LTS) hoạt động bảo mật' : 'Official Long Term Support (LTS) release version'}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-              <span className="tracking-wide uppercase">v1.2.0-LTS</span>
-            </div>
+          {/* MIDDLE GAP: Deleted header search bar */}
+          <div className="flex-1 max-w-xs md:max-w-md hidden sm:block"></div>
 
-            {/* Subscription Tier Pill */}
-            {isPro ? (
-              <button
-                id="tier-badge-pro"
-                type="button"
-                onClick={() => setIsUpgradeModalOpen(true)}
-                className="px-2.5 py-1.5 text-[9px] sm:text-[10px] font-black bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 rounded-xl hover:scale-102 transition-all flex items-center justify-center gap-1 cursor-pointer animate-fade-in shadow-md shadow-emerald-500/5 select-none font-sans"
-              >
-                <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-400 animate-pulse shrink-0" />
-                <span className="tracking-wider uppercase hidden sm:inline">PRO ELITE</span>
-                <span className="tracking-wider uppercase sm:hidden">PRO</span>
-              </button>
-            ) : (
-              <button
-                id="tier-badge-free"
-                type="button"
-                onClick={() => setIsUpgradeModalOpen(true)}
-                className="px-2 py-1 sm:px-2.5 sm:py-1.5 text-[9px] sm:text-[10px] font-black bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl hover:scale-102 hover:border-indigo-400/40 hover:bg-indigo-500/25 transition-all flex items-center justify-center gap-1 cursor-pointer animate-fade-in shadow-md shadow-indigo-500/5 select-none font-sans"
-              >
-                <Gift className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-400 shrink-0" />
-                <span className="tracking-wider uppercase hidden sm:inline">{lang === 'vi' ? 'NÂNG CẤP PRO' : 'UPGRADE PRO'}</span>
-                <span className="tracking-wider uppercase sm:hidden">{lang === 'vi' ? 'MỞ PRO' : 'PRO'}</span>
-              </button>
-            )}
-
-            {/* 1. Language Toggle Icon Displayed at Top Right */}
-            <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-xl p-0.5 sm:p-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => handleLangChange(lang === 'vi' ? 'en' : 'vi')}
-                className="p-1 px-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1 cursor-pointer"
-                title={lang === 'vi' ? 'Lockscreen language settings (EN / VN)' : 'Chuyển đổi ngôn ngữ hiển thị (VI / EN)'}
-              >
-                <Globe className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-400" />
-                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase font-mono tracking-wider">
-                  {lang === 'vi' ? 'VI' : 'EN'}
-                </span>
-              </button>
-            </div>
-
-            {/* 2. Unified Auto-Lock Countdown + Timer Configuration Pill Capsule */}
-            <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800/80 rounded-xl p-0.5 sm:p-1 shrink-0">
+          {/* RIGHT: Status tools, lock configurations */}
+          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+            {/* Auto-Lock Indicator */}
+            <div className="flex items-center gap-1 bg-slate-900/40 border border-slate-850 rounded-xl p-0.5 md:p-1 shrink-0">
               {isEditingAutoLock ? (
                 <div className="flex items-center gap-1 bg-slate-950 border border-indigo-500/50 rounded-lg px-1 py-0.5 shadow-inner">
                   <Clock className="h-3 w-3 text-indigo-400 animate-pulse" />
@@ -1056,11 +905,11 @@ export default function App() {
                         setIsEditingAutoLock(false);
                       }
                     }}
-                    className="font-mono font-extrabold text-indigo-400 text-[10px] sm:text-[11px] w-10 sm:w-12 bg-transparent text-center outline-none border-b border-indigo-500/30 focus:border-indigo-400 pb-0.5"
+                    className="font-mono font-extrabold text-indigo-450 text-[11px] w-10 bg-transparent text-center outline-none border-b border-indigo-500/30 focus:border-indigo-400 pb-0.5"
                     autoFocus
                     placeholder="3"
                   />
-                  <span className="text-[9px] text-slate-500 font-bold font-mono uppercase pb-0.5 select-none shrink-0">
+                  <span className="text-[10px] text-slate-500 font-bold font-mono uppercase pb-0.5 select-none shrink-0 border-none">
                     m
                   </span>
                 </div>
@@ -1074,46 +923,552 @@ export default function App() {
                     setIsEditingAutoLock(true);
                     setTempAutoLockVal(String(autoLockMinutes));
                   }}
-                  className="flex items-center gap-1.5 text-slate-400 px-1.5 py-1 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-semibold bg-slate-950/45 border border-slate-850 hover:bg-slate-900/40 hover:border-slate-800 hover:text-slate-200 transition-all select-none cursor-pointer group"
+                  className="flex items-center gap-1 text-slate-400 px-2 py-1 rounded-lg text-[11px] sm:text-xs font-semibold bg-slate-950/45 border border-slate-850 hover:bg-slate-900/40 hover:border-slate-800 hover:text-slate-200 transition-all select-none cursor-pointer group"
                   title={isPro 
                     ? (lang === 'vi' ? 'Bấm để đổi thời gian tự khóa (phút, 0 để tắt)' : 'Click to customize auto-lock minutes (0 to disable)')
                     : (lang === 'vi' ? 'Yêu cầu phiên bản PRO để tùy chỉnh thời gian khóa' : 'PRO version required to customize auto-lock timer')
                   }
                 >
-                  <Clock className={`h-3 w-3 sm:h-3.5 sm:w-3.5 group-hover:text-indigo-400 transition-colors ${effectiveAutoLockMinutes > 0 ? 'text-indigo-400 animate-pulse' : 'text-slate-500'}`} />
-                  <span className="font-mono font-extrabold text-indigo-400 text-[10px] sm:text-[11px] min-w-[28px] sm:min-w-[34px] text-center pb-0.5 border-b border-transparent group-hover:border-indigo-400/40 transition-colors">
+                  <Clock className={`h-3.5 w-3.5 group-hover:text-indigo-455 transition-colors ${effectiveAutoLockMinutes > 0 ? 'text-indigo-405 animate-pulse' : 'text-slate-500'}`} />
+                  <span className="font-mono font-extrabold text-indigo-400 text-[11px] min-w-[28px] text-center">
                     {effectiveAutoLockMinutes === 0 ? '00:00' : (isCountdownHidden ? '••:••' : formatCountdown(timeLeftSeconds))}
                   </span>
-                  {!isPro && <Lock className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-amber-500/90 shrink-0 ml-0.5" />}
                 </div>
               )}
-
-              {/* Eye toggle check countdown visibility */}
-              <button
-                type="button"
-                onClick={toggleCountdownVisibility}
-                className="p-1 hover:bg-slate-800 rounded-lg text-slate-455 hover:text-slate-200 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
-                title={isCountdownHidden ? (lang === 'vi' ? 'Hiện đếm ngược' : 'Show countdown') : (lang === 'vi' ? 'Ẩn đếm ngược' : 'Hide countdown')}
-              >
-                {isCountdownHidden ? <EyeOff className="h-3.5 w-3.5 text-slate-500" /> : <Eye className="h-3.5 w-3.5 text-indigo-400" />}
-              </button>
-
-              {/* Lock app button */}
-              <button
-                id="app-lock-btn"
-                type="button"
-                onClick={() => handleLock()}
-                className="p-1 sm:p-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/35 text-rose-400 hover:text-rose-300 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-sm"
-                title={t.head_lockBtn}
-              >
-                <LogOut className="h-3.5 w-3.5" />
-              </button>
             </div>
 
+            {/* Language toggle badge */}
+            <button
+              type="button"
+              onClick={() => handleLangChange(lang === 'vi' ? 'en' : 'vi')}
+              className="p-1 px-2.5 bg-slate-900/40 border border-slate-850 hover:border-slate-800 rounded-xl text-slate-300 hover:text-slate-100 transition-all flex items-center gap-1.5 cursor-pointer h-7 md:h-8 shrink-0"
+              title={lang === 'vi' ? 'Chuyển đổi ngôn ngữ hiển thị (VI / EN)' : 'Lockscreen language settings (EN / VN)'}
+            >
+              <Globe className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="text-[10px] md:text-[11px] font-extrabold uppercase font-mono tracking-wider">
+                {lang === 'vi' ? 'VI' : 'EN'}
+              </span>
+            </button>
+
+            {/* Lock app button */}
+            <button
+              id="app-lock-btn"
+              type="button"
+              onClick={() => handleLock()}
+              className="h-7 w-7 md:h-8 md:w-8 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/35 text-rose-400 hover:text-rose-300 rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-sm"
+              title={t.head_lockBtn}
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </div>
 
         </div>
+
+        {/* Suggestion overlay for rename */}
+        {showTitleSuggestions && !isDeployedOnGithubOrVercel && (
+          <div className="absolute top-16 left-4 md:left-24 w-72 bg-slate-950 border border-slate-800 p-4 rounded-2xl shadow-2xl z-50 text-left animate-slide-up">
+            <div className="flex items-center justify-between mb-3 border-b border-slate-905 pb-2">
+              <span className="text-[12px] font-bold text-emerald-400 uppercase tracking-wider exclude-min-size">{t.head_renameSuggestionsTitle}</span>
+              <button 
+                type="button"
+                onClick={() => setShowTitleSuggestions(false)}
+                className="text-slate-500 hover:text-slate-400 text-xs font-semibold cursor-pointer"
+              >
+                {lang === 'vi' ? 'Đóng' : 'Close'}
+              </button>
+            </div>
+            <p className="text-[12px] text-slate-400 mb-2.5 leading-relaxed">{t.head_renameDesc}</p>
+            
+            <div className="grid grid-cols-2 gap-1.5 mb-3.5">
+              {[
+                { vi: 'Ví Mật Mã', en: 'Save Code' },
+                { vi: 'Quản Lí Mật Khẩu', en: 'Password Locker' },
+                { vi: 'Két Sắt Mật Mã', en: 'Confidential Safe' },
+                { vi: 'Mật Mã Bảo Mật', en: 'Crypto Secure' },
+                { vi: 'Trình Giữ Mật Mã', en: 'Secret Keeper' },
+                { vi: 'Kho Biệt Lập', en: 'Isolated Vault' }
+              ].map((item) => {
+                const name = lang === 'vi' ? item.vi : item.en;
+                return (
+                  <button
+                    key={item.vi}
+                    type="button"
+                    onClick={() => {
+                      setVaultTitle(name);
+                      localStorage.setItem('secure_vault_app_title', name);
+                      setShowTitleSuggestions(false);
+                      triggerToast(lang === 'vi' ? `Đã đổi tên ứng dụng thành "${name}"!` : `Vault title changed to "${name}"!`);
+                    }}
+                    className={`text-left px-2 py-1.5 text-[12px] font-medium rounded-lg border transition-all cursor-pointer truncate exclude-min-size ${
+                      currentVaultTitle.toLowerCase() === name.toLowerCase()
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-semibold'
+                        : 'bg-slate-900/40 border-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    }`}
+                    title={name}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[11px] text-slate-500 font-semibold uppercase tracking-wider exclude-min-size">{t.head_renameCustomField}</label>
+              <div className="flex gap-1.5">
+                <input
+                  id="custom-rename-input"
+                  type="text"
+                  value={customAppTitle}
+                  onChange={(e) => setCustomAppTitle(e.target.value)}
+                  placeholder={t.head_renameCustomPlc}
+                  className="flex-1 px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white outline-none focus:border-emerald-500 transition-all placeholder:text-slate-605 font-sans"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customAppTitle.trim()) {
+                      const trimmed = customAppTitle.trim();
+                      setVaultTitle(trimmed);
+                      localStorage.setItem('secure_vault_app_title', trimmed);
+                      setShowTitleSuggestions(false);
+                      triggerToast(lang === 'vi' ? `Đã đổi tên ứng dụng thành "${trimmed}"!` : `Vault title changed to "${trimmed}"!`);
+                    }
+                  }}
+                  className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-lg transition-all cursor-pointer shrink-0"
+                >
+                  {t.head_renameSave}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-900 mt-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-amber-500 uppercase tracking-wider exclude-min-size">
+                  {lang === 'vi' ? '🧪 CHẾ ĐỘ XEM THỬ' : '🧪 PREVIEW MODE'}
+                </span>
+                <span className="text-[10px] font-mono font-medium text-slate-500 exclude-min-size">
+                  {isPro ? 'PRO 👑' : 'FREE 🔒'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleProPreviewMode}
+                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl border font-sans text-[11px] font-black cursor-pointer transition-all duration-300 shadow-md bg-slate-900 border-slate-805 text-indigo-400 hover:text-indigo-300 hover:border-slate-700 active:scale-98"
+                title={lang === 'vi' ? 'Thay đổi chế độ xem thử để phát triển/kiểm tra nhanh' : 'Modify views instantly for quick development testing'}
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className={`inline-block h-2 w-2 rounded-full ${isPro ? 'bg-amber-400 animate-ping' : 'bg-slate-700'} shrink-0`}></span>
+                  <span>{lang === 'vi' ? 'Bật tính năng PRO Elite' : 'Toggle PRO Elite'}</span>
+                </span>
+                <span className="tracking-wide text-[10px] px-1.5 py-0.5 rounded bg-slate-950 border border-slate-850 exclude-min-size">
+                  {isPro ? 'ACTIVE' : 'INACTIVE'}
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
       </header>
+
+      {/* Hamburger Drawer Dropdown (Menu Thẻ) */}
+      <AnimatePresence>
+        {showNavbarMenu && (
+          <>
+            {/* Backdrop overlay */}
+            <motion.div
+              id="sidebar-drawer-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowNavbarMenu(false)}
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-40 cursor-pointer"
+            />
+
+            {/* Left Drawer Panels adhering to GitHub design layout */}
+            <motion.div
+              id="sidebar-drawer-panel"
+              initial={{ x: '-100%' }}
+              animate={{ x: '0%' }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="fixed top-0 left-0 bottom-0 h-full w-80 max-w-[85vw] bg-slate-950/98 border-r border-slate-900 shadow-2xl z-50 flex flex-col pt-5 pb-6 text-left text-slate-200 outline-none font-sans"
+            >
+              {/* Header inside drawer */}
+              <div className="flex items-center justify-between px-4 pb-4 border-b border-slate-900 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isPro) {
+                        triggerToast(lang === 'vi' 
+                          ? '🔒 Tính năng Ngăn Bí Mật (Code) yêu cầu nâng cấp tài khoản PRO Elite!' 
+                          : '🔒 Secret Cabinet (Code) feature requires upgrading to PRO Elite!', 'error');
+                        setIsUpgradeModalOpen(true);
+                        return;
+                      }
+                      triggerToast(lang === 'vi' 
+                        ? '💡 MẸO: Hãy kích đúp (bấm liên tục 2 lần) vào Viên Kim Cương Đỏ này để mở/khóa Ngăn Bí Mật!' 
+                        : '💡 TIP: Double-click this Red Gem to unlock or lock the Secret Area!', 'info');
+                    }}
+                    onDoubleClick={(e) => {
+                      e.preventDefault();
+                      if (!isPro) {
+                        triggerToast(lang === 'vi' 
+                          ? '🔒 Tính năng Ngăn Bí Mật (Code) yêu cầu nâng cấp tài khoản PRO Elite!' 
+                          : '🔒 Secret Cabinet (Code) feature requires upgrading to PRO Elite!', 'error');
+                        setIsUpgradeModalOpen(true);
+                        return;
+                      }
+                      setActiveCategory('all');
+                      setShowSecretDrawer(prev => !prev);
+                      setShowNavbarMenu(false);
+                      triggerToast(!showSecretDrawer 
+                        ? (lang === 'vi' ? '💎 Đã kích hoạt Viên Kim Cương Đỏ (Ngăn bí mật) thành công!' : '💎 Activated the Red Gem (Secret Drawer) successfully!')
+                        : (lang === 'vi' ? '🔒 Đã khóa ngăn bí mật & tệp tin an toàn!' : '🔒 Locked & secured the Secret Drawer successfully!'),
+                        !showSecretDrawer ? 'success' : 'info'
+                      );
+                    }}
+                    className={`h-[32px] w-[32px] rounded-lg border flex items-center justify-center shrink-0 shadow-inner cursor-pointer transition-all duration-300 outline-none select-none ${
+                      showSecretDrawer && isPro
+                        ? 'bg-rose-500/20 border-rose-500/80 text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.85)] scale-105 active:scale-95 animate-pulse'
+                        : 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400 hover:border-rose-500/40 hover:bg-rose-550/5 hover:text-rose-400'
+                    }`}
+                    title={lang === 'vi' ? 'Kích đúp liên tục để truy cập Ngăn bí mật' : 'Double-click to access Secret Drawer'}
+                  >
+                    <Gem className={`h-[18px] w-[18px] shrink-0 transition-all duration-500 ${
+                      showSecretDrawer && isPro 
+                        ? 'fill-rose-500 text-rose-200 scale-110 animate-[spin_4s_linear_infinite]' 
+                        : 'text-emerald-400 hover:text-rose-400'
+                    }`} />
+                  </button>
+                  <div>
+                    <h2 className="font-extrabold uppercase tracking-wide text-sm text-slate-100 leading-none">
+                      {currentVaultTitle}
+                    </h2>
+                    <span className="text-[12px] text-slate-500 font-bold uppercase tracking-widest block mt-1">
+                      MÃ HÓA AES-256 NỘI BỘ
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowNavbarMenu(false)}
+                  className="p-1.5 rounded-lg border border-slate-850 hover:border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-100 cursor-pointer transition-all active:scale-95"
+                  title={lang === 'vi' ? 'Đóng menu' : 'Close menu'}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Scrollable list options area */}
+              <div className="flex-1 overflow-y-auto px-2 py-4 space-y-4 scrollbar-thin">
+                
+                {/* Group 1: Category lists */}
+                <div className="space-y-1">
+                  <span className="px-3.5 text-xs font-extrabold uppercase tracking-widest text-slate-500 block mb-2">
+                    {lang === 'vi' ? 'Kho khóa hàng đầu' : 'Top Key Repositories'}
+                  </span>
+
+                  {/* Select 'all' */}
+                    <div className="flex items-center justify-between w-full relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveCategory('all');
+                          setShowGenTools(false);
+                          setShowSettings(false);
+                          setShowSecurityAudit(false);
+                          setShowProUtilities(false);
+                          setShowSystemConfig(false);
+                          setShowNavbarMenu(false);
+                          triggerToast(lang === 'vi' ? 'Tất cả tài khoản' : 'All Accounts');
+                        }}
+                        className={`flex-1 flex items-center justify-between pl-3.5 pr-10 py-2.5 rounded-lg transition-all duration-150 text-sm font-bold cursor-pointer select-none text-left relative group ${
+                          activeCategory === 'all' && !showGenTools && !showSettings && !showSecurityAudit && !showSystemConfig && !showProUtilities
+                            ? 'bg-slate-900/80 text-emerald-400 font-bold'
+                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
+                        }`}
+                      >
+                        {activeCategory === 'all' && !showGenTools && !showSettings && !showSecurityAudit && !showSystemConfig && !showProUtilities && (
+                          <span className="absolute left-0 top-2 bottom-2 w-1 bg-emerald-500 rounded-r-md"></span>
+                        )}
+                        <span className="flex items-center gap-3">
+                          <span className={`${activeCategory === 'all' && !showGenTools && !showSettings && !showSecurityAudit && !showSystemConfig && !showProUtilities ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-350'} shrink-0 ml-1`}>
+                            <Layers className="h-4 w-4" />
+                          </span>
+                          <span className="truncate">{lang === 'vi' ? 'Tất cả tài khoản' : 'All Accounts'}</span>
+                        </span>
+                        {!hideCounts && (
+                          <span className={`font-mono text-xs px-1.5 py-0.5 rounded-md ${
+                            activeCategory === 'all' && !showGenTools && !showSettings && !showSecurityAudit && !showSystemConfig && !showProUtilities ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-900/60 text-slate-500'
+                          }`}>
+                            {stats.total || 0}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsAllAccountsExpanded(!isAllAccountsExpanded);
+                        }}
+                        className="absolute right-2 top-2 bottom-2 px-1.5 hover:bg-slate-800 rounded flex items-center justify-center text-slate-500 hover:text-slate-300 transition-colors"
+                        title={lang === 'vi' ? 'Mở rộng/Thu gọn' : 'Expand/Collapse'}
+                      >
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isAllAccountsExpanded ? '' : '-rotate-90'}`} />
+                      </button>
+                    </div>
+
+                    {/* Loop list categories nested as children */}
+                    {isAllAccountsExpanded && (
+                      <div id="nested-categories-tree" className="ml-5 pl-3 border-l border-slate-850/60 space-y-1 mt-1">
+                        {displayedCategories.map((cat) => {
+                          const isCatActive = activeCategory === cat.id && !showGenTools && !showSettings && !showSecurityAudit && !showSystemConfig && !showProUtilities;
+                          const displayLabel = lang === 'en' 
+                            ? (cat.id === 'bank' ? 'Bank details' : cat.id === 'social' ? 'Social Accounts' : cat.id === 'web' ? 'Regular Web' : cat.id === 'wallet' ? 'Crypto Wallets' : cat.id === 'ewallet' ? 'E-Wallets' : cat.id === 'phoneapp' ? 'Phone Apps' : cat.id === 'note' ? 'Secure Notes' : cat.id === 'sheet' ? 'Spreadsheets' : cat.label) 
+                            : cat.label;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => {
+                                setActiveCategory(cat.id);
+                                setShowGenTools(false);
+                                setShowSettings(false);
+                                setShowSecurityAudit(false);
+                                setShowProUtilities(false);
+                                setShowSystemConfig(false);
+                                setShowNavbarMenu(false);
+                                triggerToast((lang === 'vi' ? 'Đã chọn: ' : 'Selected: ') + displayLabel);
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-150 text-xs font-semibold cursor-pointer select-none text-left relative group ${
+                                isCatActive
+                                  ? 'bg-slate-900/60 text-indigo-400 font-bold'
+                                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30'
+                              }`}
+                            >
+                              {isCatActive && (
+                                <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-indigo-500 rounded-r-md"></span>
+                              )}
+                              <span className="flex items-center gap-2.5">
+                                <span className={`${isCatActive ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-400' } shrink-0`}>
+                                  {getCategoryIcon(cat.iconType)}
+                                </span>
+                                <span className="truncate">{displayLabel}</span>
+                              </span>
+                              {!hideCounts && (
+                                <span className={`font-mono text-[10px] px-1.5 py-0.2 rounded-md ${
+                                  isCatActive ? 'bg-indigo-500/10 text-indigo-400' : 'bg-slate-900/50 text-slate-500'
+                                }`}>
+                                  {stats.counts[cat.id] || 0}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                  {/* Starred folder */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory('fav');
+                      setShowGenTools(false);
+                      setShowSettings(false);
+                      setShowSecurityAudit(false);
+                      setShowProUtilities(false);
+                      setShowSystemConfig(false);
+                      setShowNavbarMenu(false);
+                      triggerToast(lang === 'vi' ? 'Đã yêu thích' : 'Starred Folder');
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg transition-all duration-150 text-sm font-bold cursor-pointer select-none text-left relative group ${
+                      activeCategory === 'fav' && !showGenTools && !showSettings && !showSecurityAudit && !showSystemConfig && !showProUtilities
+                        ? 'bg-slate-900/80 text-amber-400 font-bold'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
+                    }`}
+                  >
+                    {activeCategory === 'fav' && !showGenTools && !showSettings && !showSecurityAudit && !showSystemConfig && !showProUtilities && (
+                      <span className="absolute left-0 top-2 bottom-2 w-1 bg-amber-500 rounded-r-md"></span>
+                    )}
+                    <span className="flex items-center gap-3">
+                      <span className={`${activeCategory === 'fav' && !showGenTools && !showSettings && !showSecurityAudit && !showSystemConfig && !showProUtilities ? 'text-amber-400' : 'text-slate-550 group-hover:text-slate-350'} shrink-0 ml-1`}>
+                        <Star className="h-4 w-4" />
+                      </span>
+                      <span className="truncate">{lang === 'vi' ? 'Đã gắn dấu sao' : 'Starred Items'}</span>
+                    </span>
+                  </button>
+                </div>
+
+                {/* Separation line */}
+                <div className="border-t border-slate-900 my-1"></div>
+
+                {/* Group 2: System Security utilities */}
+                <div className="space-y-1">
+                  <span className="px-3.5 text-xs font-extrabold uppercase tracking-widest text-slate-500 block mb-2">
+                    {lang === 'vi' ? 'An ninh tiện ích' : 'Security Utilities'}
+                  </span>
+
+                  {/* Tool 1: Password Gen */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowGenTools(!showGenTools);
+                      setShowSettings(false);
+                      setShowSecurityAudit(false);
+                      setShowProUtilities(false);
+                      setShowSystemConfig(false);
+                      setShowNavbarMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all duration-150 text-sm font-bold cursor-pointer select-none text-left group ${
+                      showGenTools
+                        ? 'bg-slate-900/80 text-emerald-400 font-bold'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
+                    }`}
+                  >
+                    <span className={`${showGenTools ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-350'} shrink-0 ml-1`}>
+                      <KeyRound className="h-4 w-4" />
+                    </span>
+                    <span>{lang === 'vi' ? 'Trình Tạo Mật Khẩu' : 'Password Generator'}</span>
+                  </button>
+
+                  {/* Tool 2: 2FA Audit */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSecurityAudit(!showSecurityAudit);
+                      setShowSettings(false);
+                      setShowGenTools(false);
+                      setShowProUtilities(false);
+                      setShowSystemConfig(false);
+                      setShowNavbarMenu(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg transition-all duration-150 text-sm font-bold cursor-pointer select-none text-left group ${
+                      showSecurityAudit
+                        ? 'bg-slate-900/80 text-indigo-400 font-bold'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className={`${showSecurityAudit ? 'text-indigo-400' : 'text-slate-550'} shrink-0 ml-1`}>
+                        <ShieldAlert className="h-4 w-4" />
+                      </span>
+                      <span>{lang === 'vi' ? 'Kiểm Toán Bảo Mật 2FA' : '2FA Security Audit'}</span>
+                    </span>
+                    {!isPro && (
+                      <span className="text-[9px] bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-extrabold px-1.5 rounded uppercase scale-90 shrink-0">
+                        PRO
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Tool 5: PRO Premium Toolkit */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProUtilities(!showProUtilities);
+                      setShowSettings(false);
+                      setShowGenTools(false);
+                      setShowSecurityAudit(false);
+                      setShowSystemConfig(false);
+                      setShowNavbarMenu(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg transition-all duration-150 text-sm font-bold cursor-pointer select-none text-left group ${
+                      showProUtilities
+                        ? 'bg-slate-900/80 text-indigo-400 font-bold'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className={`${showProUtilities ? 'text-indigo-400' : 'text-slate-550'} shrink-0 ml-1`}>
+                        <Gem className="h-4 w-4" />
+                      </span>
+                      <span>{lang === 'vi' ? 'Bộ Tiện Ích Cao Cấp PRO' : 'PRO Premium Toolkit'}</span>
+                    </span>
+                    {!isPro && (
+                      <span className="text-[9px] bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-extrabold px-1.5 rounded uppercase scale-90 shrink-0">
+                        PRO
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Tool 3: Backup */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettings(!showSettings);
+                      setShowGenTools(false);
+                      setShowSecurityAudit(false);
+                      setShowProUtilities(false);
+                      setShowSystemConfig(false);
+                      setShowNavbarMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all duration-150 text-sm font-bold cursor-pointer select-none text-left group ${
+                      showSettings
+                        ? 'bg-slate-900/80 text-emerald-400 font-bold'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
+                    }`}
+                  >
+                    <span className={`${showSettings ? 'text-emerald-400' : 'text-slate-550'} shrink-0 ml-1`}>
+                      <Database className="h-4 w-4" />
+                    </span>
+                    <span>{lang === 'vi' ? 'Sao Lưu & Đồng Bộ' : 'Backup & Sync'}</span>
+                  </button>
+
+                  {/* Tool 4: Config */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSystemConfig(!showSystemConfig);
+                      setShowGenTools(false);
+                      setShowSecurityAudit(false);
+                      setShowProUtilities(false);
+                      setShowSettings(false);
+                      setShowNavbarMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all duration-150 text-sm font-bold cursor-pointer select-none text-left group ${
+                      showSystemConfig
+                        ? 'bg-slate-900/80 text-emerald-400 font-bold'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
+                    }`}
+                  >
+                    <span className={`${showSystemConfig ? 'text-emerald-400' : 'text-slate-550'} shrink-0 ml-1`}>
+                      <Settings className="h-4 w-4" />
+                    </span>
+                    <span>{lang === 'vi' ? 'Cài Đặt Hệ Thống' : 'System Settings'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status footer for Drawer */}
+              <div className="px-4 pt-3 border-t border-slate-900 shrink-0 space-y-2.5">
+                <div className="flex items-center justify-between text-xs text-slate-500 font-mono font-bold">
+                  <span>SYSTEM STATUS:</span>
+                  <span className="text-emerald-500 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    SECURE & LIVE
+                  </span>
+                </div>
+                {!isPro && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUpgradeModalOpen(true);
+                      setShowNavbarMenu(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-sans text-xs font-black select-none cursor-pointer transition-all active:scale-95 shadow-lg shadow-amber-500/10"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>{lang === 'vi' ? 'Nâng cấp lên PRO Elite' : 'Upgrade to PRO Elite'}</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* System Notification Band / Birthday & Reminders Hub */}
       {isUnlocked && remindersToShow.length > 0 && (
@@ -1130,7 +1485,7 @@ export default function App() {
                 <div>
                   <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
                     {t.rem_title}
-                    <span className="bg-indigo-500 text-slate-950 font-mono font-bold text-[10px] px-2 py-0.5 rounded-full leading-none">
+                    <span className="bg-indigo-500 text-slate-950 font-mono font-bold text-[11px] px-2 py-0.5 rounded-full leading-none">
                       {remindersToShow.length}
                     </span>
                   </h3>
@@ -1155,7 +1510,7 @@ export default function App() {
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap ${
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap ${
                         isToday 
                           ? 'bg-indigo-400 text-slate-950 animate-pulse' 
                           : daysLeft < 0
@@ -1171,7 +1526,7 @@ export default function App() {
                           : t.rem_daysLeft.replace('{n}', String(daysLeft))
                         }
                       </span>
-                      <span className="text-[10px] font-semibold text-slate-500 font-mono">
+                      <span className="text-[11px] font-semibold text-slate-500 font-mono">
                         {formattedDate.split('/').slice(0, 2).join('/')}
                       </span>
                     </div>
@@ -1187,7 +1542,7 @@ export default function App() {
                     )}
                   </div>
                   
-                  <div className="mt-3.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                  <div className="mt-3.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-mono">
                     <span>{reminder.type === 'yearly' ? t.rem_yearly : t.rem_once}</span>
                     <span className="text-indigo-400 font-semibold">{t.rem_quickView}</span>
                   </div>
@@ -1256,410 +1611,6 @@ export default function App() {
                   );
                 })}
               </div>
-
-              {/* Clandestine Secret Drawer (Code) Activation */}
-              <div className="mt-3.5 pt-3.5 border-t border-slate-800/40">
-                <button
-                  id="secret-drawer-code-trigger"
-                  type="button"
-                  onClick={() => {
-                    if (!isPro) {
-                      triggerToast(lang === 'vi' 
-                        ? '🔒 Tính năng Ngăn Bí Mật (Code) yêu cầu nâng cấp tài khoản PRO Elite!' 
-                        : '🔒 Secret Cabinet (Code) feature requires upgrading to PRO Elite!', 'error');
-                      setIsUpgradeModalOpen(true);
-                      return;
-                    }
-                    // Explains double-click trick in a localized toast helper
-                    triggerToast(lang === 'vi' 
-                      ? '💡 MẸO: Hãy kích đúp (bấm liên tục 2 lần) vào biểu tượng cái khiên hoặc chữ "Code" này để mở/khóa Ngăn bí mật!' 
-                      : '💡 TIP: Double-click this Shield or "Code" text to unlock or lock the Safe Cabinet!', 'info');
-                  }}
-                  onDoubleClick={(e) => {
-                    e.preventDefault();
-                    if (!isPro) {
-                      triggerToast(lang === 'vi' 
-                        ? '🔒 Tính năng Ngăn Bí Mật (Code) yêu cầu nâng cấp tài khoản PRO Elite!' 
-                        : '🔒 Secret Cabinet (Code) feature requires upgrading to PRO Elite!', 'error');
-                      setIsUpgradeModalOpen(true);
-                      return;
-                    }
-                    setActiveCategory('all');
-                    setShowSecretDrawer(prev => !prev);
-                    triggerToast(!showSecretDrawer 
-                      ? (lang === 'vi' ? '🔑 Đã mở khóa Ngăn bí mật (Code) thành công!' : '🔑 Unlocked Secret Cabinet (Code) successfully!')
-                      : (lang === 'vi' ? '🔒 Đã khoá & ẩn toàn bộ các tệp bảo mật!' : '🔒 Locked & hid all secret items!'),
-                      !showSecretDrawer ? 'success' : 'info'
-                    );
-                  }}
-                  className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-300 border font-semibold select-none cursor-pointer ${
-                    showSecretDrawer && isPro
-                      ? 'bg-rose-500/10 border-rose-500/50 text-rose-400 font-bold shadow-lg shadow-rose-500/5' 
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
-                  }`}
-                  title={lang === 'vi' ? 'Bấm đúp liên tục để truy cập Ngăn bí mật' : 'Double-click to access Secret Cabinet'}
-                >
-                  <div className={`p-1.5 rounded-lg transition-all duration-200 ${
-                    showSecretDrawer && isPro ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-900 text-rose-500'
-                  }`}>
-                    <Shield className="h-4.5 w-4.5 shrink-0" />
-                  </div>
-                  <span className="text-sm font-sans font-bold tracking-wide flex items-center gap-1.5">
-                    <span>Code</span>
-                    {!isPro && <Lock className="h-3 w-3 text-amber-500/90 shrink-0" />}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <hr className="border-slate-800/40" />
-
-            {/* Custom Storage Category manager header */}
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <KeyRound className="h-3.5 w-3.5 text-slate-500" />
-                  <span>{t.side_storageTypes}</span>
-                </h3>
-                
-                <div className="flex items-center gap-1.5 font-sans">
-                  {/* Display options / Tùy chọn hiển thị button */}
-                  {isPro && (
-                    <button
-                      type="button"
-                      onClick={() => setShowSidebarOptions(!showSidebarOptions)}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 text-sm font-bold uppercase tracking-wider rounded-lg border transition-all duration-200 cursor-pointer ${
-                        showSidebarOptions
-                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5'
-                          : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                      }`}
-                      title={t.side_displayBtn}
-                    >
-                      <Settings className={`h-3 w-3 transition-transform duration-500 ${showSidebarOptions ? 'rotate-45 text-emerald-400' : 'text-slate-400'}`} />
-                      <span className="hidden sm:inline">{t.side_displayBtn}</span>
-                    </button>
-                  )}
-
-                  {/* Lock button */}
-                  {isPro && (
-                    <button
-                      id="categories-lock-btn"
-                      type="button"
-                      onClick={() => {
-                        setIsCategoriesLocked(!isCategoriesLocked);
-                        if (isCategoriesLocked) {
-                          // reset inline Add Cat widget
-                          setShowAddCatForm(false);
-                        }
-                      }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-bold uppercase tracking-wider rounded-lg border transition-all duration-200 cursor-pointer ${
-                        isCategoriesLocked 
-                          ? 'bg-slate-950/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700' 
-                          : 'bg-amber-500/10 border-amber-500/40 text-amber-400 font-semibold shadow-lg shadow-amber-500/5'
-                      }`}
-                      title={isCategoriesLocked ? t.side_unlockEditTooltip : t.side_lockEditTooltip}
-                    >
-                      {isCategoriesLocked ? (
-                        <>
-                          <Lock className="h-3 w-3 text-slate-400" />
-                          <span className="hidden sm:inline">{t.side_lockedState}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Unlock className="h-3 w-3 text-amber-400 animate-pulse" />
-                          <span className="hidden sm:inline">{t.side_editState}</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Collapsible Display Options right below header */}
-              {isPro && showSidebarOptions && (
-                <div className="bg-slate-950/60 border border-slate-850 rounded-xl p-3 mb-3 space-y-3 text-left animate-fade-in">
-                  <div className="flex flex-col gap-2">
-                    {/* Compact Mode Toggle */}
-                    <label className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 cursor-pointer select-none group/opt">
-                      <div className="relative flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={sidebarCompact}
-                          onChange={(e) => setSidebarCompact(e.target.checked)}
-                          className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 accent-emerald-500 cursor-pointer transition-all"
-                        />
-                      </div>
-                      <span className="transition-colors group-hover/opt:text-slate-300">{t.side_optCompact}</span>
-                    </label>
-
-                    {/* Hide empty categories mode toggle */}
-                    <label className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 cursor-pointer select-none group/opt">
-                      <div className="relative flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={hideEmptyCategories}
-                          onChange={(e) => setHideEmptyCategories(e.target.checked)}
-                          className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 accent-emerald-500 cursor-pointer transition-all"
-                        />
-                      </div>
-                      <span className="transition-colors group-hover/opt:text-slate-300">
-                        {t.side_optHideEmpty} ({categories.filter(c => (stats.counts[c.id] || 0) === 0).length})
-                      </span>
-                    </label>
-
-                    {/* Hide counts toggle */}
-                    <label className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 cursor-pointer select-none group/opt">
-                      <div className="relative flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={hideCounts}
-                          onChange={(e) => setHideCounts(e.target.checked)}
-                          className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-emerald-505/20 h-4 w-4 accent-emerald-500 cursor-pointer transition-all"
-                        />
-                      </div>
-                      <span className="transition-colors group-hover/opt:text-slate-300">{t.side_optHideCounts}</span>
-                    </label>
-
-                    {/* Hide compact summaries toggle */}
-                    <label className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 cursor-pointer select-none group/opt">
-                      <div className="relative flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={hideCompactSummaries}
-                          onChange={(e) => handleSetHideCompactSummaries(e.target.checked)}
-                          className="rounded border-slate-800 bg-slate-950 text-emerald-500 focus:ring-emerald-505/20 h-4 w-4 accent-emerald-500 cursor-pointer transition-all"
-                        />
-                      </div>
-                      <span className="transition-colors group-hover/opt:text-slate-300">{t.side_optHideSums}</span>
-                    </label>
-                  </div>
-
-                  {/* Sắp xếp phân loại */}
-                  <div className="space-y-1.5 pt-1.5 border-t border-slate-850/60 pb-1">
-                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">{t.side_sortHeading}</span>
-                    <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850/60">
-                      {[
-                        { id: 'default', label: t.side_sortManual },
-                        { id: 'alpha', label: t.side_sortAlpha },
-                        { id: 'count', label: t.side_sortCount },
-                      ].map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setCategorySortMode(opt.id as any)}
-                          className={`py-1.5 px-1 rounded-lg text-xs font-bold text-center cursor-pointer transition-all ${
-                            categorySortMode === opt.id
-                              ? 'bg-slate-900 text-emerald-400 border border-emerald-500/10 shadow-sm'
-                              : 'text-slate-500 hover:text-slate-355 border border-transparent'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bố cục danh mục */}
-                  <div className="space-y-1.5 pt-1.5 border-t border-slate-850/60 pb-1">
-                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">{t.side_layoutHeading}</span>
-                    <div className="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850/60">
-                      {[
-                        { id: 'list', label: t.side_layoutList, icon: <List className="h-3 w-3" /> },
-                        { id: 'grid', label: t.side_layoutGrid, icon: <LayoutGrid className="h-3 w-3" /> },
-                      ].map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => handleSetCategoryLayoutMode(opt.id as 'list' | 'grid')}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
-                            categoryLayoutMode === opt.id
-                              ? 'bg-slate-900 text-emerald-400 border border-emerald-500/10 shadow-sm'
-                              : 'text-slate-500 hover:text-slate-205 border border-transparent'
-                          }`}
-                        >
-                          {opt.icon}
-                          <span>{opt.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Dynamic Categories List */}
-              <div className={`${
-                effectiveCategoryLayoutMode === 'grid' ? 'grid grid-cols-2 gap-2' : 'space-y-1'
-              } overflow-y-auto pr-0.5 scrollbar-thin select-none transition-all duration-350 ${
-                sidebarCompact ? 'max-h-[220px]' : 'max-h-[300px]'
-              }`}>
-                {displayedCategories.map((cat) => {
-                  const isActive = activeCategory === cat.id;
-                  const originalIdx = categories.findIndex(c => c.id === cat.id);
-                  const displayLabel = lang === 'en' ? (cat.id === 'bank' ? 'Bank details' : cat.id === 'social' ? 'Social Accounts' : cat.id === 'web' ? 'Regular Web' : cat.id === 'wallet' ? 'Crypto Wallets' : cat.id === 'ewallet' ? 'E-Wallets' : cat.id === 'phoneapp' ? 'Phone Apps' : cat.id === 'note' ? 'Secure Notes' : cat.id === 'sheet' ? 'Spreadsheets' : cat.label) : cat.label;
-                  
-                  return (
-                    <div 
-                      key={cat.id} 
-                      className={`flex items-center justify-between rounded-xl border transition-all font-semibold group ${
-                        effectiveCategoryLayoutMode === 'grid'
-                          ? (sidebarCompact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-1.5 text-sm')
-                          : (sidebarCompact ? 'px-2 py-1.5 text-sm' : 'px-2.5 py-2.5 text-base')
-                      } ${
-                        isActive 
-                          ? 'bg-slate-950/90 text-emerald-400 border-l-2 border-emerald-500 border-y-slate-950 border-r-slate-950 pl-2' 
-                          : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-950/20'
-                      }`}
-                    >
-                      {/* Left: icon/label */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveCategory(cat.id);
-                        }}
-                        className="flex-1 text-left flex items-center gap-1.5 cursor-pointer outline-none overflow-hidden"
-                      >
-                        <span className={isActive ? 'text-emerald-400 shrink-0' : 'text-slate-500 group-hover:text-slate-300 flex-shrink-0'}>
-                          {getCategoryIcon(cat.iconType)}
-                        </span>
-                        <span className="truncate" title={displayLabel}>{displayLabel}</span>
-                      </button>
-
-                      {/* Right: counter or control actions */}
-                      {isCategoriesLocked ? (
-                        !hideCounts && (
-                          <span className={`font-mono font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1 ${
-                            effectiveCategoryLayoutMode === 'grid' ? 'text-[11px]' : (sidebarCompact ? 'text-xs' : 'text-xs')
-                          } ${
-                            isActive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-950 text-slate-500'
-                          }`}>
-                            {stats.counts[cat.id] || 0}
-                          </span>
-                        )
-                      ) : (
-                        <div className={`flex items-center gap-0.5 flex-shrink-0 animate-fade-in ${
-                          effectiveCategoryLayoutMode === 'grid' ? 'flex-wrap justify-end max-w-[45px]' : ''
-                        }`}>
-                          {/* Reorder Up */}
-                          <button
-                            type="button"
-                            disabled={originalIdx === 0}
-                            onClick={() => moveCategory(originalIdx, 'up')}
-                            className="p-1 hover:bg-slate-800 rounded disabled:opacity-20 text-slate-400 hover:text-slate-200 cursor-pointer"
-                            title={t.side_moveUp}
-                          >
-                            <ArrowUp className="h-3 w-3" />
-                          </button>
-                          
-                          {/* Reorder Down */}
-                          <button
-                            type="button"
-                            disabled={originalIdx === categories.length - 1}
-                            onClick={() => moveCategory(originalIdx, 'down')}
-                            className="p-1 hover:bg-slate-800 rounded disabled:opacity-20 text-slate-400 hover:text-slate-200 cursor-pointer"
-                            title={t.side_moveDown}
-                          >
-                            <ArrowDown className="h-3 w-3" />
-                          </button>
-
-                          {/* Rename */}
-                          <button
-                            type="button"
-                            onClick={() => renameCategory(cat.id, cat.label)}
-                            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-indigo-400 cursor-pointer"
-                            title={t.side_renameCatTooltip}
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </button>
-
-                          {/* Delete */}
-                          <button
-                            type="button"
-                            onClick={() => deleteCategory(cat.id, cat.label)}
-                            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-rose-500 cursor-pointer"
-                            title={t.side_deleteCatTooltip}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Plus add category row for Unlocked modes */}
-              {!isCategoriesLocked && (
-                <div className="mt-3">
-                  {!showAddCatForm ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowAddCatForm(true)}
-                      className="w-full flex items-center justify-center gap-1 border border-dashed border-slate-800 hover:border-emerald-500/40 text-slate-500 hover:text-emerald-400 py-2 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer bg-slate-950/20"
-                    >
-                      <span>+ {t.side_addNewCatBtn}</span>
-                    </button>
-                  ) : (
-                    <form onSubmit={addCustomCategorySubmit} className="bg-slate-950/70 p-3 rounded-xl border border-slate-850 space-y-2.5 animate-slide-up text-left">
-                      <div className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                        {t.side_newCatHeader}
-                      </div>
-                      
-                      <div>
-                        <label className="block text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
-                          {t.side_newCatLabelField}
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder={t.side_newCatLabelPlc}
-                          value={newCatLabel}
-                          onChange={(e) => setNewCatLabel(e.target.value)}
-                          className="w-full px-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm outline-none text-slate-200 focus:border-emerald-500 transition-all placeholder:text-slate-600"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
-                          {t.side_newCatSchemaField}
-                        </label>
-                        <select
-                          value={newCatIconType}
-                          onChange={(e) => setNewCatIconType(e.target.value as any)}
-                          className="w-full px-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm outline-none text-slate-355 cursor-pointer focus:border-emerald-500"
-                        >
-                          <option value="bank">{lang === 'vi' ? 'Ngân hàng (Tài khoản, PIN...)' : 'Bank Details (Accounts & PIN)'}</option>
-                          <option value="social">{lang === 'vi' ? 'Mạng xã hội (E-mail, Mật khẩu...)' : 'Social Medias (E-mail, Password)'}</option>
-                          <option value="web">{lang === 'vi' ? 'Web thông thường (URL, Username...)' : 'Generic Websites (URLs)'}</option>
-                          <option value="wallet">{lang === 'vi' ? 'Ví Crypto (Sàn, Address, Seed Phrase...)' : 'Crypto Wallets (Seeds & Keys)'}</option>
-                          <option value="ewallet">{lang === 'vi' ? 'Ví điện tử (Momo, ZaloPay, PIN...)' : 'E-Wallets (Momo, Pin)'}</option>
-                          <option value="phoneapp">{lang === 'vi' ? 'App di động (Đăng nhập, PIN, CCCD...)' : 'Phone Apps (Login & PIN)'}</option>
-                          <option value="sheet">{lang === 'vi' ? 'Bảng tính (Google Sheet tự dựng)' : 'Excel/Spreadsheets context'}</option>
-                          <option value="note">{lang === 'vi' ? 'Ghi chú (Văn bản tự do)' : 'Secure Freeform Notes'}</option>
-                        </select>
-                      </div>
-
-                      <div className="flex gap-1.5 justify-end">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAddCatForm(false);
-                            setNewCatLabel('');
-                          }}
-                          className="px-2 py-1 bg-slate-800 hover:bg-slate-755 text-slate-400 rounded-lg text-xs font-bold cursor-pointer"
-                        >
-                          {lang === 'vi' ? 'Hủy' : 'Cancel'}
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-lg text-xs font-bold cursor-pointer transition-all"
-                        >
-                          {lang === 'vi' ? 'Lưu' : 'Save'}
-                        </button>
-                      </div>
-                    </form>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
@@ -1678,7 +1629,7 @@ export default function App() {
         <section id="vault-workspace" className="col-span-1 lg:col-span-3 space-y-6">
           
           {/* Top filter drawer & options */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-slate-900 border border-slate-800/40 p-4.5 rounded-2xl">
+          <div className="flex items-center gap-3 bg-slate-900 border border-slate-800/40 p-3.5 rounded-2xl">
             {/* Search Input */}
             <div className="relative flex-1">
               <input
@@ -1687,83 +1638,18 @@ export default function App() {
                 placeholder={t.work_searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 placeholder-slate-655 rounded-xl text-base outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-550 placeholder-slate-600 rounded-xl text-xs outline-none transition-all placeholder:text-slate-500"
               />
-              <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
+              <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-500" />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white text-sm font-semibold cursor-pointer"
+                  className="absolute right-3.5 top-2.5 text-slate-450 hover:text-white text-xs font-semibold cursor-pointer"
                 >
                   {lang === 'vi' ? 'Xóa' : 'Clear'}
                 </button>
               )}
-            </div>
-
-            {/* Sort & Display Controls */}
-            <div className="flex flex-wrap items-center gap-4 shrink-0 justify-between md:justify-end">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-500 font-medium">{t.work_sortByLabel}</span>
-                <div className="flex gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
-                  <button
-                    id="sort-recent"
-                    type="button"
-                    onClick={() => setSortBy('recent')}
-                    className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
-                      sortBy === 'recent' 
-                        ? 'bg-slate-900 text-emerald-400' 
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {t.work_sortByRecent}
-                  </button>
-                  <button
-                    id="sort-alpha"
-                    type="button"
-                    onClick={() => setSortBy('alphabetical')}
-                    className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
-                      sortBy === 'alphabetical' 
-                        ? 'bg-slate-900 text-emerald-400' 
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {t.work_sortByAlpha}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 border-l border-slate-800 pl-3 md:pl-4 md:ml-1">
-                <span className="text-sm text-slate-500 font-medium">{t.work_viewModeLabel}</span>
-                <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
-                  <button
-                    id="view-grid-btn"
-                    type="button"
-                    onClick={() => handleSetViewMode('grid')}
-                    className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                      viewMode === 'grid' 
-                        ? 'bg-slate-900 text-emerald-400' 
-                        : 'text-slate-500 hover:text-slate-350'
-                    }`}
-                    title={t.work_viewGridTooltip}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </button>
-                  <button
-                    id="view-table-btn"
-                    type="button"
-                    onClick={() => handleSetViewMode('table')}
-                    className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                      viewMode === 'table' 
-                        ? 'bg-slate-900 text-emerald-400' 
-                        : 'text-slate-500 hover:text-slate-350'
-                    }`}
-                    title={t.work_viewTableTooltip}
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1793,7 +1679,7 @@ export default function App() {
                           <Download className="h-3.5 w-3.5 text-emerald-400" />
                           <span>{t.sett_exportHeader}</span>
                         </h4>
-                        <p className="text-[11px] text-slate-500 mt-1">
+                        <p className="text-[12px] text-slate-500 mt-1">
                           {t.sett_exportDesc}
                         </p>
                       </div>
@@ -1815,7 +1701,7 @@ export default function App() {
                           <Upload className="h-3.5 w-3.5 text-blue-400" />
                           <span>{t.sett_importHeader}</span>
                         </h4>
-                        <p className="text-[11px] text-slate-500 mt-1">
+                        <p className="text-[12px] text-slate-500 mt-1">
                           <span className="text-rose-400 font-semibold">{t.sett_importWarningLabel}:</span> {t.sett_importWarningDesc}
                         </p>
                       </div>
@@ -1847,7 +1733,7 @@ export default function App() {
                         </p>
                       </div>
                       {!isPro && (
-                        <span className="self-start sm:self-center px-2 py-0.5 rounded text-[9px] font-black tracking-widest bg-indigo-500/10 border border-indigo-505/20 text-indigo-400 uppercase">
+                        <span className="self-start sm:self-center px-2 py-0.5 rounded text-[10px] font-black tracking-widest bg-indigo-500/10 border border-indigo-505/20 text-indigo-400 uppercase">
                           PRO ONLY
                         </span>
                       )}
@@ -1917,12 +1803,65 @@ export default function App() {
                               ))}
                             </div>
 
-                            <span className="text-[11px] font-bold leading-tight truncate w-full tracking-wide">
+                            <span className="text-[12px] font-bold leading-tight truncate w-full tracking-wide">
                               {themeItem.name}
                             </span>
                           </button>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* Travel Mode Section for Pro version */}
+                  <div className="pt-5 border-t border-slate-800/60 mt-5 select-none">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+                      <div>
+                        <h4 className="text-sm font-bold text-white flex items-center gap-1.5 font-sans">
+                          <span className="text-sm shrink-0">✈️</span>
+                          <span>Chế độ Du lịch (Travel Mode)</span>
+                        </h4>
+                        <p className="text-[12px] text-slate-400 mt-1 max-w-xl leading-relaxed">
+                          {lang === 'vi' 
+                            ? 'Một công nghệ độc đáo bảo vệ thông tin khi qua biên giới. Khi bật, toàn bộ mật khẩu KHÔNG đánh dấu "Cho phép giữ lại khi du lịch" sẽ tạm thời biến mất hoàn toàn khỏi ứng dụng ngoại tuyến này để giữ an toàn.'
+                            : 'A unique boundary protection safeguard. When active, all secrets NOT explicitly marked as "Safe for Travel" are completely hidden from all vaults locally.'}
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 shrink-0">
+                        {!isPro && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-widest bg-amber-500/10 border border-amber-505/20 text-amber-400 uppercase">
+                            PRO
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isPro) {
+                              setIsUpgradeModalOpen(true);
+                              triggerToast(lang === 'vi' ? 'Tiện ích thuộc bản PRO!' : 'Upgrade to PRO to active!', 'error');
+                              return;
+                            }
+                            const nextState = !isTravelModeActive;
+                            setIsTravelModeActive(nextState);
+                            localStorage.setItem('secure_vault_travel_mode', nextState ? 'true' : 'false');
+                            triggerToast(
+                              lang === 'vi' 
+                                ? (nextState ? 'Kích hoạt Chế độ Du lịch! Các mục nhạy cảm đã ẩn.' : 'Đã tắt Chế độ Du lịch! Khôi phục dữ liệu.')
+                                : (nextState ? 'Travel Mode active! Sensitive information hidden.' : 'Travel Mode disabled! Display restored.'),
+                              'success'
+                            );
+                          }}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            isTravelModeActive && isPro ? 'bg-amber-500' : 'bg-slate-800'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              isTravelModeActive && isPro ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -1932,7 +1871,7 @@ export default function App() {
                       <Smartphone className="h-4 w-4 text-amber-500" />
                       <span>{lang === 'vi' ? 'Hướng dẫn Tải Ngoại tuyến & Đồng bộ Điện thoại' : 'Offline Download & Phone Sync Guide'}</span>
                     </h4>
-                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                    <p className="text-[12px] text-slate-400 mt-1 leading-relaxed">
                       {lang === 'vi' 
                         ? 'Vì dữ liệu bảo mật được mã hóa AES-256 nội bộ (Zero-Knowledge) độc lập ngay trên thiết bị của bạn, việc đồng bộ giữa Máy tính và Điện thoại diễn ra cực kỳ an toàn mà không qua máy chủ trung gian.' 
                         : 'Since security data is encrypted client-side using military-grade AES-256 (Zero-Knowledge), synchronization between PC and Mobile is highly secure and runs completely serverless.'}
@@ -1943,11 +1882,11 @@ export default function App() {
                       <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-xl space-y-2.5">
                         <div className="flex items-center gap-2">
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-black">1</span>
-                          <h5 className="text-[11px] font-bold text-slate-350 tracking-wide uppercase">
+                          <h5 className="text-[12px] font-bold text-slate-350 tracking-wide uppercase">
                             {lang === 'vi' ? 'Cài đặt App Ngoại tuyến (PWA)' : 'Install Offline Desktop / App'}
                           </h5>
                         </div>
-                        <p className="text-[10px] sm:text-[11px] text-slate-400 leading-relaxed space-y-1">
+                        <p className="text-[11px] sm:text-[12px] text-slate-400 leading-relaxed space-y-1">
                           {lang === 'vi' ? (
                             <>
                               Ứng dụng tự động tối ưu hóa để chạy như một app cục bộ trên mọi hệ điều hành:
@@ -1970,11 +1909,11 @@ export default function App() {
                       <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-xl space-y-2.5">
                         <div className="flex items-center gap-2">
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-black">2</span>
-                          <h5 className="text-[11px] font-bold text-slate-350 tracking-wide uppercase">
+                          <h5 className="text-[12px] font-bold text-slate-350 tracking-wide uppercase">
                             {lang === 'vi' ? 'Liên kết & Đồng bộ dữ liệu' : 'Secure Data Synchronization'}
                           </h5>
                         </div>
-                        <p className="text-[10px] sm:text-[11px] text-slate-400 leading-relaxed space-y-1">
+                        <p className="text-[11px] sm:text-[12px] text-slate-400 leading-relaxed space-y-1">
                           {lang === 'vi' ? (
                             <>
                               Để đồng bộ tài liệu an toàn từ Máy tính sang Điện thoại mà không lo lộ lọt bí mật:
@@ -2013,7 +1952,283 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* Main Credentials Display Area / Security Audit Dashboard */}
+          <AnimatePresence>
+            {showSystemConfig && (
+              <motion.div
+                id="vault-systemconfig-box"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-6 animate-fade-in"
+              >
+                <div className="bg-slate-900 border border-indigo-500/10 p-6 rounded-2xl md:space-y-6 space-y-4">
+                  
+                  {/* Header Title section */}
+                  <div className="flex items-center gap-3 border-b border-slate-800/85 pb-4">
+                    <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl">
+                      <Settings className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm md:text-base font-extrabold text-slate-100 font-sans tracking-wide uppercase">
+                        {lang === 'vi' ? 'Cấu Hình Hệ Thống & Két Sắt' : 'System & Cryptographic Core Configuration'}
+                      </h3>
+                      <p className="text-[12px] text-slate-400 mt-0.5 leading-relaxed font-sans">
+                        {lang === 'vi' 
+                          ? 'Tùy chỉnh linh hoạt bối cảnh hiển thị, cách sắp xếp tài khoản, thay đổi thương hiệu và cá nhân hóa trải nghiệm bảo mật.' 
+                          : 'Customize your credential display preferences, security lock parameters, and application branding.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Options Grids */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                    
+                    {/* COLUMN 1: Bố cục & Sắp xếp */}
+                    <div className="space-y-4 p-4 bg-slate-950/45 border border-slate-850/80 rounded-2xl flex flex-col justify-between">
+                      <div className="space-y-3.5">
+                        <h4 className="text-[12px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                          <ArrowUpDown className="h-4 w-4 shrink-0" />
+                          <span>{lang === 'vi' ? 'Sắp Xếp & Bố Cục' : 'Sorting & Layout'}</span>
+                        </h4>
+                        
+                        {/* Sorting triggers */}
+                        <div className="space-y-2">
+                          <label className="block text-[11px] text-slate-500 font-bold uppercase tracking-wider select-none">
+                            {lang === 'vi' ? 'Thứ tự ưu tiên danh mục' : 'Category display sorting'}
+                          </label>
+                          <div className="grid grid-cols-2 gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-slate-850">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!isPro) {
+                                  setIsUpgradeModalOpen(true);
+                                  return;
+                                }
+                                setSortBy('recent');
+                              }}
+                              className={`px-2 py-1.5 text-[11px] font-extrabold tracking-wide uppercase rounded-lg text-center transition-all cursor-pointer ${
+                                sortBy === 'recent'
+                                  ? 'bg-slate-950 text-emerald-450 border border-emerald-500/25 font-black shadow-inner'
+                                  : 'text-slate-400 hover:text-slate-300 border border-transparent'
+                              }`}
+                            >
+                              {lang === 'vi' ? 'Gần nhất' : 'Recent'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!isPro) {
+                                  setIsUpgradeModalOpen(true);
+                                  return;
+                                }
+                                setSortBy('alphabetical');
+                              }}
+                              className={`px-2 py-1.5 text-[11px] font-extrabold tracking-wide uppercase rounded-lg text-center transition-all cursor-pointer ${
+                                sortBy === 'alphabetical'
+                                  ? 'bg-slate-950 text-emerald-455 border border-emerald-500/25 font-black shadow-inner'
+                                  : 'text-slate-400 hover:text-slate-300 border border-transparent'
+                              }`}
+                            >
+                              {lang === 'vi' ? 'Chữ cái (A-Z)' : 'A-Z Alphabet'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* View Modes */}
+                        <div className="space-y-2">
+                          <label className="block text-[11px] text-slate-500 font-bold uppercase tracking-wider select-none">
+                            {lang === 'vi' ? 'Bố cục xem dữ liệu' : 'Datasheet display style'}
+                          </label>
+                          <div className="grid grid-cols-2 gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-slate-850">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!isPro) {
+                                  setIsUpgradeModalOpen(true);
+                                  return;
+                                }
+                                handleSetViewMode('grid');
+                              }}
+                              className={`px-2 py-1.5 text-[11px] font-extrabold tracking-wide uppercase rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                                viewMode === 'grid'
+                                  ? 'bg-slate-950 text-emerald-450 border border-emerald-500/25 font-black'
+                                  : 'text-slate-400 hover:text-slate-300 border border-transparent'
+                              }`}
+                            >
+                              <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+                              <span>{lang === 'vi' ? 'Ô lưới' : 'Grid'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!isPro) {
+                                  setIsUpgradeModalOpen(true);
+                                  return;
+                                }
+                                handleSetViewMode('table');
+                              }}
+                              className={`px-2 py-1.5 text-[11px] font-extrabold tracking-wide uppercase rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                                viewMode === 'table'
+                                  ? 'bg-slate-950 text-emerald-455 border border-emerald-500/25 font-black'
+                                  : 'text-slate-400 hover:text-slate-300 border border-transparent'
+                              }`}
+                            >
+                              <List className="h-3.5 w-3.5 shrink-0" />
+                              <span>{lang === 'vi' ? 'Bảng kê' : 'Table'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-slate-500 font-medium pt-2.5 leading-relaxed italic border-t border-slate-900/40">
+                        {!isPro 
+                          ? (lang === 'vi' ? '*Yêu cầu gói PRO để thay đổi sắp xếp dữ liệu bổ sung.' : '*PRO edition required to customize advanced sort algorithms.')
+                          : (lang === 'vi' ? 'Quyền truy cập chỉnh sửa PRO đã hoạt động.' : 'PRO customization rights authorized.')
+                        }
+                      </div>
+                    </div>
+
+                    {/* COLUMN 2: Ngôn ngữ & Chế độ hiển thị */}
+                    <div className="space-y-4 p-4 bg-slate-950/45 border border-slate-850/80 rounded-2xl flex flex-col justify-between">
+                      <div className="space-y-3.5">
+                        <h4 className="text-[12px] font-black uppercase tracking-wider text-indigo-400 flex items-center gap-2">
+                          <Globe className="h-4 w-4 shrink-0" />
+                          <span>{lang === 'vi' ? 'Ngôn Ngữ & Hiển Thị' : 'Language & Display'}</span>
+                        </h4>
+
+                        {/* Languages toggling */}
+                        <div className="space-y-2">
+                          <label className="block text-[11px] text-slate-500 font-bold uppercase tracking-wider select-none">
+                            {lang === 'vi' ? 'Ngôn ngữ hiển thị' : 'System language'}
+                          </label>
+                          <div className="grid grid-cols-2 gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-slate-850">
+                            <button
+                              type="button"
+                              onClick={() => handleLangChange('vi')}
+                              className={`px-2 py-1.5 text-[11px] font-extrabold tracking-wide uppercase rounded-lg text-center transition-all cursor-pointer ${
+                                lang === 'vi'
+                                  ? 'bg-slate-950 text-indigo-400 border border-indigo-500/25 font-black'
+                                  : 'text-slate-400 hover:text-slate-300 border border-transparent'
+                              }`}
+                            >
+                              Tiếng Việt
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleLangChange('en')}
+                              className={`px-2 py-1.5 text-[11px] font-extrabold tracking-wide uppercase rounded-lg text-center transition-all cursor-pointer ${
+                                lang === 'en'
+                                  ? 'bg-slate-950 text-indigo-400 border border-indigo-500/25 font-black'
+                                  : 'text-slate-400 hover:text-slate-300 border border-transparent'
+                              }`}
+                            >
+                              English
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Layout checklists */}
+                        <div className="space-y-2 pt-0.5">
+                          <label className="block text-[11px] text-slate-500 font-bold uppercase tracking-wider select-none mb-1.5">
+                            {lang === 'vi' ? 'Tùy chọn hiển thị' : 'Display adjustments'}
+                          </label>
+                          <div className="space-y-2 text-[12px] font-sans text-slate-300">
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={hideEmptyCategories}
+                                onChange={() => setHideEmptyCategories(!hideEmptyCategories)}
+                                className="rounded bg-slate-950 border-slate-800 text-emerald-500 focus:ring-opacity-0 h-3.5 w-3.5 cursor-pointer accent-emerald-500"
+                              />
+                              <span>{lang === 'vi' ? 'Ẩn danh mục trống' : 'Hide empty folders'}</span>
+                            </label>
+                            
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={hideCounts}
+                                onChange={() => setHideCounts(!hideCounts)}
+                                className="rounded bg-slate-950 border-slate-800 text-emerald-500 focus:ring-opacity-0 h-3.5 w-3.5 cursor-pointer accent-emerald-500"
+                              />
+                              <span>{lang === 'vi' ? 'Ẩn lượt đếm hồ sơ' : 'Hide record counts'}</span>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={sidebarCompact}
+                                onChange={() => setSidebarCompact(!sidebarCompact)}
+                                className="rounded bg-slate-950 border-slate-800 text-emerald-500 focus:ring-opacity-0 h-3.5 w-3.5 cursor-pointer accent-emerald-500"
+                              />
+                              <span>{lang === 'vi' ? 'Chế độ thu nhỏ danh mục' : 'Compact category rail'}</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-slate-450 font-semibold pt-2 border-t border-slate-900/40 flex items-center justify-between">
+                        <span className="text-slate-500">{lang === 'vi' ? 'Tự khóa sau:' : 'Auto Lock:'}</span>
+                        <div className="flex items-center gap-1.5 bg-slate-900/80 p-0.5 px-1 border border-slate-850 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (autoLockMinutes > 1) {
+                                const val = autoLockMinutes - 1;
+                                setAutoLockMinutes(val);
+                                localStorage.setItem('secure_vault_auto_lock_time', String(val));
+                                triggerToast((lang === 'vi' ? 'Đổi tự khóa: ' : 'Auto lock updated: ') + val + 'm', 'info');
+                              } else if (autoLockMinutes === 1) {
+                                setAutoLockMinutes(0);
+                                localStorage.setItem('secure_vault_auto_lock_time', '0');
+                                triggerToast(lang === 'vi' ? 'Đã tắt tự động khóa' : 'Auto lock disabled', 'info');
+                              }
+                            }}
+                            className="h-4.5 w-4.5 bg-slate-950 border border-slate-800 text-slate-400 hover:text-white rounded flex items-center justify-center text-[11px] font-black cursor-pointer active:scale-90"
+                          >
+                            -
+                          </button>
+                          <span className="font-mono text-xs font-extrabold text-indigo-400 min-w-[20px] text-center">
+                            {autoLockMinutes === 0 ? (lang === 'vi' ? 'Tắt' : 'Off') : `${autoLockMinutes}m`}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const val = autoLockMinutes + 1;
+                              setAutoLockMinutes(val);
+                              localStorage.setItem('secure_vault_auto_lock_time', String(val));
+                              triggerToast((lang === 'vi' ? 'Đổi tự khóa: ' : 'Auto lock updated: ') + val + 'm', 'info');
+                            }}
+                            className="h-4.5 w-4.5 bg-slate-950 border border-slate-800 text-slate-400 hover:text-white rounded flex items-center justify-center text-[11px] font-black cursor-pointer active:scale-95"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showGenTools && (
+              <motion.div
+                id="vault-gentools-box"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <PasswordGenerator />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Main Credentials Display Area / Security Audit Dashboard / Pro Utilities */}
           {showSecurityAudit ? (
             <div id="security-audit-container">
               <SecurityAudit
@@ -2023,8 +2238,47 @@ export default function App() {
                 currentLang={lang}
               />
             </div>
+          ) : showProUtilities ? (
+            <div id="pro-utilities-container">
+              <ProUtilities
+                entries={entries}
+                isPro={isPro}
+                onUpgradeClick={() => setIsUpgradeModalOpen(true)}
+                onSaveEntry={handleSaveEntry}
+                currentLang={lang}
+              />
+            </div>
           ) : (
             <div id="credentials-grid-flow">
+              {isTravelModeActive && isPro && (
+                <div className="mb-5 bg-amber-500/10 border border-amber-500/15 border-l-4 border-l-amber-500 rounded-r-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left animate-pulse text-amber-300">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xl shrink-0">✈️</span>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-bold uppercase tracking-wider text-amber-200">
+                        {lang === 'vi' ? 'Đang bật Chế độ Du lịch (Travel Mode)' : 'Travel Mode is Active'}
+                      </h4>
+                      <p className="text-[12px] text-slate-450 leading-normal mt-1">
+                        {lang === 'vi' 
+                          ? 'Một số thông tin hoặc mật khẩu nhạy cảm của bạn đã tạm thời được ẩn khỏi thiết bị để giữ an toàn.'
+                          : 'Sensitive credentials have been hidden from the device to guard border screenings.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsTravelModeActive(false);
+                      localStorage.setItem('secure_vault_travel_mode', 'false');
+                      triggerToast(lang === 'vi' ? 'Đã tắt Chế độ Du lịch!' : 'Travel Mode disabled!', 'success');
+                    }}
+                    className="px-3.5 py-1.5 bg-amber-500 text-slate-950 font-extrabold text-[11px] rounded-lg transition-all hover:bg-amber-400 shrink-0 select-none cursor-pointer"
+                  >
+                    {lang === 'vi' ? 'Tắt chế độ' : 'Disable'}
+                  </button>
+                </div>
+              )}
+
               {showSecretDrawer && (
                 <div className="mb-5 bg-indigo-950/25 border border-indigo-500/20 border-l-4 border-l-indigo-500 rounded-r-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left animate-fade-in text-indigo-300">
                   <div className="flex items-center gap-3 min-w-0">
@@ -2034,7 +2288,7 @@ export default function App() {
                     <div className="min-w-0">
                       <h4 className="text-sm font-bold uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
                         <span>Khu vực Ngăn Bí Mật (Code Cabinet)</span>
-                        <span className="bg-indigo-500/20 text-[9px] font-black tracking-widest text-indigo-300 px-1 py-0.2 rounded">SECURE</span>
+                        <span className="bg-indigo-500/20 text-[10px] font-black tracking-widest text-indigo-300 px-1 py-0.2 rounded">SECURE</span>
                       </h4>
                       <p className="text-xs text-slate-400 mt-0.5 leading-relaxed truncate">Các tài khoản, ví, dữ liệu và tệp lớn qua Google Drive trong ngăn này cực kỳ an toàn.</p>
                     </div>

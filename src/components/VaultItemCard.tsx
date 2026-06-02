@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { 
   Star, CreditCard, Globe, Smartphone, FileText, 
   Lock, Eye, EyeOff, Copy, Check, Edit2, Trash2, ExternalLink, Wallet,
-  Fingerprint, Table, Maximize2, ChevronDown, ChevronUp, Bell, Calendar, Timer, ShieldAlert
+  Fingerprint, Table, Maximize2, ChevronDown, ChevronUp, Bell, Calendar, Timer, ShieldAlert,
+  History
 } from 'lucide-react';
 import { VaultEntry, GoogleSheetEntry, CustomCategory } from '../types';
 import { generateTOTPCode } from '../utils/totp';
@@ -42,7 +43,7 @@ function TotpDisplay({ secret }: { secret: string }) {
           <Timer className="h-5 w-5" />
         </div>
         <div className="text-left min-w-0">
-          <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{t.totp_codeLabel}</div>
+          <div className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">{t.totp_codeLabel}</div>
           <div className="text-2xl font-mono font-black text-white tracking-widest mt-0.5">
             {displayCode}
           </div>
@@ -73,7 +74,7 @@ function TotpDisplay({ secret }: { secret: string }) {
               className="transition-all duration-1000 ease-linear"
             />
           </svg>
-          <span className="text-[10px] select-none text-indigo-300 font-sans z-10">{totp.secondsRemaining}</span>
+          <span className="text-[11px] select-none text-indigo-300 font-sans z-10">{totp.secondsRemaining}</span>
         </div>
 
         {/* Copy Button */}
@@ -116,11 +117,13 @@ export default function VaultItemCard({
   hideCompactSummaries = false
 }: VaultItemCardProps) {
   const [showSecrets, setShowSecrets] = useState<{ [key: string]: boolean }>({});
+  const [showHistoryForField, setShowHistoryForField] = useState<{ [key: string]: boolean }>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [launchInfoMessage, setLaunchInfoMessage] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const isPro = localStorage.getItem('secure_vault_pro_active') === 'true';
 
   // Direct localStorage dynamic language query helper
   const currentLang = (localStorage.getItem('secure_vault_lang') as 'vi' | 'en') || 'vi';
@@ -237,7 +240,7 @@ export default function VaultItemCard({
                 onClick={handleOpenIncognito}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all cursor-pointer text-left select-none"
               >
-                <span className="h-3.5 w-3.5 flex items-center justify-center text-slate-400 font-mono text-[9px] border border-slate-500 rounded font-black select-none shrink-0 bg-slate-900">🕵</span>
+                <span className="h-3.5 w-3.5 flex items-center justify-center text-slate-400 font-mono text-[10px] border border-slate-500 rounded font-black select-none shrink-0 bg-slate-900">🕵</span>
                 <span>{t.launch_openIncognito}</span>
               </button>
 
@@ -455,14 +458,30 @@ export default function VaultItemCard({
       translatedLabel = fieldTranslations[label] || label;
     }
 
+    const isPasswordField = secretKey && ['socPass', 'webPass', 'bankPass', 'walletPass', 'ewalletPass', 'phonepass'].includes(secretKey);
+    const hasHistory = isPro && isPasswordField && (entry as any).passwordHistory && (entry as any).passwordHistory.length > 0;
+
     return (
-      <div className="flex flex-col gap-1 py-1.5 border-b border-slate-800/40 last:border-0 text-left">
+      <div className="flex flex-col gap-1 py-1.5 border-b border-slate-800/40 last:border-0 text-left w-full">
         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{translatedLabel}</span>
         <div className="flex items-center justify-between gap-2.5">
           <span className={`text-base text-slate-200 select-all ${fontMono ? 'font-mono tracking-wider text-emerald-400' : ''}`}>
             {displayValue}
           </span>
           <div className="flex items-center gap-1 shrink-0">
+            {hasHistory && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowHistoryForField(prev => ({ ...prev, [uniqueKey]: !prev[uniqueKey] }));
+                }}
+                className={`p-1 transition-colors cursor-pointer ${showHistoryForField[uniqueKey] ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}`}
+                title={currentLang === 'vi' ? 'Lịch sử mật khẩu' : 'Password History'}
+              >
+                <History className="h-3.5 w-3.5" />
+              </button>
+            )}
             {isSecret && (
               <button
                 type="button"
@@ -493,6 +512,51 @@ export default function VaultItemCard({
             </button>
           </div>
         </div>
+
+        {hasHistory && showHistoryForField[uniqueKey] && (
+          <div className="mt-2 p-2.5 bg-slate-950/80 rounded-xl border border-slate-800/60 text-xs space-y-1.5 animate-fade-in text-left">
+            <span className="font-semibold text-slate-400 block text-[10px] uppercase tracking-wider mb-1">
+              {currentLang === 'vi' ? 'Mật mã trước đây' : 'Previous passwords'}
+            </span>
+            {(entry as any).passwordHistory.map((item: any, idx: number) => {
+              const histStateKey = `hist-${idx}-${uniqueKey}`;
+              const isHistShowing = !!showSecrets[histStateKey];
+              const displayHistVal = isHistShowing ? item.password : '••••••••••••';
+              return (
+                <div key={idx} className="flex items-center justify-between gap-1 border-b border-slate-900/60 last:border-0 pb-1.5 last:pb-0 pt-0.5">
+                  <span className="font-mono text-slate-300 select-all">{displayHistVal}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowSecrets(prev => ({ ...prev, [histStateKey]: !prev[histStateKey] }));
+                      }}
+                      className="text-[10px] text-slate-400 hover:text-slate-200 cursor-pointer p-0.5 font-semibold"
+                    >
+                      {isHistShowing ? (currentLang === 'vi' ? 'Ẩn' : 'Hide') : (currentLang === 'vi' ? 'Hiện' : 'Show')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopy(item.password, `hist-copy-${idx}-${uniqueKey}`);
+                      }}
+                      className="text-[10px] text-slate-400 hover:text-emerald-400 cursor-pointer p-0.5 font-semibold"
+                    >
+                      {copiedField === `hist-copy-${idx}-${uniqueKey}` ? 
+                        (currentLang === 'vi' ? 'Đã sao chép' : 'Copied') : 
+                        (currentLang === 'vi' ? 'Sao chép' : 'Copy')}
+                    </button>
+                    <span className="text-[9px] text-slate-500 font-mono">
+                      {new Date(item.updatedAt).toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -524,7 +588,7 @@ export default function VaultItemCard({
               {entry.reminder && entry.reminder.enabled && (
                 <div className="flex items-center gap-1.5 ml-1 select-none shrink-0" title={`Có nhắc nhở: ${entry.reminder.message || 'Lịch'} - Ngày: ${entry.reminder.date}`}>
                   <Bell className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
-                  <span className="hidden md:inline text-[11px] font-semibold text-indigo-400 font-sans tracking-wide bg-indigo-500/10 px-1.5 py-0.2 rounded">
+                  <span className="hidden md:inline text-[12px] font-semibold text-indigo-400 font-sans tracking-wide bg-indigo-500/10 px-1.5 py-0.2 rounded">
                     {entry.reminder.date.split('-').reverse().slice(0, 2).join('/')}
                   </span>
                 </div>
@@ -631,11 +695,11 @@ export default function VaultItemCard({
                       className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-[#090b22]/98 border border-rose-500/40 shadow-[0_10px_30px_rgba(244,63,94,0.15)] z-40 p-3.5 animate-scale text-left select-none"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <p className="text-[11px] font-extrabold text-rose-450 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                      <p className="text-[12px] font-extrabold text-rose-450 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                         <Trash2 className="h-3.5 w-3.5 text-rose-400" />
                         <span>{currentLang === 'vi' ? 'Xác nhận xóa' : 'Confirm Delete'}</span>
                       </p>
-                      <p className="text-[10px] text-slate-450 font-medium leading-normal mb-3">
+                      <p className="text-[11px] text-slate-450 font-medium leading-normal mb-3">
                         {currentLang === 'vi' ? `Bạn muốn xóa "${entry.title}"?` : `Remove "${entry.title}"?`}
                       </p>
                       <div className="flex items-center gap-2">
@@ -646,7 +710,7 @@ export default function VaultItemCard({
                             onDelete(entry.id);
                             setShowDeleteConfirm(false);
                           }}
-                          className="flex-1 py-1 px-2 rounded-lg bg-rose-500 hover:bg-rose-600 active:bg-rose-750 text-white font-bold text-[10px] text-center transition-colors cursor-pointer"
+                          className="flex-1 py-1 px-2 rounded-lg bg-rose-500 hover:bg-rose-600 active:bg-rose-750 text-white font-bold text-[11px] text-center transition-colors cursor-pointer"
                         >
                           {currentLang === 'vi' ? 'Xóa' : 'Delete'}
                         </button>
@@ -656,7 +720,7 @@ export default function VaultItemCard({
                             e.stopPropagation();
                             setShowDeleteConfirm(false);
                           }}
-                          className="flex-1 py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-750 text-slate-350 hover:text-slate-100 font-bold text-[10px] text-center transition-colors cursor-pointer"
+                          className="flex-1 py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-750 text-slate-350 hover:text-slate-100 font-bold text-[11px] text-center transition-colors cursor-pointer"
                         >
                           {currentLang === 'vi' ? 'Hủy' : 'Cancel'}
                         </button>
@@ -699,7 +763,7 @@ export default function VaultItemCard({
                 {entry.password && <RenderField label="Mật khẩu" value={entry.password} secretKey="socPass" />}
                 {entry.url && (
                   <div className="flex flex-col gap-1 py-1.5 text-left">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Liên kết URL</span>
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Liên kết URL</span>
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-sm text-slate-300 line-clamp-1">{entry.url}</span>
                       {renderLaunchButton(entry.url, 'url')}
@@ -715,7 +779,7 @@ export default function VaultItemCard({
                 {entry.password && <RenderField label="Mật khẩu" value={entry.password} secretKey="webPass" />}
                 {entry.websiteUrl && (
                   <div className="flex flex-col gap-1 py-1.5 text-left">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Website</span>
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Website</span>
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-sm text-slate-300 line-clamp-1">{entry.websiteUrl}</span>
                       {renderLaunchButton(entry.websiteUrl, 'websiteUrl')}
@@ -730,7 +794,7 @@ export default function VaultItemCard({
                 <RenderField label="Sàn / Loại Ví" value={entry.walletName} />
                 {entry.walletType && (
                   <div className="flex flex-col gap-1 py-1.5 border-b border-slate-850/45 text-left">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Phân loại Ví</span>
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Phân loại Ví</span>
                     <span className="text-sm text-slate-350">
                       {entry.walletType === 'exchange' ? 'Sàn giao dịch tập trung (Binance...)' :
                        entry.walletType === 'dex_app' ? 'Ví Web3 / Ví cá nhân (MetaMask...)' :
@@ -798,7 +862,7 @@ export default function VaultItemCard({
                 {entry.isIntegrated && entry.lastSyncTime && (
                   <div className="text-xs text-slate-400 font-medium bg-emerald-950/10 border border-emerald-900/10 p-1.5 rounded-lg flex items-center justify-between">
                     <span>{currentLang === 'vi' ? 'Đã đồng bộ Google Sheet' : 'Google Sheet Synced'}</span>
-                    <span className="font-mono text-slate-500 text-[10px]">{currentLang === 'vi' ? 'Cập nhật: ' : 'Updated: '} {new Date(entry.lastSyncTime).toLocaleTimeString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</span>
+                    <span className="font-mono text-slate-500 text-[11px]">{currentLang === 'vi' ? 'Cập nhật: ' : 'Updated: '} {new Date(entry.lastSyncTime).toLocaleTimeString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</span>
                   </div>
                 )}
 
@@ -941,9 +1005,9 @@ export default function VaultItemCard({
                 
                 {(entry as any).driveLink && (
                   <div className="flex flex-col gap-1 py-1.5 text-left">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Đường link Google Drive</span>
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Đường link Google Drive</span>
                     <div className="flex items-center justify-between gap-1.5 bg-slate-950/40 p-2 rounded-xl border border-slate-805 bg-slate-950 border-slate-800">
-                      <span className="text-[11px] text-indigo-400 font-mono line-clamp-1 truncate max-w-[220px] select-all mr-2">
+                      <span className="text-[12px] text-indigo-400 font-mono line-clamp-1 truncate max-w-[220px] select-all mr-2">
                         {(entry as any).driveLink}
                       </span>
                       <div className="flex items-center gap-1.5">
@@ -971,7 +1035,7 @@ export default function VaultItemCard({
                           title="Tải trực tiếp hoặc Xem trực tuyến"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline font-sans text-[10px] uppercase">Mở</span>
+                          <span className="hidden sm:inline font-sans text-[11px] uppercase">Mở</span>
                         </a>
                       </div>
                     </div>
@@ -996,7 +1060,7 @@ export default function VaultItemCard({
             <div className="text-left text-xs">
               <div className="font-bold text-indigo-300">{currentLang === 'vi' ? 'Nhắc nhở lịch hẹn:' : 'Calendar Reminder:'}</div>
               <div className="mt-0.5 text-slate-200 font-medium select-text">{entry.reminder.message || (currentLang === 'vi' ? 'Thông báo tự động' : 'System automated alarm')}</div>
-              <div className="mt-1 font-mono text-[11px] text-slate-400 flex items-center gap-1.5">
+              <div className="mt-1 font-mono text-[12px] text-slate-400 flex items-center gap-1.5">
                 <Calendar className="h-3 w-3 text-slate-500" />
                 {currentLang === 'vi' ? 'Ngày: ' : 'Date: '}{entry.reminder.date.split('-').reverse().join('/')} • {entry.reminder.type === 'yearly' ? (currentLang === 'vi' ? 'Lặp lại hàng năm 🎂' : 'Repeats Annually 🎂') : (currentLang === 'vi' ? 'Lời nhắc 1 lần 📌' : 'One-time notification 📌')}
               </div>
@@ -1013,7 +1077,7 @@ export default function VaultItemCard({
 
         {/* Local Card Info Banner */}
         {launchInfoMessage && (
-          <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-[#0b0c2a]/95 border border-indigo-500/30 text-[11px] font-medium text-indigo-300 p-2.5 rounded-xl z-50 flex items-start gap-2 shadow-2xl animate-fade-in select-none" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-[#0b0c2a]/95 border border-indigo-500/30 text-[12px] font-medium text-indigo-300 p-2.5 rounded-xl z-50 flex items-start gap-2 shadow-2xl animate-fade-in select-none" onClick={(e) => e.stopPropagation()}>
             <div className="p-1 bg-indigo-500/10 rounded text-indigo-400 shrink-0">
               <Lock className="h-3.5 w-3.5" />
             </div>
@@ -1051,7 +1115,7 @@ export default function VaultItemCard({
                 {entry.reminder && entry.reminder.enabled && (
                   <div className="flex items-center gap-1 text-indigo-400 shrink-0" title={`Có nhắc nhở: ${entry.reminder.message || 'Lịch'}`}>
                     <Bell className="h-3.5 w-3.5 animate-pulse" />
-                    <span className="text-[10px] font-bold font-mono bg-indigo-500/10 px-1 rounded">
+                    <span className="text-[11px] font-bold font-mono bg-indigo-500/10 px-1 rounded">
                       {entry.reminder.date.split('-').reverse().slice(0, 2).join('/')}
                     </span>
                   </div>
@@ -1123,11 +1187,11 @@ export default function VaultItemCard({
                       className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-[#090b22]/98 border border-rose-500/40 shadow-[0_10px_30px_rgba(244,63,94,0.15)] z-45 p-3.5 animate-scale text-left select-none"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <p className="text-[11px] font-extrabold text-rose-450 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                      <p className="text-[12px] font-extrabold text-rose-450 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                         <Trash2 className="h-3.5 w-3.5 text-rose-400" />
                         <span>{currentLang === 'vi' ? 'Xác nhận xóa' : 'Confirm Delete'}</span>
                       </p>
-                      <p className="text-[10px] text-slate-450 font-medium leading-normal mb-3">
+                      <p className="text-[11px] text-slate-450 font-medium leading-normal mb-3">
                         {currentLang === 'vi' ? `Bạn muốn xóa "${entry.title}"?` : `Remove "${entry.title}"?`}
                       </p>
                       <div className="flex items-center gap-2">
@@ -1138,7 +1202,7 @@ export default function VaultItemCard({
                             onDelete(entry.id);
                             setShowDeleteConfirm(false);
                           }}
-                          className="flex-1 py-1 px-2 rounded-lg bg-rose-500 hover:bg-rose-600 active:bg-rose-750 text-white font-bold text-[10px] text-center transition-colors cursor-pointer"
+                          className="flex-1 py-1 px-2 rounded-lg bg-rose-500 hover:bg-rose-600 active:bg-rose-750 text-white font-bold text-[11px] text-center transition-colors cursor-pointer"
                         >
                           {currentLang === 'vi' ? 'Xóa' : 'Delete'}
                         </button>
@@ -1148,7 +1212,7 @@ export default function VaultItemCard({
                             e.stopPropagation();
                             setShowDeleteConfirm(false);
                           }}
-                          className="flex-1 py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-750 text-slate-350 hover:text-slate-100 font-bold text-[10px] text-center transition-colors cursor-pointer"
+                          className="flex-1 py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-750 text-slate-350 hover:text-slate-100 font-bold text-[11px] text-center transition-colors cursor-pointer"
                         >
                           {currentLang === 'vi' ? 'Hủy' : 'Cancel'}
                         </button>
@@ -1288,7 +1352,7 @@ export default function VaultItemCard({
                 {entry.isIntegrated && entry.lastSyncTime && (
                   <div className="text-xs text-slate-400 font-medium bg-emerald-950/10 border border-emerald-900/10 p-1.5 rounded-lg flex items-center justify-between">
                     <span>Google Sheet Synced</span>
-                    <span className="font-mono text-slate-500 text-[10px]">Cập nhật: {new Date(entry.lastSyncTime).toLocaleTimeString('vi-VN')}</span>
+                    <span className="font-mono text-slate-500 text-[11px]">Cập nhật: {new Date(entry.lastSyncTime).toLocaleTimeString('vi-VN')}</span>
                   </div>
                 )}
 
@@ -1431,9 +1495,9 @@ export default function VaultItemCard({
                 
                 {(entry as any).driveLink && (
                   <div className="flex flex-col gap-1 py-1.5 text-left">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Đường link Google Drive</span>
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Đường link Google Drive</span>
                     <div className="flex items-center justify-between gap-1.5 bg-slate-950/40 p-2 rounded-xl border border-slate-805 bg-slate-950 border-slate-800 font-sans">
-                      <span className="text-[11px] text-indigo-400 font-mono line-clamp-1 truncate max-w-[220px] select-all mr-2">
+                      <span className="text-[12px] text-indigo-400 font-mono line-clamp-1 truncate max-w-[220px] select-all mr-2">
                         {(entry as any).driveLink}
                       </span>
                       <div className="flex items-center gap-1.5">
@@ -1461,7 +1525,7 @@ export default function VaultItemCard({
                           title="Tải trực tiếp hoặc Xem trực tuyến"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline font-sans text-[10px] uppercase">Mở</span>
+                          <span className="hidden sm:inline font-sans text-[11px] uppercase">Mở</span>
                         </a>
                       </div>
                     </div>
@@ -1505,7 +1569,7 @@ export default function VaultItemCard({
 
       {/* Local Card Info Banner */}
       {launchInfoMessage && (
-        <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-[#0b0c2a]/95 border border-indigo-500/30 text-[11px] font-medium text-indigo-300 p-2.5 rounded-xl z-50 flex items-start gap-2 shadow-2xl animate-fade-in select-none" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-[#0b0c2a]/95 border border-indigo-500/30 text-[12px] font-medium text-indigo-300 p-2.5 rounded-xl z-50 flex items-start gap-2 shadow-2xl animate-fade-in select-none" onClick={(e) => e.stopPropagation()}>
           <div className="p-1 bg-indigo-500/10 rounded text-indigo-400 shrink-0">
             <Lock className="h-3.5 w-3.5" />
           </div>

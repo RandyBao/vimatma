@@ -16,6 +16,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
   const isPro = localStorage.getItem('secure_vault_pro_active') === 'true';
   const lang = (localStorage.getItem('secure_vault_lang') as LangType) || 'vi';
   const t = translations[lang];
+  const _ = (vi: string, en: string) => lang === 'vi' ? vi : en;
 
   const [category, setCategory] = useState<VaultCategory>('bank');
   const [title, setTitle] = useState('');
@@ -102,6 +103,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
   const [driveLink, setDriveLink] = useState('');
   const [isDriveOptimized, setIsDriveOptimized] = useState(true);
   const [isSecret, setIsSecret] = useState(false);
+  const [isSafeForTravel, setIsSafeForTravel] = useState(false);
 
   // Find which template style to use
   const activeTemplateType = (() => {
@@ -127,6 +129,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setNotes(editingEntry.notes || '');
       setIsFavorite(!!editingEntry.isFavorite);
       setIsSecret(!!editingEntry.isSecret);
+      setIsSafeForTravel(!!editingEntry.isSafeForTravel);
       setTotpSecret(editingEntry.totpSecret || '');
 
       // Load reminder configuration if present
@@ -210,6 +213,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setNotes('');
       setIsFavorite(false);
       setIsSecret(false);
+      setIsSafeForTravel(false);
 
       setReminderEnabled(false);
       setReminderDate('');
@@ -513,6 +517,30 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       };
     }
 
+    // Travel Mode & Password History logic for PRO users
+    targetData.isSafeForTravel = isPro ? isSafeForTravel : false;
+
+    if (isPro && editingEntry) {
+      let newPasswordText = '';
+      if (activeTemplateType === 'bank') newPasswordText = bankPassword.trim();
+      else if (activeTemplateType === 'social') newPasswordText = socialPassword.trim();
+      else if (activeTemplateType === 'web') newPasswordText = webPassword.trim();
+      else if (activeTemplateType === 'wallet') newPasswordText = walletPassword.trim();
+      else if (activeTemplateType === 'ewallet') newPasswordText = ewalletPassword.trim();
+      else if (activeTemplateType === 'phoneapp') newPasswordText = phoneappPassword.trim();
+
+      const oldPwd = (editingEntry as any).password || '';
+      if (newPasswordText && oldPwd && newPasswordText !== oldPwd) {
+        const history = (editingEntry as any).passwordHistory || [];
+        targetData.passwordHistory = [
+          { password: oldPwd, updatedAt: editingEntry.updatedAt || Date.now() },
+          ...history
+        ].slice(0, 10);
+      } else if ((editingEntry as any).passwordHistory) {
+        targetData.passwordHistory = (editingEntry as any).passwordHistory;
+      }
+    }
+
     onSave(targetData);
   };
 
@@ -538,7 +566,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/20">
           <h3 className="text-lg font-semibold text-white">
-            {editingEntry ? 'Chỉnh sửa tài khoản / ghi chú' : 'Thêm tài khoản / nội dung cần nhớ'}
+            {editingEntry ? _('Chỉnh sửa tài khoản / ghi chú', 'Modify Safe Record / Notes') : _('Thêm tài khoản / nội dung cần nhớ', 'Add Account / Remember Labels')}
           </h3>
           <button
             type="button"
@@ -555,23 +583,35 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           {/* Category selection - Only allowed on fresh creation */}
           {!editingEntry && (
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Loại lưu trữ
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
+                {_('Loại lưu trữ', 'Locker Category')}
               </label>
               <div className="grid grid-cols-5 gap-1.5">
                 {(['bank', 'social', 'web', 'wallet', 'ewallet', 'phoneapp', 'sheet', 'note', 'gdrive'] as VaultCategory[])
                   .filter(cat => isPro ? true : (cat !== 'sheet' && cat !== 'gdrive'))
                   .map((cat) => {
                   let visualText = '';
-                  if (cat === 'bank') visualText = 'N.Hàng';
-                  if (cat === 'social') visualText = 'Mã xh';
-                  if (cat === 'web') visualText = 'Web/App';
-                  if (cat === 'wallet') visualText = 'V.Crypto';
-                  if (cat === 'ewallet') visualText = 'V.Momo';
-                  if (cat === 'phoneapp') visualText = 'App Mob';
-                  if (cat === 'sheet') visualText = 'Bảng tính';
-                  if (cat === 'note') visualText = 'Ghi chú';
-                  if (cat === 'gdrive') visualText = 'Bảo Mật Drive (>1GB)';
+                  if (lang === 'vi') {
+                    if (cat === 'bank') visualText = 'Ngân Hàng';
+                    if (cat === 'social') visualText = 'Mạng Xã Hội';
+                    if (cat === 'web') visualText = 'Website & App';
+                    if (cat === 'wallet') visualText = 'Ví Crypto';
+                    if (cat === 'ewallet') visualText = 'Ví Điện Tử';
+                    if (cat === 'phoneapp') visualText = 'Ứng Dụng Di Động';
+                    if (cat === 'sheet') visualText = 'Bảng Tính';
+                    if (cat === 'note') visualText = 'Ghi Chú';
+                    if (cat === 'gdrive') visualText = 'Bảo Mật Drive';
+                  } else {
+                    if (cat === 'bank') visualText = 'Bank Account';
+                    if (cat === 'social') visualText = 'Social Media';
+                    if (cat === 'web') visualText = 'Website / App';
+                    if (cat === 'wallet') visualText = 'Crypto Wallet';
+                    if (cat === 'ewallet') visualText = 'E-Wallet';
+                    if (cat === 'phoneapp') visualText = 'Mobile App';
+                    if (cat === 'sheet') visualText = 'Spreadsheet';
+                    if (cat === 'note') visualText = 'Secure Notes';
+                    if (cat === 'gdrive') visualText = 'Secure Drive';
+                  }
 
                   return (
                     <button
@@ -579,7 +619,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       key={cat}
                       type="button"
                       onClick={() => setCategory(cat)}
-                      className={`text-center py-2 px-1 text-[10px] font-semibold rounded-xl border transition-all cursor-pointer ${
+                      className={`text-center py-2 px-1 text-[11px] font-semibold rounded-xl border transition-all cursor-pointer ${
                         category === cat
                           ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-semibold shadow-lg shadow-emerald-500/5 col-span-2'
                           : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
@@ -595,21 +635,21 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
           {/* Title input */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Tiêu đề gợi nhớ <span className="text-rose-500">*</span>
+            <label className="block text-sm font-semibold text-slate-300 mb-2">
+              {_('Tiêu đề gợi nhớ', 'Remember Title')} <span className="text-rose-500">*</span>
             </label>
             <input
               id="form-title-input"
               type="text"
               required
               placeholder={
-                activeTemplateType === 'bank' ? 'Ví dụ: Vietcombank Cá nhân, Techcombank Doanh nghiệp' :
-                activeTemplateType === 'social' ? 'Ví dụ: Facebook Cá nhân, Google Công việc' :
-                activeTemplateType === 'web' ? 'Ví dụ: Tài khoản Netflix, Hosting Vhost' :
-                activeTemplateType === 'wallet' ? 'Ví dụ: Sàn Binance, Ví Trust Wallet, MetaMask' :
-                activeTemplateType === 'ewallet' ? 'Ví dụ: Ví Momo cá nhân, ZaloPay, ViettelPay' : 
-                activeTemplateType === 'phoneapp' ? 'Ví dụ: Tài khoản VNeID của bố, eTax Mobile cá nhân' :
-                activeTemplateType === 'sheet' ? 'Ví dụ: Bảng thu chi năm nay, Danh bạ khẩn cấp' : 'Ví dụ: Ý tưởng dự án mới, Chú ý hóa đơn'
+                activeTemplateType === 'bank' ? _('Ví dụ: Vietcombank Cá nhân, Techcombank Doanh nghiệp', 'e.g., Personal Chase Bank, Citibank Business') :
+                activeTemplateType === 'social' ? _('Ví dụ: Facebook Cá nhân, Google Công việc', 'e.g., Facebook Private Account, Workplace Google ID') :
+                activeTemplateType === 'web' ? _('Ví dụ: Tài khoản Netflix, Hosting Vhost', 'e.g., Netflix Premium Account, DigitalOcean Drops') :
+                activeTemplateType === 'wallet' ? _('Ví dụ: Sàn Binance, Ví Trust Wallet, MetaMask', 'e.g., Binance Exchange ID, MetaMask Wallet, Key Ledger') :
+                activeTemplateType === 'ewallet' ? _('Ví dụ: Ví Momo cá nhân, ZaloPay, ViettelPay', 'e.g., PayPal Balance, Venmo card, CashApp') : 
+                activeTemplateType === 'phoneapp' ? _('Ví dụ: Tài khoản VNeID của bố, eTax Mobile cá nhân', 'e.g., Authenticator ID, Mobile Banking app, Tax Hub') :
+                activeTemplateType === 'sheet' ? _('Ví dụ: Bảng thu chi năm nay, Danh bạ khẩn cấp', 'e.g., Master Financial Ledger, Crisis Contacts') : _('Ví dụ: Ý tưởng dự án mới, Chú ý hóa đơn', 'e.g., New Startup Draft, electricity bills note')
               }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -623,14 +663,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           {activeTemplateType === 'bank' && (
             <div className="space-y-4 border-l border-slate-800 pl-4 py-1">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Tên ngân hàng
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Tên ngân hàng', 'Bank Name')}
                 </label>
                 <input
                   id="form-bank-name"
                   type="text"
                   required
-                  placeholder="Ví dụ: Techcombank, Vietinbank"
+                  placeholder={_('Ví dụ: Techcombank, Vietinbank', 'e.g., Techcombank, Vietinbank')}
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
                   className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
@@ -639,28 +679,28 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Số tài khoản <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Số tài khoản', 'Account Number')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     id="form-bank-acc"
                     type="text"
                     required
-                    placeholder="Nhập số tài khoản..."
+                    placeholder={_('Nhập số tài khoản...', 'Enter account number...')}
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm font-mono tracking-wider"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Chủ tài khoản <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Chủ tài khoản', 'Account Holder')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     id="form-bank-holder"
                     type="text"
                     required
-                    placeholder="VIET VAN A..."
+                    placeholder={_('VIET VAN A...', 'JOHN DOE...')}
                     value={accountHolder}
                     onChange={(e) => setAccountHolder(e.target.value.toUpperCase())}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm uppercase"
@@ -670,27 +710,27 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Tên đăng nhập (iBanking)
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Tên đăng nhập (iBanking)', 'Login Username (iBanking)')}
                   </label>
                   <input
                     id="form-bank-username"
                     type="text"
-                    placeholder="Nếu có..."
+                    placeholder={_('Nếu có...', 'If any...')}
                     value={bankUsername}
                     onChange={(e) => setBankUsername(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Mật khẩu (iBanking)
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Mật khẩu (iBanking)', 'Password (iBanking)')}
                   </label>
                   <div className="relative">
                     <input
                       id="form-bank-password"
                       type={showFormSecrets['bankPass'] ? 'text' : 'password'}
-                      placeholder="Nếu có..."
+                      placeholder={_('Nếu có...', 'If any...')}
                       value={bankPassword}
                       onChange={(e) => setBankPassword(e.target.value)}
                       className="w-full pl-4 pr-16 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
@@ -710,7 +750,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                           setShowPassGen(!showPassGen);
                         }}
                         className="p-1 text-slate-500 hover:text-emerald-400 transition-colors"
-                        title="Tự tạo mật khẩu mạnh"
+                        title={_('Tự tạo mật khẩu mạnh', 'Generate secure password')}
                       >
                         <KeyRound className="h-3.5 w-3.5" />
                       </button>
@@ -721,27 +761,27 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Mã PIN / Rút tiền
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Mã PIN / Rút tiền', 'PIN Code / Withdrawal')}
                   </label>
                   <input
                     id="form-bank-pin"
                     type="text"
                     maxLength={6}
-                    placeholder="Mã PIN 4-6 số..."
+                    placeholder={_('Mã PIN 4-6 số...', '4-6 digit PIN...')}
                     value={bankPin}
                     onChange={(e) => setBankPin(e.target.value.replace(/\D/g, ''))}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Chi nhánh ngân hàng
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Chi nhánh ngân hàng', 'Bank Branch')}
                   </label>
                   <input
                     id="form-bank-branch"
                     type="text"
-                    placeholder="Ví dụ: PGD Bến Thành..."
+                    placeholder={_('Ví dụ: PGD Bến Thành...', 'e.g., Wall Street Branch...')}
                     value={bankBranch}
                     onChange={(e) => setBankBranch(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
@@ -755,13 +795,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           {activeTemplateType === 'social' && (
             <div className="space-y-4 border-l border-slate-800 pl-4 py-1">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Tên mạng xã hội
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Tên mạng xã hội', 'Social Network')}
                 </label>
                 <input
                   id="form-soc-platform"
                   type="text"
-                  placeholder="Ví dụ: Facebook, Google, Zalo..."
+                  placeholder={_('Ví dụ: Facebook, Google, Zalo...', 'e.g., Facebook, Google, LinkedIn...')}
                   value={platformName}
                   onChange={(e) => setPlatformName(e.target.value)}
                   className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
@@ -770,28 +810,28 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Tài khoản / Email <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Tài khoản / Email', 'Account / Email')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     id="form-soc-username"
                     type="text"
                     required
-                    placeholder="Nhập email hoặc SĐT..."
+                    placeholder={_('Nhập email hoặc SĐT...', 'Enter email or phone number...')}
                     value={socialUsername}
                     onChange={(e) => setSocialUsername(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Mật khẩu
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Mật khẩu', 'Password')}
                   </label>
                   <div className="relative">
                     <input
                       id="form-soc-password"
                       type={showFormSecrets['socPass'] ? 'text' : 'password'}
-                      placeholder="Mật khẩu..."
+                      placeholder={_('Mật khẩu...', 'Password...')}
                       value={socialPassword}
                       onChange={(e) => setSocialPassword(e.target.value)}
                       className="w-full pl-4 pr-16 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
@@ -811,7 +851,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                           setShowPassGen(!showPassGen);
                         }}
                         className="p-1 text-slate-500 hover:text-emerald-400 transition-colors"
-                        title="Tự tạo mật khẩu mạnh"
+                        title={_('Tự tạo mật khẩu mạnh', 'Generate secure password')}
                       >
                         <KeyRound className="h-3.5 w-3.5" />
                       </button>
@@ -821,13 +861,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Đường dẫn liên kết (URL)
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Đường dẫn liên kết (URL)', 'Profile Link (URL)')}
                 </label>
                 <input
                   id="form-soc-url"
                   type="text"
-                  placeholder="Ví dụ: facebook.com..."
+                  placeholder={_('Ví dụ: facebook.com...', 'e.g., facebook.com...')}
                   value={socialUrl}
                   onChange={(e) => setSocialUrl(e.target.value)}
                   className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
@@ -840,14 +880,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           {activeTemplateType === 'web' && (
             <div className="space-y-4 border-l border-slate-800 pl-4 py-1">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Đường dẫn Website / URL <span className="text-rose-500">*</span>
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Đường dẫn Website / URL', 'Website URL')} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   id="form-web-url"
                   type="text"
                   required
-                  placeholder="Ví dụ: netflix.com, github.com..."
+                  placeholder={_('Ví dụ: netflix.com, github.com...', 'e.g., netflix.com, github.com...')}
                   value={websiteUrl}
                   onChange={(e) => setWebsiteUrl(e.target.value)}
                   className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
@@ -856,28 +896,28 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Username / Email <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Username / Email', 'Username / Email')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     id="form-web-username"
                     type="text"
                     required
-                    placeholder="Tên đăng nhập..."
+                    placeholder={_('Tên đăng nhập...', 'Username...')}
                     value={webUsername}
                     onChange={(e) => setWebUsername(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Mật khẩu
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Mật khẩu', 'Password')}
                   </label>
                   <div className="relative">
                     <input
                       id="form-web-password"
                       type={showFormSecrets['webPass'] ? 'text' : 'password'}
-                      placeholder="Mật khẩu..."
+                      placeholder={_('Mật khẩu...', 'Password...')}
                       value={webPassword}
                       onChange={(e) => setWebPassword(e.target.value)}
                       className="w-full pl-4 pr-16 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm"
@@ -897,7 +937,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                           setShowPassGen(!showPassGen);
                         }}
                         className="p-1 text-slate-500 hover:text-emerald-400 transition-colors"
-                        title="Tự tạo mật khẩu mạnh"
+                        title={_('Tự tạo mật khẩu mạnh', 'Generate secure password')}
                       >
                         <KeyRound className="h-3.5 w-3.5" />
                       </button>
@@ -912,14 +952,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           {activeTemplateType === 'note' && (
             <div className="space-y-4 border-l border-slate-800 pl-4 py-1">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Nội dung ghi chú cần nhớ <span className="text-rose-500">*</span>
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Nội dung ghi chú cần nhớ', 'Secure Note Content')} <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   id="form-note-content"
                   required
                   rows={6}
-                  placeholder="Nhập nội dung quan trọng cần nhớ..."
+                  placeholder={_('Nhập nội dung quan trọng cần nhớ...', 'Enter critical notes or info to secure...')}
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm placeholder-slate-650 outline-none transition-all resize-y select-text"
@@ -933,22 +973,22 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
             <div className="space-y-4 border-l border-emerald-500 pl-4 py-1">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Tên Sàn / Ví <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Tên Sàn / Ví', 'Exchange / Wallet')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     id="form-wallet-name"
                     type="text"
                     required
-                    placeholder="Ví dụ: Binance, MetaMask..."
+                    placeholder={_('Ví dụ: Binance, MetaMask...', 'e.g., Binance, MetaMask...')}
                     value={walletName}
                     onChange={(e) => setWalletName(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Phân loại <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Phân loại', 'Category')} <span className="text-rose-500">*</span>
                   </label>
                   <select
                     id="form-wallet-type"
@@ -956,36 +996,36 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     onChange={(e) => setWalletType(e.target.value as any)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300 outline-none h-[38px]"
                   >
-                    <option value="exchange">Sàn giao dịch (Binance...)</option>
-                    <option value="dex_app">Ví Web3 (MetaMask...)</option>
-                    <option value="hardware">Ví cứng / Ví lạnh</option>
+                    <option value="exchange">{_('Sàn giao dịch (Binance...)', 'Exchange Space (Binance...)')}</option>
+                    <option value="dex_app">{_('Ví Web3 (MetaMask...)', 'Web3 DApp Wallet (MetaMask...)')}</option>
+                    <option value="hardware">{_('Ví cứng / Ví lạnh', 'Hardware Cold Wallet')}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Tên đăng nhập / Email
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Tên đăng nhập / Email', 'Username / Email')}
                   </label>
                   <input
                     id="form-wallet-username"
                     type="text"
-                    placeholder="Tên đăng nhập sàn..."
+                    placeholder={_('Tên đăng nhập sàn...', 'Login Username...')}
                     value={walletUsername}
                     onChange={(e) => setWalletUsername(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Mật khẩu / PIN bảo mật
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Mật khẩu / PIN bảo mật', 'Security Password / PIN')}
                   </label>
                   <div className="relative">
                     <input
                       id="form-wallet-password"
                       type={showFormSecrets['walletPass'] ? 'text' : 'password'}
-                      placeholder="Mật khẩu..."
+                      placeholder={_('Mật khẩu...', 'Password...')}
                       value={walletPassword}
                       onChange={(e) => setWalletPassword(e.target.value)}
                       className="w-full pl-4 pr-16 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm"
@@ -1005,7 +1045,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                           setShowPassGen(!showPassGen);
                         }}
                         className="p-1 text-slate-500 hover:text-emerald-400 transition-colors cursor-pointer"
-                        title="Tự tạo mật khẩu mạnh"
+                        title={_('Tự tạo mật khẩu mạnh', 'Generate secure password')}
                       >
                         <KeyRound className="h-3.5 w-3.5" />
                       </button>
@@ -1015,13 +1055,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Địa chỉ ví (Public Wallet Address)
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Địa chỉ ví (Public Wallet Address)', 'Public Wallet Address')}
                 </label>
                 <input
                   id="form-wallet-address"
                   type="text"
-                  placeholder="Nhập địa chỉ ví..."
+                  placeholder={_('Nhập địa chỉ ví...', 'Enter public address...')}
                   value={walletAddress}
                   onChange={(e) => setWalletAddress(e.target.value)}
                   className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm font-mono"
@@ -1029,14 +1069,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Khóa bảo mật (Private Key)
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Khóa bảo mật (Private Key)', 'Private key (Secret key)')}
                 </label>
                 <div className="relative">
                   <input
                     id="form-wallet-private"
                     type={showFormSecrets['walletPriv'] ? 'text' : 'password'}
-                    placeholder="Nhập Private Key bí mật..."
+                    placeholder={_('Nhập Private Key bí mật...', 'Enter private key seed...')}
                     value={walletPrivateKey}
                     onChange={(e) => setWalletPrivateKey(e.target.value)}
                     className="w-full pl-4 pr-10 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm font-mono"
@@ -1052,14 +1092,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Cụm từ khôi phục (12 - 24 từ)
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Cụm từ khôi phục (12 - 24 từ)', 'Seed Recovery Phrase (12 - 24 words)')}
                 </label>
                 <div className="relative">
                   <textarea
                     id="form-wallet-seed"
                     rows={2}
-                    placeholder="Nhập cụm từ khôi phục bí mật (phrase)..."
+                    placeholder={_('Nhập cụm từ khôi phục bí mật (phrase)...', 'Enter recovery phrase...')}
                     value={walletSeedPhrase}
                     onChange={(e) => setWalletSeedPhrase(e.target.value)}
                     className="w-full pl-4 pr-10 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm font-mono select-text"
@@ -1075,11 +1115,11 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               </div>
 
               <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/80 space-y-3">
-                <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Cấu hình API kết nối (Ví dụ Binance API)</div>
+                <div className="text-[11px] uppercase font-bold text-slate-500 tracking-wider">{_('Cấu hình API kết nối (Ví dụ Binance API)', 'API Credentials Config (e.g. Binance Token)')}</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                      API Key
+                    <label className="block text-[12px] font-medium text-slate-400 mb-1">
+                      {_('API Key', 'API Public Key')}
                     </label>
                     <div className="relative">
                       <input
@@ -1100,14 +1140,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                      API Secret
+                    <label className="block text-[12px] font-medium text-slate-400 mb-1">
+                      {_('API Secret', 'API Secret Key')}
                     </label>
                     <div className="relative">
                       <input
                         id="form-wallet-apisecret"
                         type={showFormSecrets['walletApiSec'] ? 'text' : 'password'}
-                        placeholder="API Secret / Secret Key..."
+                        placeholder={_('API Secret / Secret Key...', 'API Private Secret Key...')}
                         value={walletApiSecret}
                         onChange={(e) => setWalletApiSecret(e.target.value)}
                         className="w-full pl-3 pr-8 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono"
@@ -1130,14 +1170,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           {activeTemplateType === 'ewallet' && (
             <div className="space-y-4 border-l border-pink-500 pl-4 py-1">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Tên Ví điện tử <span className="text-rose-500">*</span>
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Tên Ví điện tử', 'E-Wallet Provider')} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   id="form-ewallet-name"
                   type="text"
                   required
-                  placeholder="Ví dụ: Momo, ZaloPay, ShopeePay"
+                  placeholder={_('Ví dụ: Momo, ZaloPay, ShopeePay', 'e.g., Momo, ZaloPay, ShopeePay')}
                   value={ewalletName}
                   onChange={(e) => setEwalletName(e.target.value)}
                   className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm placeholder-slate-600 outline-none"
@@ -1146,27 +1186,27 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Số điện thoại / TK <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Số điện thoại / TK', 'Phone / Account No.')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     id="form-ewallet-phone"
                     type="text"
                     required
-                    placeholder="SĐT liên kết ví..."
+                    placeholder={_('SĐT liên kết ví...', 'Registered mobile number...')}
                     value={ewalletPhone}
                     onChange={(e) => setEwalletPhone(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm font-mono placeholder-slate-600 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Tên chủ tài khoản
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Tên chủ tài khoản', 'Account Holder')}
                   </label>
                   <input
                     id="form-ewallet-holder"
                     type="text"
-                    placeholder="Tên người dùng..."
+                    placeholder={_('Tên người dùng...', 'Full Name...')}
                     value={ewalletHolder}
                     onChange={(e) => setEwalletHolder(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm placeholder-slate-600 outline-none"
@@ -1176,14 +1216,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Mã PIN bảo mật
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Mã PIN bảo mật', 'Security PIN Code')}
                   </label>
                   <div className="relative">
                     <input
                       id="form-ewallet-pin"
                       type={showFormSecrets['ewalletPin'] ? 'text' : 'password'}
-                      placeholder="Mã PIN ví..."
+                      placeholder={_('Mã PIN ví...', 'Wallet PIN...')}
                       value={ewalletPin}
                       onChange={(e) => setEwalletPin(e.target.value)}
                       className="w-full pl-4 pr-10 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm font-mono placeholder-slate-600 outline-none"
@@ -1198,14 +1238,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Mật khẩu (nếu có)
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Mật khẩu (nếu có)', 'Password (if any)')}
                   </label>
                   <div className="relative">
                     <input
                       id="form-ewallet-password"
                       type={showFormSecrets['ewalletPass'] ? 'text' : 'password'}
-                      placeholder="Mật khẩu..."
+                      placeholder={_('Mật khẩu...', 'Password...')}
                       value={ewalletPassword}
                       onChange={(e) => setEwalletPassword(e.target.value)}
                       className="w-full pl-4 pr-16 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm placeholder-slate-600 outline-none"
@@ -1225,7 +1265,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                           setShowPassGen(!showPassGen);
                         }}
                         className="p-1 text-slate-500 hover:text-emerald-400 transition-colors cursor-pointer"
-                        title="Tự tạo mật khẩu mạnh"
+                        title={_('Tự tạo mật khẩu mạnh', 'Generate secure password')}
                       >
                         <KeyRound className="h-3.5 w-3.5" />
                       </button>
@@ -1235,13 +1275,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Ngân hàng đã liên kết
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Ngân hàng đã liên kết', 'Linked Bank')}
                 </label>
                 <input
                   id="form-ewallet-linked"
                   type="text"
-                  placeholder="Ví dụ: Vietcombank, Techcombank..."
+                  placeholder={_('Ví dụ: Vietcombank, Techcombank...', 'e.g., Vietcombank, Chase...')}
                   value={ewalletLinkedBank}
                   onChange={(e) => setEwalletLinkedBank(e.target.value)}
                   className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm placeholder-slate-600 outline-none"
@@ -1254,42 +1294,42 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           {activeTemplateType === 'phoneapp' && (
             <div className="space-y-4 border-l border-slate-850 pl-4 py-1">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Tên ứng dụng điện thoại
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Tên ứng dụng điện thoại', 'Phone Application')}
                 </label>
                 <input
                   id="form-phoneapp-name"
                   type="text"
                   required
-                  placeholder="Ví dụ: VNeID, VNeTraffic, eTax Mobile"
+                  placeholder={_('Ví dụ: VNeID, VNeTraffic, eTax Mobile', 'e.g., Identity App, eTax Mobile')}
                   value={phoneappName}
                   onChange={(e) => setPhoneappName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none text-slate-100 placeholder-slate-650"
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none text-slate-100 placeholder-slate-655"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Tên đăng nhập / Số ĐT
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Tên đăng nhập / Số ĐT', 'Username / Phone Number')}
                   </label>
                   <input
                     id="form-phoneapp-user"
                     type="text"
-                    placeholder="Số điện thoại hoặc tài khoản..."
+                    placeholder={_('Số điện thoại hoặc tài khoản...', 'Mobile or Username...')}
                     value={phoneappUsername}
                     onChange={(e) => setPhoneappUsername(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none text-slate-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Số CCCD (định danh)
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Số CCCD (định danh)', 'National ID Card No.')}
                   </label>
                   <input
                     id="form-phoneapp-national"
                     type="text"
-                    placeholder="12 chữ số căn cước..."
+                    placeholder={_('12 chữ số căn cước...', 'National ID digits...')}
                     value={phoneappNationalId}
                     onChange={(e) => setPhoneappNationalId(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none text-slate-100"
@@ -1299,14 +1339,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Mã PIN / Passcode (vd: 6 số)
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Mã PIN / Passcode (vd: 6 số)', 'PIN / Passcode (e.g. 6-digits)')}
                   </label>
                   <div className="relative">
                     <input
                       id="form-phoneapp-passcode"
                       type={showFormSecrets['phoneappPasscode'] ? 'text' : 'password'}
-                      placeholder="Mã passcode bảo mật..."
+                      placeholder={_('Mã passcode bảo mật...', 'Secure passcode...')}
                       value={phoneappPasscode}
                       onChange={(e) => setPhoneappPasscode(e.target.value)}
                       className="w-full pl-4 pr-10 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm font-mono placeholder-slate-600 outline-none text-slate-100"
@@ -1322,14 +1362,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Mật khẩu đăng nhập
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Mật khẩu đăng nhập', 'App Password')}
                   </label>
                   <div className="relative">
                     <input
                       id="form-phoneapp-pass"
                       type={showFormSecrets['phoneappPass'] ? 'text' : 'password'}
-                      placeholder="Mật khẩu phụ..."
+                      placeholder={_('Mật khẩu phụ...', 'Backup password...')}
                       value={phoneappPassword}
                       onChange={(e) => setPhoneappPassword(e.target.value)}
                       className="w-full pl-4 pr-16 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm placeholder-slate-600 outline-none text-slate-100"
@@ -1349,7 +1389,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                           setShowPassGen(!showPassGen);
                         }}
                         className="p-1 text-slate-500 hover:text-emerald-400 transition-colors cursor-pointer"
-                        title="Tự động phát sinh mật khẩu mạnh"
+                        title={_('Tự động phát sinh mật khẩu mạnh', 'Auto generate secure password')}
                       >
                         <KeyRound className="h-3.5 w-3.5" />
                       </button>
@@ -1359,14 +1399,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Email liên kết
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Email liên kết', 'Recovery / Linked Email')}
                 </label>
                 <div className="relative">
                   <input
                     id="form-phoneapp-email"
                     type={showFormSecrets['phoneappEmail'] ? 'text' : 'password'}
-                    placeholder="Nhập email liên kết (ví dụ: nguyenbaoloc24h@gmail.com)..."
+                    placeholder={_('Nhập email liên kết (ví dụ: loc@gmail.com)...', 'Enter linked account email...')}
                     value={phoneappEmail}
                     onChange={(e) => setPhoneappEmail(e.target.value)}
                     className="w-full pl-4 pr-10 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm placeholder-slate-605 outline-none text-slate-100"
@@ -1385,10 +1425,10 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
           {/* Google Sheet segment */}
           {activeTemplateType === 'sheet' && (
-            <div className="space-y-4 border-l border-emerald-550 pl-4 py-1">
+            <div className="space-y-4 border-l border-emerald-555 pl-4 py-1">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  Chế độ nguồn dữ liệu Trang tính
+                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                  {_('Chế độ nguồn dữ liệu Trang tính', 'Spreadsheet Data Source Mode')}
                 </label>
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   <button
@@ -1401,7 +1441,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                         : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    Thiết lập thủ công (Nhập tay)
+                    {_('Thiết lập thủ công (Nhập tay)', 'Manual Entry (Handwritten)')}
                   </button>
                   <button
                     id="sheet-source-sync"
@@ -1413,7 +1453,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                         : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    Đồng bộ Google Sheets (TK khác)
+                    {_('Đồng bộ Google Sheets (TK khác)', 'Sync Google Sheets Integration')}
                   </button>
                 </div>
               </div>
@@ -1421,12 +1461,12 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               {isIntegrated && (
                 <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 space-y-4 animate-fade-in">
                   <div className="text-xs font-bold text-emerald-450 uppercase tracking-wider border-b border-slate-850 pb-2">
-                    Cấu hình kết nối Google Account khác
+                    {_('Cấu hình kết nối Google Account khác', 'External Google Account Connection Configuration')}
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-450 uppercase mb-1.5">
-                      Liên kết Google Sheet (URL) hoặc ID <span className="text-rose-500">*</span>
+                    <label className="block text-[12px] font-semibold text-slate-450 uppercase mb-1.5">
+                      {_('Liên kết Google Sheet (URL) hoặc ID', 'Google Sheets Document URL or File ID')} <span className="text-rose-500">*</span>
                     </label>
                     <input
                       id="google-sheet-url-input"
@@ -1436,14 +1476,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       onChange={(e) => setSpreadsheetUrl(e.target.value)}
                       className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs placeholder-slate-600 outline-none focus:border-emerald-500"
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      Mở bảng tính của bạn ở tab khác, Copy toàn bộ URL và dán vào đây.
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {_('Mở bảng tính của bạn ở tab khác, Copy toàn bộ URL và dán vào đây.', 'Open your sheet in another browser tab, copy the entire URL address and paste here.')}
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-455 uppercase mb-1.5">
-                      Chế độ truy cập và bảo mật
+                    <label className="block text-[12px] font-semibold text-slate-455 uppercase mb-1.5">
+                      {_('Chế độ truy cập và bảo mật', 'Access Authorization & Security Level')}
                     </label>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <button
@@ -1455,8 +1495,8 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                             : 'bg-slate-900/40 border-slate-850 text-slate-400 hover:bg-slate-900/60'
                         }`}
                       >
-                        <span className="block font-bold">1. Công khai (Khuyên dùng)</span>
-                        <span className="block text-[9px] text-slate-500 mt-0.5">Chia sẻ quyền "Bất kỳ ai có liên kết đều xem được". Cực kỳ nhanh gọn, không cần setup API phức tạp.</span>
+                        <span className="block font-bold">{_('1. Công khai (Khuyên dùng)', '1. Anyone with Link (Recommended)')}</span>
+                        <span className="block text-[10px] text-slate-500 mt-0.5">{_('Chia sẻ quyền "Bất kỳ ai có liên kết đều xem được". Cực kỳ nhanh gọn, không cần setup API phức tạp.', 'Set link sharing to "Anyone with the link can view". Safe, fast, and does not require complex token setups.')}</span>
                       </button>
                       <button
                         type="button"
@@ -1467,24 +1507,25 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                             : 'bg-slate-900/40 border-slate-850 text-slate-400 hover:bg-slate-900/60'
                         }`}
                       >
-                        <span className="block font-bold">2. Riêng tư (Kèm OAuth)</span>
-                        <span className="block text-[9px] text-slate-500 mt-0.5">Bảng tính cá nhân bảo mật. Hệ thống sẽ hỏi Access Token tạm thời để kết nối đọc dòng/cột an toàn.</span>
+                        <span className="block font-bold">{_('2. Riêng tư (Kèm OAuth)', '2. Restricted / Private (OAuth)')}</span>
+                        <span className="block text-[10px] text-slate-500 mt-0.5">{_('Bảng tính cá nhân bảo mật. Hệ thống sẽ hỏi Access Token tạm thời để kết nối đọc dòng/cột an toàn.', 'Private spreadsheet. The system will prompt for standard Google access authorization token queries to read securely.')}</span>
                       </button>
                     </div>
                   </div>
 
                   {syncError && (
                     <div className="text-xs text-rose-400 bg-rose-950/10 border border-rose-900/20 p-2.5 rounded-xl font-medium">
-                      ❌ Lỗi: {syncError}
+                      ❌ {_('Lỗi', 'Error')}: {syncError}
                     </div>
                   )}
 
                   {lastSyncTime && (
-                    <div className="text-[11px] text-emerald-400/90 font-semibold bg-emerald-950/15 border border-emerald-900/10 p-2 rounded-xl flex items-center justify-between">
-                      <span>✓ Đã đồng bộ trực tuyến thành công!</span>
-                      <span className="text-[10px] font-mono font-medium text-slate-500">Cập nhật: {new Date(lastSyncTime).toLocaleTimeString('vi-VN')}</span>
+                    <div className="text-[12px] text-emerald-400/90 font-semibold bg-emerald-950/15 border border-emerald-900/10 p-2 rounded-xl flex items-center justify-between">
+                      <span>✓ {_('Đã đồng bộ trực tuyến thành công!', 'Successfully synchronized online!')}</span>
+                      <span className="text-[11px] font-mono font-medium text-slate-500">{_('Cập nhật:', 'Last Sync:')} {new Date(lastSyncTime).toLocaleTimeString('vi-VN')}</span>
                     </div>
                   )}
+
 
                   <button
                     id="sync-google-sheet-btn"
@@ -1510,7 +1551,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                   <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                     <span>Xem trước dữ liệu bảng tính</span>
                   </h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[12px] text-slate-500 mt-0.5">
                     {isIntegrated ? 'Bảng ở dưới là kết quả đã đồng bộ. Bạn vẫn có thể sửa tay ở đây dể tinh chỉnh!' : 'Thêm/bớt cột, dòng và bấm tiêu đề cột để sửa tên tiện lợi.'}
                   </p>
                 </div>
@@ -1523,7 +1564,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       setSheetHeaders(newHeaders);
                       setSheetRows(newRows);
                     }}
-                    className="px-2 py-1 bg-slate-950 hover:bg-slate-850 text-emerald-400 border border-slate-850 rounded-lg transition-all text-[10px] font-bold cursor-pointer"
+                    className="px-2 py-1 bg-slate-950 hover:bg-slate-850 text-emerald-400 border border-slate-850 rounded-lg transition-all text-[11px] font-bold cursor-pointer"
                   >
                     + Cột
                   </button>
@@ -1536,7 +1577,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       setSheetHeaders(newHeaders);
                       setSheetRows(newRows);
                     }}
-                    className="px-2 py-1 bg-slate-950 hover:bg-rose-950 hover:text-rose-400 text-slate-400 border border-slate-850 rounded-lg transition-all text-[10px] font-bold cursor-pointer"
+                    className="px-2 py-1 bg-slate-950 hover:bg-rose-950 hover:text-rose-400 text-slate-400 border border-slate-850 rounded-lg transition-all text-[11px] font-bold cursor-pointer"
                   >
                     - Cột
                   </button>
@@ -1546,7 +1587,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       const emptyRow = Array(sheetHeaders.length).fill('');
                       setSheetRows([...sheetRows, emptyRow]);
                     }}
-                    className="px-2 py-1 bg-slate-950 hover:bg-slate-850 text-emerald-400 border border-slate-850 rounded-lg transition-all text-[10px] font-bold cursor-pointer"
+                    className="px-2 py-1 bg-slate-950 hover:bg-slate-850 text-emerald-400 border border-slate-850 rounded-lg transition-all text-[11px] font-bold cursor-pointer"
                   >
                     + Dòng
                   </button>
@@ -1556,7 +1597,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       if (sheetRows.length <= 1) return;
                       setSheetRows(sheetRows.slice(0, -1));
                     }}
-                    className="px-2 py-1 bg-slate-950 hover:bg-rose-950 hover:text-rose-400 text-slate-400 border border-slate-850 rounded-lg transition-all text-[10px] font-bold cursor-pointer"
+                    className="px-2 py-1 bg-slate-950 hover:bg-rose-950 hover:text-rose-400 text-slate-400 border border-slate-850 rounded-lg transition-all text-[11px] font-bold cursor-pointer"
                   >
                     - Dòng
                   </button>
@@ -1568,7 +1609,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                 <table className="w-full border-collapse text-left text-xs min-w-full">
                   <thead>
                     <tr className="bg-emerald-555/10 border-b border-slate-850">
-                      <th className="p-2 text-center text-[10px] font-bold text-slate-500 w-10 border-r border-slate-850 select-none bg-slate-950">#</th>
+                      <th className="p-2 text-center text-[11px] font-bold text-slate-500 w-10 border-r border-slate-850 select-none bg-slate-950">#</th>
                       {sheetHeaders.map((hdr, colIndex) => (
                         <th key={colIndex} className="p-1 border-r border-slate-850 min-w-[120px] bg-slate-900/60">
                           <input
@@ -1588,7 +1629,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                   <tbody>
                     {sheetRows.map((row, rowIndex) => (
                       <tr key={rowIndex} className="border-b border-slate-850 hover:bg-slate-900/10">
-                        <td className="p-2 text-center text-[10px] font-mono text-slate-400 border-r border-slate-850 select-none bg-slate-950">
+                        <td className="p-2 text-center text-[11px] font-mono text-slate-400 border-r border-slate-850 select-none bg-slate-950">
                           {rowIndex + 1}
                         </td>
                         {row.map((cellText, colIndex) => (
@@ -1629,23 +1670,23 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                   <Shield className="h-4 w-4 shrink-0 text-indigo-400 animate-pulse" />
                   <span className="text-xs font-bold uppercase tracking-wider">Lưu Trữ Tối Ưu & Bảo Mật Cao</span>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[12px] text-slate-400 leading-relaxed">
                   Trình duyệt giới hạn bộ nhớ đệm <strong className="text-slate-350">localStorage tối đa là 5MB</strong>. Việc lưu trực tiếp các tệp tin hình ảnh, tài liệu hoặc clip MP4 dung lượng lớn (Ví dụ: <strong className="text-slate-350">&gt; 1GB</strong>) sẽ làm sập bộ nhớ đệm và gây mất toàn bộ dữ liệu.
                 </p>
-                <p className="text-[11px] text-indigo-400/95 leading-relaxed font-semibold">
+                <p className="text-[12px] text-indigo-400/95 leading-relaxed font-semibold">
                   💡 Giải pháp tối ưu: Tải tệp lên Google Drive của bạn, lấy liên kết bảo mật và nhập vào đây. Hệ thống sẽ mã hóa an toàn liên kết Drive, dung lượng và định dạng để bảo vệ tuyệt mật mà không ngốn dung lượng trình duyệt của bạn!
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Tên tệp tin / Ảnh / Video <span className="text-rose-500">*</span>
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Tên tệp tin / Ảnh / Video', 'File Name / Image / Video')} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   id="form-gdrive-filename"
                   type="text"
                   required
-                  placeholder="Ví dụ: Video minh chứng sao lưu dự án, Clip kỉ niệm..."
+                  placeholder={_('Ví dụ: Video minh chứng sao lưu dự án, Clip kỉ niệm...', 'e.g., Project backup video demo, Memory clip...')}
                   value={driveFileName}
                   onChange={(e) => setDriveFileName(e.target.value)}
                   className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm placeholder-slate-700 outline-none"
@@ -1654,22 +1695,22 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Dung lượng tệp (Xấp xỉ) <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Dung lượng tệp (Xấp xỉ)', 'File Size (Approximate)')} <span className="text-rose-500">*</span>
                   </label>
                   <input
-                    id="form-gdrive-filesize"
-                    type="text"
-                    required
-                    placeholder="Ví dụ: 1.2 GB, 800 MB..."
-                    value={driveFileSize}
-                    onChange={(e) => setDriveFileSize(e.target.value)}
-                    className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm placeholder-slate-700 outline-none"
+                     id="form-gdrive-filesize"
+                     type="text"
+                     required
+                     placeholder={_('Ví dụ: 1.2 GB, 800 MB...', 'e.g., 1.2 GB, 800 MB...')}
+                     value={driveFileSize}
+                     onChange={(e) => setDriveFileSize(e.target.value)}
+                     className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm placeholder-slate-700 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Định dạng tệp <span className="text-rose-500">*</span>
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                    {_('Định dạng tệp', 'File Type')} <span className="text-rose-500">*</span>
                   </label>
                   <select
                     id="form-gdrive-mediatype"
@@ -1677,19 +1718,19 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     onChange={(e) => setDriveMediaType(e.target.value as any)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300 outline-none h-[38px]"
                   >
-                    <option value="video">Video (MP4, MKV, AVI, ...)</option>
-                    <option value="image">Hình ảnh (JPG, PNG, HEIC, ...)</option>
-                    <option value="archive">Tệp nén (ZIP, RAR, 7Z, ...)</option>
-                    <option value="audio">Âm thanh (MP3, WAV, FLAC, ...)</option>
-                    <option value="document">Tài liệu (PDF, DOCX, XLSX, ...)</option>
-                    <option value="other">Định dạng Khác</option>
+                    <option value="video">{_('Video (MP4, MKV, AVI, ...)', 'Video (MP4, MKV, AVI, ...)')}</option>
+                    <option value="image">{_('Hình ảnh (JPG, PNG, HEIC, ...)', 'Image (JPG, PNG, HEIC, ...)')}</option>
+                    <option value="archive">{_('Tệp nén (ZIP, RAR, 7Z, ...)', 'Compressed Archive (ZIP, RAR, 7Z, ...)')}</option>
+                    <option value="audio">{_('Âm thanh (MP3, WAV, FLAC, ...)', 'Audio Sound (MP3, WAV, FLAC, ...)')}</option>
+                    <option value="document">{_('Tài liệu (PDF, DOCX, XLSX, ...)', 'Document (PDF, DOCX, XLSX, ...)')}</option>
+                    <option value="other">{_('Định dạng Khác', 'Other Format')}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Đường dẫn liên kết Google Drive <span className="text-rose-500">*</span>
+                <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                  {_('Đường dẫn liên kết Google Drive', 'Google Drive Link / Shared URL')} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   id="form-gdrive-link"
@@ -1745,13 +1786,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                 <span className="text-xs font-bold uppercase tracking-wider">
                   {t.totp_codeLabel}
                 </span>
-                <span className="ml-auto bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded text-[9px] font-black tracking-widest uppercase">PRO</span>
+                <span className="ml-auto bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded text-[10px] font-black tracking-widest uppercase">PRO</span>
               </div>
-              <p className="text-[11px] text-slate-450 leading-relaxed">
+              <p className="text-[12px] text-slate-450 leading-relaxed">
                 {t.totp_desc}
               </p>
               <div>
-                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+                <label className="block text-[11px] font-semibold text-slate-450 uppercase tracking-widest mb-1.5 font-sans">
                   {t.totp_secretLabel}
                 </label>
                 <input
@@ -1769,13 +1810,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           {/* Additional details */}
           {activeTemplateType !== 'note' && (
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Ghi chú thêm
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
+                {_('Ghi chú thêm', 'Additional Notes')}
               </label>
               <input
                 id="form-add-notes"
                 type="text"
-                placeholder="Ví dụ: Mã bảo mật phụ, lưu ý đổi sau 3 tháng..."
+                placeholder={_('Ví dụ: Câu hỏi bảo mật, tài khoản phụ...', 'e.g. Additional recovery backup hints, question safety answers...')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm"
@@ -1789,16 +1830,16 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[1px] flex flex-col items-center justify-center p-3 text-center z-10">
                 <span className="text-xs font-bold text-rose-400 tracking-wide uppercase flex items-center gap-1.5">
                   <Lock className="h-4 w-4 text-rose-450" />
-                  <span>Chức năng Đặt Lịch Nhắc Nhở (PRO Only)</span>
+                  <span>{_('Chức năng Đặt Lịch Nhắc Nhở (PRO Only)', 'Reminder Scheduler (PRO Only)')}</span>
                 </span>
-                <p className="text-[10px] text-slate-500 mt-1 max-w-[280px]">Hãy nâng cấp lên phiên bản PRO để đặt thông báo nhắc tự động định kỳ!</p>
+                <p className="text-[11px] text-slate-500 mt-1 max-w-[280px]">{_('Hãy nâng cấp lên phiên bản PRO để đặt thông báo nhắc tự động định kỳ!', 'Upgrade to PRO version to schedule automatic recurring alerts!')}</p>
               </div>
             )}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="flex h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
                 <label htmlFor="form-reminder-checkbox" className="text-sm font-semibold text-slate-200 cursor-pointer select-none">
-                  Đặt lịch nhắc nhở (Thông báo sinh nhật / công việc)
+                  {_('Đặt lịch nhắc nhở (Thông báo sinh nhật / công việc)', 'Schedule Reminder (Birthday / Task alerts)')}
                 </label>
               </div>
               <div className="relative inline-flex items-center cursor-pointer">
@@ -1818,8 +1859,8 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               <div className="space-y-3 pt-1 animate-fade-in">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                      Ngày nhắc nhở
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                      {_('Ngày nhắc nhở', 'Reminder Date')}
                     </label>
                     <input
                       type="date"
@@ -1830,27 +1871,27 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                      Chu kỳ lặp lại
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                      {_('Chu kỳ lặp lại', 'Repeat Cycle')}
                     </label>
                     <select
                       value={reminderType}
                       onChange={(e) => setReminderType(e.target.value as 'once' | 'yearly')}
                       className="w-full px-3 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm text-slate-100 outline-none focus:border-indigo-500 transition-colors cursor-pointer"
                     >
-                      <option value="yearly">Hàng năm (như Sinh nhật, Ngày kỷ niệm)</option>
-                      <option value="once">Sự kiện 1 lần (như Hạn chót, Hẹn làm việc)</option>
+                      <option value="yearly">{_('Hàng năm (như Sinh nhật, Ngày kỷ niệm)', 'Annually (like Birthday, Anniversary)')}</option>
+                      <option value="once">{_('Sự kiện 1 lần (như Hạn chót, Hẹn làm việc)', 'Once (like Deadline, Task appoint)')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 font-sans">
-                    Nội dung lời nhắn
+                  <label className="block text-sm font-semibold text-slate-300 mb-1.5 font-sans">
+                    {_('Nội dung lời nhắn', 'Notification Message')}
                   </label>
                   <input
                     type="text"
-                    placeholder="Ví dụ: Sinh nhật vợ yêu ❤️, Nhắc đóng tiền điện..."
+                    placeholder={_('Ví dụ: Sinh nhật vợ yêu ❤️, Nhắc đóng tiền điện...', "e.g., Wife's birthday ❤️, Pay energy bill...")}
                     value={reminderMessage}
                     onChange={(e) => setReminderMessage(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm text-slate-100 outline-none focus:border-indigo-500 transition-colors"
@@ -1871,24 +1912,39 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                 className="rounded border-slate-800 text-emerald-500 focus:ring-emerald-500 bg-slate-950 h-4 w-4 cursor-pointer"
               />
               <label htmlFor="form-fav-checkbox" className="text-sm font-semibold text-slate-350 cursor-pointer select-none">
-                Đánh dấu là Yêu thích
+                {_('Đánh dấu là Yêu thích', 'Add to Starred Favorites')}
               </label>
             </div>
 
             {isPro ? (
-              <div className="flex items-center gap-2 bg-indigo-950/20 px-3 py-2 rounded-xl border border-indigo-500/20">
-                <input
-                  id="form-secret-checkbox"
-                  type="checkbox"
-                  checked={isSecret}
-                  onChange={(e) => setIsSecret(e.target.checked)}
-                  className="rounded border-slate-800 text-indigo-500 focus:ring-indigo-500 bg-slate-950 h-4 w-4 cursor-pointer"
-                />
-                <label htmlFor="form-secret-checkbox" className="text-sm font-semibold text-indigo-300 cursor-pointer select-none flex items-center gap-1.5">
-                  <Lock className="h-3.5 w-3.5 shrink-0" />
-                  Lưu vào Ngăn bí mật (Code)
-                </label>
-              </div>
+              <>
+                <div className="flex items-center gap-2 bg-indigo-950/20 px-3 py-2 rounded-xl border border-indigo-500/20">
+                  <input
+                    id="form-secret-checkbox"
+                    type="checkbox"
+                    checked={isSecret}
+                    onChange={(e) => setIsSecret(e.target.checked)}
+                    className="rounded border-slate-800 text-indigo-500 focus:ring-indigo-500 bg-slate-950 h-4 w-4 cursor-pointer"
+                  />
+                  <label htmlFor="form-secret-checkbox" className="text-sm font-semibold text-indigo-300 cursor-pointer select-none flex items-center gap-1.5">
+                    <Lock className="h-4 w-4 shrink-0" />
+                    {_('Lưu vào Ngăn bí mật (Bảo mật đặc biệt)', 'Save to Secret Drawer (Special stealth)')}
+                  </label>
+                </div>
+                <div className="flex items-center gap-2 bg-amber-950/20 px-3 py-3 rounded-xl border border-amber-500/20 col-span-1 sm:col-span-2">
+                  <input
+                    id="form-travel-checkbox"
+                    type="checkbox"
+                    checked={isSafeForTravel}
+                    onChange={(e) => setIsSafeForTravel(e.target.checked)}
+                    className="rounded border-slate-800 text-amber-500 focus:ring-amber-500 bg-slate-950 h-4 w-4 cursor-pointer"
+                  />
+                  <label htmlFor="form-travel-checkbox" className="text-sm font-semibold text-amber-300 cursor-pointer select-none flex items-center gap-1.5 leading-snug">
+                    <span className="text-sm shrink-0">✈️</span>
+                    {_('Cho phép giữ lại khi bật Chế độ Du lịch', 'Approve details to remain inside Travel Mode')}
+                  </label>
+                </div>
+              </>
             ) : null}
           </div>
 
@@ -1900,14 +1956,14 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               onClick={onClose}
               className="px-4 py-2.5 bg-slate-950 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700/80 rounded-xl text-sm font-medium transition-all cursor-pointer"
             >
-              Hủy bỏ
+              {_('Hủy bỏ', 'Cancel')}
             </button>
             <button
               id="save-modal-btn"
               type="submit"
               className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-xl text-sm transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
             >
-              {editingEntry ? 'Lưu thay đổi' : 'Thêm mới'}
+              {editingEntry ? _('Lưu thay đổi', 'Apply Changes') : _('Thêm mới', 'Add Credential')}
             </button>
           </div>
         </form>

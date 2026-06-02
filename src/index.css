@@ -1,9 +1,50 @@
 @import "tailwindcss";
 
-/* Tăng 3 size chữ trên điện thoại di động (màn hình dưới 768px) */
-@media (max-width: 767px) {
-  html {
-    font-size: 125% !important; /* Nâng kích thước cơ sở từ 16px lên 20px giúp mọi text-xs, text-sm, text-base... lớn hơn đúng 3 khấc */
+@theme {
+  --text-xs: 13px;
+  --text-sm: 15px;
+  --text-base: 17px;
+  --text-lg: 19px;
+  --text-xl: 21px;
+  --text-2xl: 25px;
+  --text-3xl: 31px;
+  --text-4xl: 37px;
+}
+
+
+/* ==========================================================================
+   TYPOGRAPHY & HIERARCHY MATCHING GITHUB STYLE
+   - SỬ DỤNG KÍCH THƯỚC COMPACT VÀ TINH TẾ CỦA GITHUB (Body 14px, Labels 12px-11px).
+   - Loại bỏ các đè ép kích thước lớn để giao diện ôm sát cực kỳ chuyên nghiệp và gọn gàng.
+   ========================================================================== */
+
+html {
+  font-size: 100% !important; /* Giữ phân rã nguyên bản của trình duyệt và Tailwind */
+}
+
+/* 3. TIÊU ĐỀ CHÍNH VÍ MẬT MÃ (COMPACT & ELEGANT NHƯ GITHUB HEADER) */
+#header-app-title {
+  font-size: 15px !important; /* Size gọn gàng, đậm nét như tiêu đề GitHub */
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+  background: linear-gradient(to right, #ffffff, #e2e8f0, #34d399);
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+#header-app-subtitle {
+  font-size: 9px !important; /* Nhãn nhung nhỏ siêu sắc nét */
+  letter-spacing: 0.08em !important;
+  line-height: 1.1 !important;
+}
+
+@media (min-width: 768px) {
+  #header-app-title {
+    font-size: 18px !important; /* Tiêu chuẩn tiêu đề chính trên desktop của GitHub */
+  }
+  #header-app-subtitle {
+    font-size: 10px !important;
+    letter-spacing: 0.1em !important;
   }
 }
 

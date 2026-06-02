@@ -145,7 +145,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
         <div className="flex justify-between text-sm mb-2">
           <span className="text-slate-300 font-medium">
             {currentLang === 'vi' ? 'Độ dài ký tự:' : 'Password length:'}
-            {!isPro && <span className="text-slate-500 text-[10px] ml-1.5 font-bold uppercase font-sans">(Bản Free - Max 12)</span>}
+            {!isPro && <span className="text-slate-500 text-[11px] ml-1.5 font-bold uppercase font-sans">(Bản Free - Max 12)</span>}
           </span>
           <span id="password-length-val" className="text-emerald-400 font-mono font-bold">{actualLength}</span>
         </div>
@@ -219,7 +219,7 @@ export default function PasswordGenerator({ onSelectPassword, showSelectButton =
             </span>
           </div>
           {!isPro && (
-            <span className="text-[8px] bg-rose-500/10 text-rose-450 border border-rose-500/20 px-1 py-0.2 rounded font-extrabold uppercase font-sans scale-90 tracking-wider">
+            <span className="text-[9px] bg-rose-500/10 text-rose-450 border border-rose-500/20 px-1 py-0.2 rounded font-extrabold uppercase font-sans scale-90 tracking-wider">
               PRO
             </span>
           )}
