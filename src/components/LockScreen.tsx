@@ -18,6 +18,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [theme] = useState(() => localStorage.getItem('secure_vault_theme') || 'slate');
 
   const t = translations[lang];
 
@@ -116,7 +117,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
   };
 
   return (
-    <div id="lockscreen-root" className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-950 text-slate-100 overflow-y-auto relative">
+    <div id="lockscreen-root" data-theme={theme} className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-950 text-slate-100 overflow-y-auto relative">
       {/* Absolute ambient background light */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -155,61 +156,76 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
         className="w-full max-w-sm bg-slate-900 border border-slate-800/80 p-8 rounded-3xl shadow-2xl backdrop-blur-xl relative z-10"
       >
         <div className="flex flex-col items-center text-center mb-8">
-          {/* Custom Large Shield + Crossed Swords Icon with flashing glowing borders */}
-          <div className="relative mb-6">
-            {/* Outer pulsating neon glow ring */}
-            <div className="absolute -inset-2 rounded-full bg-emerald-500/10 blur-xl animate-pulse"></div>
-            <div className="absolute -inset-1 rounded-full border border-emerald-500/30 opacity-75 animate-pulse"></div>
+          {/* Custom Shield + Crossed Swords Icon with flashing neon border matching the shield shape */}
+          <div className="relative mb-6 h-36 w-36 flex items-center justify-center">
             
-            {/* Doubled size main container (h-32 w-32 vs original h-16 w-16) */}
-            <div className="h-32 w-32 bg-slate-950/85 rounded-full flex items-center justify-center border-2 border-emerald-500/60 text-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.35)] relative overflow-hidden group">
-              <div className="absolute inset-0 bg-emerald-500/[0.02] group-hover:bg-emerald-500/[0.06] transition-colors"></div>
+            {/* Real SVG rendering nested shield shape outline as a bright flashing glowing border */}
+            <svg viewBox="0 0 100 100" className={`w-full h-full text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.25)] ${loading ? 'animate-pulse' : ''}`} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
               
-              {/* Custom SVG: Shield with 2 crossed swords pointing downward */}
-              <svg viewBox="0 0 100 100" className={`w-20 h-20 text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)] ${loading ? 'animate-pulse' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                {/* Sword 1: Top-Left to Bottom-Right (pointing down) */}
-                <line x1="35" y1="35" x2="80" y2="80" stroke="currentColor" strokeWidth="2.5" />
-                <line x1="27" y1="43" x2="43" y2="27" stroke="currentColor" strokeWidth="3" />
-                <line x1="35" y1="35" x2="22" y2="22" stroke="currentColor" strokeWidth="4" />
-                <circle cx="22" cy="22" r="2.5" fill="currentColor" />
+              {/* Shield Outer Glow (Wide, soft) */}
+              <path 
+                d="M50,28 L74,32 C74,52 66,72 50,82 C34,72 26,52 26,32 L50,28 Z" 
+                stroke="currentColor" 
+                strokeWidth="11" 
+                className="opacity-15 blur-md text-emerald-400 pointer-events-none"
+                fill="none"
+              />
 
-                {/* Sword 2: Top-Right to Bottom-Left (pointing down) */}
-                <line x1="65" y1="35" x2="20" y2="80" stroke="currentColor" strokeWidth="2.5" />
-                <line x1="57" y1="27" x2="73" y2="43" stroke="currentColor" strokeWidth="3" />
-                <line x1="65" y1="35" x2="78" y2="22" stroke="currentColor" strokeWidth="4" />
-                <circle cx="78" cy="22" r="2.5" fill="currentColor" />
+              {/* Shield Secondary Glow (Medium, bright) */}
+              <path 
+                d="M50,28 L74,32 C74,52 66,72 50,82 C34,72 26,52 26,32 L50,28 Z" 
+                stroke="currentColor" 
+                strokeWidth="6" 
+                className="opacity-35 blur-xs text-emerald-400 pointer-events-none animate-pulse"
+                fill="none"
+              />
 
-                {/* Shield: Centered overlay */}
-                <path 
-                  d="M50,28 L74,32 C74,52 66,72 50,82 C34,72 26,52 26,32 L50,28 Z" 
-                  fill="#020617" 
-                  stroke="currentColor" 
-                  strokeWidth="3.5" 
-                  className="fill-slate-950/95"
-                />
-                
-                {/* Inner Shield detail */}
-                <path 
-                  d="M50,36 L64,39 C64,52 58,66 50,74 C42,66 36,52 36,39 L50,36 Z" 
-                  stroke="currentColor" 
-                  strokeWidth="1.8" 
-                  className="opacity-90"
-                />
+              {/* Sharp outer shield border acting as the primary outline */}
+              <path 
+                d="M50,28 L74,32 C74,52 66,72 50,82 C34,72 26,52 26,32 L50,28 Z" 
+                stroke="currentColor" 
+                strokeWidth="2.8" 
+                className="text-emerald-400 pointer-events-none"
+                fill="none"
+              />
 
-                {/* Center secure core keyhole */}
-                <circle cx="50" cy="50" r="3.5" fill="currentColor" />
-                <path d="M50,53 L48,61 L52,61 Z" fill="currentColor" />
-              </svg>
-            </div>
+              {/* Sword 1: Top-Left to Bottom-Right (pointing down) */}
+              <line x1="33" y1="33" x2="80" y2="80" stroke="currentColor" strokeWidth="2.2" className="text-emerald-500/70" />
+              <line x1="25" y1="41" x2="41" y2="25" stroke="currentColor" strokeWidth="3" className="text-emerald-500/70" />
+              <line x1="33" y1="33" x2="20" y2="20" stroke="currentColor" strokeWidth="4.2" className="text-emerald-500/70" />
+              <circle cx="20" cy="20" r="2.5" fill="currentColor" className="text-emerald-500" />
+
+              {/* Sword 2: Top-Right to Bottom-Left (pointing down) */}
+              <line x1="67" y1="33" x2="20" y2="80" stroke="currentColor" strokeWidth="2.2" className="text-emerald-500/70" />
+              <line x1="59" y1="25" x2="75" y2="41" stroke="currentColor" strokeWidth="3" className="text-emerald-500/70" />
+              <line x1="67" y1="33" x2="80" y2="20" stroke="currentColor" strokeWidth="4.2" className="text-emerald-500/70" />
+              <circle cx="80" cy="20" r="2.5" fill="currentColor" className="text-emerald-500" />
+
+              {/* Shield Base (Centered solid dark background so swords appear behind it) */}
+              <path 
+                d="M50,28 L74,32 C74,52 66,72 50,82 C34,72 26,52 26,32 L50,28 Z" 
+                fill="#020617" 
+                stroke="currentColor" 
+                strokeWidth="3.2" 
+                className="fill-slate-950/95 text-emerald-400"
+              />
+              
+              {/* Inner Shield detail */}
+              <path 
+                d="M50,36 L64,39 C64,52 58,66 50,74 C42,66 36,52 36,39 L50,36 Z" 
+                stroke="currentColor" 
+                strokeWidth="1.8" 
+                className="opacity-90 text-emerald-500"
+              />
+
+              {/* Center secure core keyhole */}
+              <circle cx="50" cy="50" r="3.5" fill="currentColor" className="text-emerald-400" />
+              <path d="M50,53 L48,61 L52,61 Z" fill="currentColor" className="text-emerald-400" />
+            </svg>
           </div>
 
-          {/* App Title: Vietnamese (Ví Mật Mã) or English (Save Code) */}
-          <div className="text-xs font-mono font-black tracking-[0.25em] text-emerald-400 mb-1.5 uppercase transition-all">
-            {lang === 'vi' ? 'VÍ MẬT MÃ' : 'SAVE CODE'}
-          </div>
-
-          <h1 className="text-xl font-extrabold tracking-tight text-white font-sans">
-            {isSetupMode ? t.lock_setupState : t.lock_decryptState}
+          <h1 className="text-[23px] font-extrabold tracking-tight text-white font-sans transition-all leading-snug">
+            {isSetupMode ? t.lock_setupState : (lang === 'vi' ? 'VÍ MẬT MÃ' : 'SAVE CODE')}
           </h1>
           <p className="text-slate-400 text-xs mt-1.5 max-w-[280px] leading-relaxed">
             {isSetupMode ? t.lock_setupSubtext : t.lock_decryptSubtext}
