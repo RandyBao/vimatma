@@ -63,13 +63,22 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
     
     const checkTrial = () => {
       const trialExpiry = localStorage.getItem('secure_vault_pro_trial_expires');
+      const isUsed = localStorage.getItem('secure_vault_pro_trial_used') === 'true';
+      const isPermanent = localStorage.getItem('secure_vault_pro_active') === 'true';
+      
+      if (isPermanent) {
+        setTrialStatus('active');
+        setTrialTimeLeft(lang === 'vi' ? 'Vô hạn (Sở hữu vĩnh viễn)' : 'Infinite (Lifetime Owned)');
+        return;
+      }
+
       if (trialExpiry) {
         const diff = Number(trialExpiry) - Date.now();
         if (diff > 0) {
           setTrialStatus('active');
           const days = Math.floor(diff / (24 * 60 * 60 * 1000));
           const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-          const mins = Math.floor((diff % (60 * 60 * 100)) / (60 * 1000));
+          const mins = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
           if (lang === 'vi') {
             setTrialTimeLeft(`${days} ngày ${hours} giờ ${mins} phút`);
           } else {
@@ -79,6 +88,9 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
           setTrialStatus('expired');
           setTrialTimeLeft('');
         }
+      } else if (isUsed) {
+        setTrialStatus('expired');
+        setTrialTimeLeft('');
       } else {
         setTrialStatus('none');
         setTrialTimeLeft('');
@@ -99,6 +111,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
       setIsProcessing(false);
       const expiry = Date.now() + 3 * 24 * 60 * 60 * 1000;
       localStorage.setItem('secure_vault_pro_trial_expires', String(expiry));
+      localStorage.setItem('secure_vault_pro_trial_used', 'true');
       setTrialStatus('active');
       onUpgradeSuccess();
       onClose();
@@ -107,7 +120,10 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
 
   const handleResetTrialTesting = () => {
     localStorage.removeItem('secure_vault_pro_trial_expires');
+    localStorage.removeItem('secure_vault_pro_trial_used');
     localStorage.removeItem('secure_vault_pro_active');
+    localStorage.removeItem('secure_vault_trial_expired_notified_perm');
+    sessionStorage.removeItem('secure_vault_trial_almost_expired_shown');
     setTrialStatus('none');
     setTrialTimeLeft('');
     setErrorMsg(lang === 'vi' ? 'Đã khởi tạo lại trạng thái để thử nghiệm!' : 'Trial state reset for test purposes!');

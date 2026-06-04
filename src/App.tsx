@@ -190,6 +190,9 @@ export default function App() {
     return false;
   });
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [showTrialAlmostExpiredModal, setShowTrialAlmostExpiredModal] = useState(false);
+  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
+  const [trialTimeLeftStr, setTrialTimeLeftStr] = useState('');
   const [appTheme, setAppTheme] = useState<string>(() => {
     return localStorage.getItem('secure_vault_theme') || 'slate';
   });
@@ -242,6 +245,61 @@ export default function App() {
   useEffect(() => {
     setTimeLeftSeconds(effectiveAutoLockMinutes * 60);
   }, [effectiveAutoLockMinutes]);
+
+  // Dynamic background checker for Pro 3-day Trial
+  useEffect(() => {
+    const checkTrialStatus = () => {
+      const isPermanent = localStorage.getItem('secure_vault_pro_active') === 'true';
+      if (isPermanent) return;
+
+      const trialExpiry = localStorage.getItem('secure_vault_pro_trial_expires');
+      if (!trialExpiry) return;
+
+      const expiryNum = Number(trialExpiry);
+      const now = Date.now();
+      const diff = expiryNum - now;
+
+      if (diff <= 0) {
+        // TRIAL EXPIRED!
+        if (isPro) {
+          setIsPro(false);
+          triggerToast(
+            lang === 'vi' 
+              ? 'Thời gian trải nghiệm 3 ngày PRO khép kín của bạn đã kết thúc.' 
+              : 'Your 3-day PRO free trial has ended.', 
+            'error'
+          );
+        }
+
+        // Show Trial Expired Modal if not shown and accepted yet
+        if (localStorage.getItem('secure_vault_trial_expired_notified_perm') !== 'true') {
+          setShowTrialExpiredModal(true);
+        }
+      } else {
+        // TRIAL ACTIVE
+        const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+        const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+        const mins = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
+        
+        const timeStr = lang === 'vi' 
+          ? `${days > 0 ? days + ' ngày ' : ''}${hours} giờ ${mins} phút` 
+          : `${days > 0 ? days + 'd ' : ''}${hours}h ${mins}m`;
+        setTrialTimeLeftStr(timeStr);
+
+        // Near the end warning: remaining time < 12 hours (12h = 12 * 3600 * 1000 = 43200000 ms)
+        if (diff < 12 * 60 * 60 * 1000) {
+          if (sessionStorage.getItem('secure_vault_trial_almost_expired_shown') !== 'true') {
+            setShowTrialAlmostExpiredModal(true);
+            sessionStorage.setItem('secure_vault_trial_almost_expired_shown', 'true');
+          }
+        }
+      }
+    };
+
+    checkTrialStatus();
+    const interval = setInterval(checkTrialStatus, 10000);
+    return () => clearInterval(interval);
+  }, [isPro, lang]);
 
   // Bộ đếm lùi và tự động bắt sự kiện tương tác để hoãn khóa kho
   useEffect(() => {
@@ -2421,6 +2479,176 @@ export default function App() {
         }}
         lang={lang}
       />
+
+      {/* Dynamic Popups for Pro Trial Status Alerting */}
+      <AnimatePresence>
+        {/* 1. Trial Almost Expired Modal Reminder */}
+        {showTrialAlmostExpiredModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-slate-950/70">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-amber-500/40 rounded-3xl p-6 shadow-[0_20px_50px_rgba(245,158,11,0.2)] overflow-hidden"
+            >
+              {/* Decorative side badge */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
+
+              {/* Header */}
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-400 shrink-0">
+                  <Clock className="h-7 w-7 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-amber-400 tracking-wider uppercase font-sans">
+                    {lang === 'vi' ? 'Sắp Hết Hạn Dùng Thử PRO' : 'PRO Trial Ending Soon'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5 uppercase tracking-widest">
+                    {lang === 'vi' ? 'Hành trình bảo mật cao cấp sắp đổi' : 'Advanced Security Session'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowTrialAlmostExpiredModal(false)}
+                  className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors p-1"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="mt-5 space-y-4 text-sm text-slate-200">
+                <p className="leading-relaxed font-semibold">
+                  {lang === 'vi'
+                    ? 'Thời gian trải nghiệm 3 ngày miễn phí bản PRO Cận Vệ của bạn sắp kết thúc. Chỉ còn:'
+                    : 'Your 3-day premium PRO trial period is almost over. Only remaining:'}
+                </p>
+                
+                <div className="flex items-center justify-center py-3.5 bg-slate-950/60 border border-slate-800 rounded-2xl">
+                  <span className="font-mono text-xl sm:text-2xl font-black text-amber-400 tracking-wider">
+                    {trialTimeLeftStr || '...' }
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-400 leading-relaxed font-sans mt-2">
+                  {lang === 'vi'
+                    ? 'Sau khi kết thúc, hệ thống sẽ tự động gỡ trạng thái và đưa kho tài khoản quay về bản FREE với các cấu hình cơ bản. Hãy đăng ký một gói PRO ngay hôm nay để giữ trọn vẹn đặc quyền!'
+                    : 'Once ended, advanced workspace configs will revert to basic parameters. Upgrade now to preserve full professional security.'}
+                </p>
+              </div>
+
+              {/* Footer buttons */}
+              <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTrialAlmostExpiredModal(false);
+                    setIsUpgradeModalOpen(true);
+                  }}
+                  className="w-full sm:flex-1 py-3 px-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-450 text-slate-950 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_4px_12px_rgba(245,158,11,0.25)] flex items-center justify-center gap-1.5 cursor-pointer border border-amber-300/35"
+                >
+                  <Sparkles className="h-4 w-4 shrink-0" />
+                  {lang === 'vi' ? 'Nâng Cấp PRO Ngay' : 'Upgrade to PRO'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTrialAlmostExpiredModal(false)}
+                  className="w-full sm:w-auto py-3 px-5 border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer"
+                >
+                  {lang === 'vi' ? 'Để sau' : 'Skip'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* 2. Trial Expired Modal */}
+        {showTrialExpiredModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-slate-950/75">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-rose-500/40 rounded-3xl p-6 shadow-[0_20px_50px_rgba(239,68,68,0.25)] overflow-hidden"
+            >
+              {/* Decorative light blur */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
+
+              {/* Header */}
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-rose-500/20 rounded-2xl text-rose-400 shrink-0">
+                  <Lock className="h-7 w-7 text-rose-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-rose-450 tracking-wider uppercase font-sans">
+                    {lang === 'vi' ? 'Hết Hạn Dùng Thử PRO' : 'PRO Free Trial Expired'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5 uppercase tracking-widest">
+                    {lang === 'vi' ? 'Đã quay lại chế độ FREE tiêu chuẩn' : 'Reverted to Standard Free Mode'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowTrialExpiredModal(false);
+                    localStorage.setItem('secure_vault_trial_expired_notified_perm', 'true');
+                  }}
+                  className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors p-1"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="mt-5 space-y-4 text-sm text-slate-200">
+                <p className="leading-relaxed">
+                  {lang === 'vi'
+                    ? 'Thời hạn thử nghiệm PRO miễn phí 3 ngày của bạn đã kết thúc. Để tiếp tục khai thác tối đa tính năng bảo mật cao cấp không giới hạn, vui lòng nâng cấp gói Pro.'
+                    : 'Your 3-day PRO free trial status has ended. To resume enjoying professional levels of shield protection, please upgrade.'}
+                </p>
+
+                <div className="p-4 bg-slate-950/60 border border-slate-850 rounded-2xl text-xs space-y-2 text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                    <span>{lang === 'vi' ? 'Khóa tính năng "Ngăn Bí Mật Code"' : 'Disabled "Secret Cabinet Workspace"'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                    <span>{lang === 'vi' ? 'Giới hạn Quét Mã 2FA và Tự động khóa' : 'Restricted 2FA codes generator & Auto Lock limits'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                    <span>{lang === 'vi' ? 'Khóa chủ đề cao cấp (Hổ Phách, Ngọc Lục Bảo...)' : 'Disabled Premium Themes (Amber, Emerald...)'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer buttons */}
+              <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTrialExpiredModal(false);
+                    setIsUpgradeModalOpen(true);
+                  }}
+                  className="w-full sm:flex-1 py-3 px-4 bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-450 hover:to-indigo-550 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_4px_12px_rgba(239,68,68,0.2)] flex items-center justify-center gap-1.5 cursor-pointer border border-rose-300/30"
+                >
+                  <Sparkles className="h-4 w-4 shrink-0" />
+                  {lang === 'vi' ? 'Kích Hoạt Gói PRO Ngay' : 'Unlock PRO Plan'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTrialExpiredModal(false);
+                    localStorage.setItem('secure_vault_trial_expired_notified_perm', 'true');
+                  }}
+                  className="w-full sm:w-auto py-3 px-5 border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer"
+                >
+                  {lang === 'vi' ? 'Tiếp tục bản Free' : 'Use Basic Free'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
