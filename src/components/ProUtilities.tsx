@@ -205,7 +205,7 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. locbaomedia23@gmail.com"
+              placeholder="e.g. your-email@example.com"
               className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-850 rounded-xl text-xs text-white outline-none focus:border-indigo-500 transition-all font-sans"
             />
           </div>
