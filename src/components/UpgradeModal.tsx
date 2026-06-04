@@ -37,6 +37,11 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
   const [step, setStep] = useState<StepType>('comparison');
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('lifetime');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('card');
+  const [kofiUrl, setKofiUrl] = useState(() => localStorage.getItem('secure_vault_kofi_url') || 'https://ko-fi.com/RandyBao');
+  const [kofiUrlMonthly, setKofiUrlMonthly] = useState(() => localStorage.getItem('secure_vault_kofi_url_monthly') || 'https://ko-fi.com/RandyBao');
+  const [kofiUrlAnnual, setKofiUrlAnnual] = useState(() => localStorage.getItem('secure_vault_kofi_url_annual') || 'https://ko-fi.com/RandyBao');
+  const [kofiUrlLifetime, setKofiUrlLifetime] = useState(() => localStorage.getItem('secure_vault_kofi_url_lifetime') || 'https://ko-fi.com/RandyBao');
+  const [useSeparateKofiUrls, setUseSeparateKofiUrls] = useState(() => localStorage.getItem('secure_vault_use_separate_kofi_urls') === 'true');
   const [couponCode, setCouponCode] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [success, setSuccess] = useState(false);
@@ -245,6 +250,12 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
       free: lang === 'vi' ? 'Không hỗ trợ' : 'Not supported',
       pro: lang === 'vi' ? 'Cảnh báo ngày đáo hạn định kỳ' : 'Periodical password updates alert',
       highlight: false
+    },
+    {
+      feature: lang === 'vi' ? 'Bộ Công Cụ Chuyên Sâu PRO' : 'PRO Advanced Toolkit',
+      free: lang === 'vi' ? 'Không hỗ trợ' : 'Not supported',
+      pro: lang === 'vi' ? 'Khép kín chạy hoàn toàn ngoại tuyến trên thiết bị' : 'Fully self-contained & offline-first on-device',
+      highlight: true
     }
   ];
 
@@ -608,13 +619,181 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                 </div>
               )}
 
-              {paymentMethod !== 'card' && (
+              {paymentMethod === 'paypal' && (
+                <div className="p-4 sm:p-5 bg-gradient-to-b from-slate-950 to-slate-900 border border-slate-800 rounded-2xl space-y-4 animate-slide-up text-left">
+                  <div className="flex items-center gap-3 border-b border-slate-850 pb-3">
+                    <div className="h-10 w-10 bg-[#FFDD00]/10 rounded-xl flex items-center justify-center text-[#FFDD00]">
+                      <svg viewBox="0 0 24 24" className="h-5.5 w-5.5 fill-current">
+                        <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10 10-4.48 10-10z" className="opacity-10" />
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.6 12.3c-.4.4-.9.6-1.5.6H10v2.5H8.5V6.5h3.6c.7 0 1.3.2 1.8.6.5.4.8 1 .8 1.7 0 .8-.3 1.4-.8 1.8-.4.3-.9.5-1.5.6h-.7c.6.1 1.1.4 1.5.8.4.4.6 1 .6 1.7 0 .2 0 .4-.1.6zm-1.1-5c0-.4-.1-.7-.4-.9-.2-.2-.6-.3-1.1-.3H10V11h1c.5 0 .9-.1 1.1-.3.3-.2.4-.5.4-.9zm.2 4.1c0-.4-.1-.7-.4-.9-.2-.2-.6-.3-1.1-.3H10v2.4h1c.5 0 .9-.1 1.1-.3.3-.2.4-.5.4-.9z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wide">Cổng thanh toán Ko-fi / PayPal Business</h4>
+                      <p className="text-[10px] text-slate-400 font-mono">Xử lý quốc tế cực kỳ an toàn, tiện lợi</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+                      Để tránh các hạn chế đăng ký doanh nghiệp trực tiếp từ Việt Nam, hệ thống sử dụng **Ko-fi** làm trung gian liên kết trực tiếp tới tài khoản **PayPal Business** của bạn. Người dùng có thể thanh toán bằng ứng dụng PayPal hoặc thẻ tín dụng quốc tế một cách dễ dàng.
+                    </p>
+
+                    <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex items-center justify-between">
+                      <div className="text-left">
+                        <span className="text-[9px] font-bold text-indigo-400 tracking-wider uppercase block">Phương án đăng ký:</span>
+                        <span className="text-xs font-extrabold text-white">
+                          {selectedPlan === 'monthly' ? 'Gói hàng tháng' : selectedPlan === 'annual' ? 'Gói hàng năm (Tiết kiệm)' : 'Sở hữu vĩnh viễn (Trọn đời)'}
+                        </span>
+                      </div>
+                      <span className="font-mono text-emerald-400 font-black text-sm bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg">
+                        {getPlanPrice()} USD
+                      </span>
+                    </div>
+
+                    {/* Admin config for link */}
+                    <div className="p-3.5 bg-slate-950/70 border border-slate-850 rounded-xl space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                          <span>⚙️ Cấu hình Link Nhận Tiền Ko-fi:</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = !useSeparateKofiUrls;
+                            setUseSeparateKofiUrls(next);
+                            localStorage.setItem('secure_vault_use_separate_kofi_urls', String(next));
+                          }}
+                          className="self-start sm:self-auto text-[9px] text-indigo-400 font-mono font-black uppercase tracking-wider bg-indigo-500/10 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all border border-indigo-500/20"
+                        >
+                          {useSeparateKofiUrls ? '» CHUYỂN SANG BẢN ĐƠN (1 LINK)' : '» CẤU HÌNH 3 LINK RIÊNG BIỆT'}
+                        </button>
+                      </div>
+
+                      {!useSeparateKofiUrls ? (
+                        <div className="space-y-1.5 animate-fade-in">
+                          <span className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider block">Link chung duy nhất (Tất cả gói nhảy vào đây):</span>
+                          <input
+                            type="url"
+                            value={kofiUrl}
+                            onChange={(e) => {
+                              const val = e.target.value.trim();
+                              setKofiUrl(val);
+                              localStorage.setItem('secure_vault_kofi_url', val);
+                            }}
+                            placeholder="https://ko-fi.com/RandyBao"
+                            className="w-full bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-lg px-3 py-1.8 text-xs text-slate-200 outline-none font-mono tracking-wide"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-3 pt-2 border-t border-slate-900 animate-slide-down">
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9.5px] font-black text-indigo-400 uppercase tracking-wider">Link cho Gói Tháng ($4.99/mo):</span>
+                              <span className="text-[8.5px] text-slate-500 lowercase font-mono">bậc thành viên hoặc sản phẩm $4.99</span>
+                            </div>
+                            <input
+                              type="url"
+                              value={kofiUrlMonthly}
+                              onChange={(e) => {
+                                const val = e.target.value.trim();
+                                setKofiUrlMonthly(val);
+                                localStorage.setItem('secure_vault_kofi_url_monthly', val);
+                              }}
+                              placeholder="https://ko-fi.com/RandyBao/tiers hoặc link sản phẩm $4.99"
+                              className="w-full bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none font-mono"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9.5px] font-black text-indigo-400 uppercase tracking-wider">Link cho Gói Năm ($29.99/yr):</span>
+                              <span className="text-[8.5px] text-slate-500 lowercase font-mono">bậc thành viên hoặc sản phẩm $29.99</span>
+                            </div>
+                            <input
+                              type="url"
+                              value={kofiUrlAnnual}
+                              onChange={(e) => {
+                                const val = e.target.value.trim();
+                                setKofiUrlAnnual(val);
+                                localStorage.setItem('secure_vault_kofi_url_annual', val);
+                              }}
+                              placeholder="https://ko-fi.com/RandyBao/tiers hoặc link sản phẩm $29.99"
+                              className="w-full bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none font-mono"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9.5px] font-black text-emerald-400 uppercase tracking-wider">Link cho Gói Trọn Đời ($49.99):</span>
+                              <span className="text-[8.5px] text-slate-500 lowercase font-mono">link chi tiết sản phẩm trọn đời $49.99</span>
+                            </div>
+                            <input
+                              type="url"
+                              value={kofiUrlLifetime}
+                              onChange={(e) => {
+                                const val = e.target.value.trim();
+                                setKofiUrlLifetime(val);
+                                localStorage.setItem('secure_vault_kofi_url_lifetime', val);
+                              }}
+                              placeholder="https://ko-fi.com/s/xxxxxxxx (Link sản phẩm $49.99)"
+                              className="w-full bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none font-mono"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Instruction Help Card */}
+                      <div className="p-3 bg-indigo-500/[0.02] border border-indigo-500/10 rounded-xl space-y-1.5 mt-2">
+                        <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1 select-none">
+                          👉 Làm sao để hiện đúng số tiền khi khách click?
+                        </span>
+                        <p className="text-[9.5px] text-slate-300 leading-relaxed font-sans">
+                          Ko-fi không tự điều chỉnh tiền qua URL trang cá nhân. Có 2 cách tiện lợi nhất để khách click lập tức hiện đúng giá {getPlanPrice()} USD:
+                        </p>
+                        <div className="text-[9.5px] text-slate-400 space-y-1 pl-1 font-sans">
+                          <p>
+                            <strong className="text-white">Cách 1 (Nên dùng cho gói Trọn Đời):</strong> Vào <span className="text-indigo-400">Shop</span> trên Ko-fi → tạo 1 sản phẩm kỹ thuật số (ví dụ: 'Secure Vault Premium') đặt giá là <strong className="text-white">49.99 USD</strong> → Lấy link sản phẩm dán vào ô <strong>Gói Trọn Đời</strong> phía trên.
+                          </p>
+                          <p>
+                            <strong className="text-white">Cách 2 (Nên dùng cho đăng ký Gói Tháng/Năm):</strong> Vào <span className="text-indigo-400">Memberships</span> trên Ko-fi → tạo các cấp độ thành viên (Bậc Tháng giá <strong className="text-white">4.99 USD</strong>, Bậc Năm giá <strong className="text-white">29.99 USD</strong>) → Lấy link thanh toán của Bậc đó dán vào ô tương ứng ở trên.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      <a
+                        href={(() => {
+                          const activeUrl = !useSeparateKofiUrls 
+                            ? kofiUrl 
+                            : (selectedPlan === 'monthly' ? kofiUrlMonthly : selectedPlan === 'annual' ? kofiUrlAnnual : kofiUrlLifetime);
+                          return activeUrl.startsWith('http') ? activeUrl : `https://${activeUrl}`;
+                        })()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-3 bg-[#FF5E5B] hover:bg-[#ff4e4b] text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all text-center flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(255,94,91,0.25)] hover:shadow-[0_6px_16px_rgba(255,94,91,0.4)] select-none"
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                          <line x1="6" y1="1" x2="6" y2="4" />
+                          <line x1="10" y1="1" x2="10" y2="4" />
+                          <line x1="14" y1="1" x2="14" y2="4" />
+                        </svg>
+                        <span>Mở Trang Thanh Toán Ko-fi ({getPlanPrice()} USD)</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod !== 'card' && paymentMethod !== 'paypal' && (
                 <div className="p-5 bg-slate-950/60 border border-slate-850 border-dashed rounded-2xl text-center space-y-1.5 animate-slide-up">
                   <div className="h-8.5 w-8.5 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 mx-auto">
                     <Check className="h-4.5 w-4.5 animate-pulse" />
                   </div>
                   <h4 className="text-xs font-bold text-slate-300">
-                    {paymentMethod === 'paypal' && 'PayPal Secure Wallet Option'}
                     {paymentMethod === 'stripe' && 'Instant Stripe Direct Access'}
                     {paymentMethod === 'gpay_applepay' && 'Apple Pay / Google Pay Express Token'}
                   </h4>
