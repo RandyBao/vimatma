@@ -66,6 +66,24 @@ export default function App() {
     return (localStorage.getItem('secure_vault_lang') as LangType) || 'vi';
   });
 
+  // States for interactive LBM Author Badge in Sidebar
+  const [lbmUserEmail, setLbmUserEmail] = useState('');
+  const [lbmIsRevealed, setLbmIsRevealed] = useState(false);
+  const [lbmIsInputting, setLbmIsInputting] = useState(false);
+  const [lbmErrorMsg, setLbmErrorMsg] = useState('');
+
+  const handleLbmReveal = (e: React.FormEvent) => {
+    e.preventDefault();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(lbmUserEmail.trim())) {
+      setLbmErrorMsg(lang === 'vi' ? 'Vui lòng nhập Email hợp lệ!' : 'Please enter a valid email address!');
+      return;
+    }
+    setLbmErrorMsg('');
+    setLbmIsRevealed(true);
+    setLbmIsInputting(false);
+  };
+
   const handleLangChange = (newLang: LangType) => {
     setLang(newLang);
     localStorage.setItem('secure_vault_lang', newLang);
@@ -1656,7 +1674,7 @@ export default function App() {
                     >
                       <div className="flex items-center gap-2">
                         <span className={isActive ? 'text-emerald-400' : 'text-slate-500'}>
-                          {filter.icon}
+                           {filter.icon}
                         </span>
                         <span>{filter.label}</span>
                       </div>
@@ -1680,6 +1698,92 @@ export default function App() {
             </div>
             <p>{t.side_advicePara1}</p>
             <p className="font-medium text-slate-400">{t.side_advicePara2}</p>
+          </div>
+
+          {/* Author Verification and Sign block (Borderless & compact integration) */}
+          <div className="pt-2 text-center space-y-3 relative overflow-hidden transition-all duration-300">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
+            
+            {/* Round LBM Logo Badge with integrated view/click action */}
+            <div className="flex flex-col items-center justify-center py-1">
+              <div 
+                onClick={() => {
+                  if (!lbmIsRevealed && !lbmIsInputting) {
+                    setLbmIsInputting(true);
+                  }
+                }}
+                title={lang === 'vi' ? 'Bấm để xem Email Tác Giả' : 'Click to view Creator Email'}
+                className="group relative h-14 w-14 rounded-full bg-slate-950/90 border-2 border-emerald-400 flex items-center justify-center shadow-[0_0_18px_rgba(52,211,153,0.35)] hover:shadow-[0_0_28px_rgba(52,211,153,0.6)] transform hover:scale-110 transition-all duration-300 cursor-pointer overflow-hidden"
+              >
+                {/* Standard LBM label */}
+                <span className="text-sm font-black text-emerald-400 tracking-wider group-hover:opacity-10 transition-opacity duration-200">
+                  LBM
+                </span>
+                {/* Embedded hover button */}
+                <span className="absolute inset-0 flex flex-col items-center justify-center text-[7.5px] font-black uppercase text-emerald-400 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-205 leading-none px-1 select-none">
+                  <span>{lang === 'vi' ? 'Xem' : 'View'}</span>
+                  <span className="mt-0.5 font-mono text-[7px]">EMAIL</span>
+                </span>
+              </div>
+            </div>
+
+            {lbmIsInputting && !lbmIsRevealed && (
+              <form onSubmit={handleLbmReveal} className="space-y-1.5 max-w-[155px] mx-auto animate-fade-in text-left">
+                <p className="text-[8.5px] text-slate-505 leading-normal text-center">
+                  {lang === 'vi' 
+                    ? 'Nhập Email để xác thực & xem:' 
+                    : 'Enter email to verify & view:'}
+                </p>
+                <div className="flex gap-1.5 border-b border-slate-800 focus-within:border-emerald-505 transition-all pb-1">
+                  <input
+                    type="email"
+                    required
+                    value={lbmUserEmail}
+                    onChange={(e) => {
+                      setLbmUserEmail(e.target.value);
+                      if (lbmErrorMsg) setLbmErrorMsg('');
+                    }}
+                    placeholder="email..."
+                    className="flex-1 min-w-0 bg-transparent text-[10px] text-white placeholder-slate-700 outline-none font-sans"
+                  />
+                  <button
+                    type="submit"
+                    className="text-emerald-400 hover:text-emerald-350 text-[10px] font-bold transition-all cursor-pointer"
+                  >
+                    ✓
+                  </button>
+                </div>
+                {lbmErrorMsg && (
+                  <p className="text-[8px] text-rose-455 font-semibold text-center">{lbmErrorMsg}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLbmIsInputting(false);
+                    setLbmErrorMsg('');
+                  }}
+                  className="text-[8px] text-slate-555 hover:text-slate-455 underline block mx-auto font-medium"
+                >
+                  {lang === 'vi' ? 'Hủy bỏ' : 'Cancel'}
+                </button>
+              </form>
+            )}
+
+            {lbmIsRevealed && (
+              <div className="space-y-1 animate-fade-in-down max-w-[180px] mx-auto">
+                <span className="text-[10px] text-emerald-405 font-mono select-all font-black tracking-wide block">
+                  locbaomedia23@gmail.com
+                </span>
+                <span className="text-[7.5px] text-emerald-400 font-extrabold uppercase tracking-widest flex items-center justify-center gap-1">
+                  <span>✓ {lang === 'vi' ? 'ĐÃ CHỨNG THỰC TÁC QUYỀN' : 'VERIFIED'}</span>
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-[9px] text-slate-600 pt-1 border-t border-slate-850/60 font-medium">
+              <span className="font-mono">{lang === 'vi' ? 'Bản Quyền Tác Giả' : 'Author Seal'}</span>
+              <span className="font-extrabold text-emerald-500">Active Seal ✓</span>
+            </div>
           </div>
         </section>
 

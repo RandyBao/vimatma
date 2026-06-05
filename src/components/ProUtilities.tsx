@@ -130,7 +130,7 @@ export default function ProUtilities({ entries, isPro, onUpgradeClick, onSaveEnt
 // TAB 1: EMERGENCY KIT GENERATOR
 // -------------------------------------------------------------------------
 function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 'en'; _: any; handlePrint: () => void }) {
-  const [email, setEmail] = useState('');
+  const [vaultLabel, setVaultLabel] = useState('');
   const [setupSecret, setSetupSecret] = useState(() => {
     // Generate a beautiful master setup key
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -145,6 +145,7 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
   });
   const [pwdHint, setPwdHint] = useState('');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Regenerate setup secret key
   const handleRegenSecret = () => {
@@ -159,10 +160,9 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
     setSetupSecret(result);
   };
 
-  // Generate QR Code containing the app's current origin + setup metadata
+  // Generate QR Code containing the app's current origin + setup metadata (100% local, no internet)
   useEffect(() => {
-    const appUrl = window.location.origin;
-    const metaString = `SecureVault-Setup-v1|Email:${email || 'Unknown'}|Secret:${setupSecret}`;
+    const metaString = `SecureVault-Setup-v1|Label:${vaultLabel || 'My Device'}|Secret:${setupSecret}`;
     
     QRCode.toDataURL(metaString, {
       errorCorrectionLevel: 'H',
@@ -174,7 +174,70 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
     })
     .then(url => setQrCodeDataUrl(url))
     .catch(err => console.error('Failed to generate QR Code for Emergency kit:', err));
-  }, [email, setupSecret]);
+  }, [vaultLabel, setupSecret]);
+
+  // Handle Download Text File (.txt)
+  const handleDownloadTxt = () => {
+    const textContent = `==================================================================
+⚠️ SECUREVAULT OFFLINE RECOVERY EMERGENCY KIT
+==================================================================
+DO NOT SHARE THIS INFORMATION - KEEP IT SAFELY OFFLINE!
+
+1. Device / Vault Label (Tên Gợi Nhớ / Thiết Bị):
+   ${vaultLabel || 'My Device / Thiết bị cá nhân'}
+
+2. Setup Secret Key (Khóa Bí Mật Thiết Lập):
+   ${setupSecret}
+
+3. Master Password Hint (Gợi Ý Mật Khẩu Chính):
+   ${pwdHint || 'None / Không có'}
+
+4. Write Your Master Password Here (Tự Viết Mật Khẩu Chính):
+   [____________________________________________________]
+
+------------------------------------------------------------------
+⚙️ RECOVERY & BOOTSTRAPPING INSTRUCTIONS:
+------------------------------------------------------------------
+VIỆT NAM:
+1. Mở lại đường dẫn ứng dụng SecureVault bạn đã lưu dấu trang (bookmark) trên thiết bị của mình.
+2. Mở mục "Sao Lưu & Phục Hồi" hoặc bấm vào biểu tượng khôi phục ở màn hình mở khóa ban đầu.
+3. Chọn "Nhập khóa khôi phục ngoại tuyến" và điền mã Setup Secret phía trên.
+4. Nhập mật khẩu chính của bạn để khôi phục và giải mã toàn bộ dữ liệu an toàn.
+
+ENGLISH:
+1. Load the SecureVault application on your device securely.
+2. Navigate to the "Backup & Restore" panel on startup.
+3. Select "Restore from Recovery Kit" and enter the Setup Secret above.
+4. Provide your master password to decrypt and restore local records immediately.
+
+==================================================================
+Generated on: ${new Date().toLocaleString()} (Local Time)
+SecureVault - 100% Offline Device-Encrypted Vault
+==================================================================`;
+
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `SecureVault_Emergency_Kit_${(vaultLabel || 'Device').replace(/[^a-z0-9]/gi, '_')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Handle Copy to Clipboard
+  const handleCopyKit = () => {
+    const textToCopy = `SecureVault Recovery Key:
+- Device Label: ${vaultLabel || 'My Device'}
+- Setup Secret: ${setupSecret}
+- Password Hint: ${pwdHint || 'None'}
+- Instructions: Open SecureVault, go to "Backup & Restore", select "Restore Offline", enter Setup Secret and your Password.`;
+
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-6 text-left animate-fade-in print:bg-white print:text-black print:p-0">
@@ -185,12 +248,12 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
         </div>
         <div className="space-y-1">
           <h4 className="text-xs font-bold text-slate-200">
-            {_('Thẻ Cứu Hộ Khẩn Cấp (Emergency Kit) là gì?', 'What is an Emergency Kit?')}
+            {_('Thẻ Cứu Hộ Ngoại Tuyến (Emergency Kit) Bảo Mật Thế Nào?', 'How Securitish is the Offline Emergency Kit?')}
           </h4>
           <p className="text-[11px] text-slate-450 leading-relaxed">
             {_(
-              'Đây là tài liệu cứu trợ duy nhất giúp bạn phục hồi quyền truy cập khi quên mật khẩu chính. Thẻ chứa Khóa cài đặt (Setup Secret) bí mật riêng lẻ của thiết bị. Hãy in ra giấy hoặc lưu ngoại tuyến ở nơi cực kỳ an toàn.',
-              'This is a foolproof document containing everything required to restore your vault if you lose or forget your master password. It includes your custom local device setup secret. Keep it safely printed or physically backed up.'
+              'SecureVault hoạt động HOÀN TOÀN NGOẠI TUYẾN trên trình duyệt thiết bị của bạn. Không cần tạo tài khoản, không cần đăng cử email lên máy chủ của bất cứ ai. Thẻ khôi phục này được xuất hoàn toàn offline tại chỗ dưới dạng PDF hoặc in giấy. Chỉ chứa khóa cài đặt (Setup Secret) định danh của bạn dùng để khôi phục cơ sở dữ liệu nội bộ cục bộ.',
+              'SecureVault operates 100% LOCALLY on your browser. No remote registration, and no data is ever uploaded. This rescue kit is generated purely offline on-the-fly and printable. Keep it safely printed or physically backed up.'
             )}
           </p>
         </div>
@@ -200,12 +263,12 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:hidden">
         <div className="space-y-3">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-400">{_('Địa chỉ Email của bạn', 'Your Email Address')}</label>
+            <label className="text-xs font-semibold text-slate-400">{_('Tên gợi nhớ / Nhãn Thiết bị (Để phân biệt)', 'Device / Vault Friendly Label')}</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. your-email@example.com"
+              type="text"
+              value={vaultLabel}
+              onChange={(e) => setVaultLabel(e.target.value)}
+              placeholder={_('ví dụ: Điện thoại cá nhân, Laptop làm việc...', 'e.g. My Phone, Personal Laptop...')}
               className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-850 rounded-xl text-xs text-white outline-none focus:border-indigo-500 transition-all font-sans"
             />
           </div>
@@ -222,7 +285,7 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 col-span-1">
           <div className="space-y-1">
             <div className="flex justify-between items-center">
               <label className="text-xs font-semibold text-slate-400">{_('Khóa Cài đặt thiết bị (Setup Secret Key)', 'Device Setup Secret Key')}</label>
@@ -240,14 +303,45 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
             </div>
           </div>
 
-          <div className="pt-3">
+          <div className="pt-2.5 flex flex-col sm:flex-row gap-2">
             <button
               type="button"
               onClick={handlePrint}
-              className="w-full px-4 py-3 bg-rose-500 hover:bg-rose-600 text-slate-950 font-black rounded-xl text-xs transition-all shadow-lg hover:shadow-rose-500/10 cursor-pointer flex items-center justify-center gap-1.5 uppercase tracking-wider"
+              className="flex-1 px-4 py-3 bg-rose-500 hover:bg-rose-600 text-slate-950 font-black rounded-xl text-xs transition-all shadow-lg hover:shadow-rose-500/10 cursor-pointer flex items-center justify-center gap-1.5 uppercase tracking-wider"
             >
-              <Printer className="h-4 w-4" />
-              <span>{_('In Thẻ Cứu Hộ Ngoại Tuyến (Print/PDF)', 'Print Emergency Kit')}</span>
+              <Printer className="h-4 w-4 shrink-0" />
+              <span>{_('In Thẻ (PDF)', 'Print Kit')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadTxt}
+              className="flex-1 px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-slate-950 font-black rounded-xl text-xs transition-all shadow-lg hover:shadow-indigo-500/10 cursor-pointer flex items-center justify-center gap-1.5 uppercase tracking-wider"
+            >
+              <Download className="h-4 w-4 shrink-0" />
+              <span>{_('Tải file (.TXT)', 'Save (.TXT)')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCopyKit}
+              className={`px-4 py-3 rounded-xl text-xs font-black transition-all shadow-lg cursor-pointer flex items-center justify-center gap-1.5 uppercase tracking-wider ${
+                copied 
+                  ? 'bg-emerald-500 text-slate-950' 
+                  : 'bg-slate-800 hover:bg-slate-750 text-white border border-slate-700'
+              }`}
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 shrink-0 text-slate-950" />
+                  <span>{_('Đã sao chép!', 'Copied!')}</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span>{_('Sao chép', 'Copy')}</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -281,8 +375,8 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-4">
             <div className="border-b border-slate-100 pb-2.5">
-              <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">1. {_('Địa chỉ Email liên kết', 'Email address')}</span>
-              <span className="text-sm font-bold text-slate-900 break-all select-all">{email || '_______________________________________'}</span>
+              <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">1. {_('Tên gợi nhớ / Nhãn Thiết Bị', 'Device / Vault Label')}</span>
+              <span className="text-sm font-bold text-slate-900 break-all select-all">{vaultLabel || '_______________________________________'}</span>
             </div>
 
             <div className="border-b border-slate-100 pb-2.5">
@@ -321,8 +415,8 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
         </div>
 
         {/* Step-by-step instructions */}
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 text-[10px] leading-relaxed text-slate-600 space-y-2">
-          <p className="font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1 flex items-center gap-1">
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/60 text-[10px] leading-relaxed text-slate-600 space-y-2 font-sans">
+          <p className="font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1 flex items-center gap-1 font-sans">
             <span>⚙️</span>
             <span>{_('HƯỚNG DẪN KHÔI PHỤC KÉT CHỨA', 'RECOVERY & BOOTSTRAPPING INSTRUCTIONS')}</span>
           </p>
@@ -330,10 +424,10 @@ function EmergencyKitTab({ currentLang, _, handlePrint }: { currentLang: 'vi' | 
             <div>
               <p className="font-semibold text-slate-800">Tiếng Việt:</p>
               <ul className="list-decimal pl-3 space-y-1">
-                <li>Truy cập trực tiếp ứng dụng SecureVault từ thiết bị của bạn.</li>
-                <li>Mở mục <strong>"Sao Lưu & Phục Hồi"</strong> hoặc trang đăng nhập ban đầu.</li>
-                <li>Chọn <strong>"Nhập khóa phục hồi khẩn cấp"</strong> và điền mã <i>Setup Secret</i> phía trên.</li>
-                <li>Sử dụng mật mật khẩu chính (Master Password) viết tay phía trên để giải mã cơ sở dữ liệu khép kín an toàn.</li>
+                <li>Mở lại đường dẫn ứng dụng SecureVault bạn đã lưu dấu trang (bookmark) trên thiết bị của mình.</li>
+                <li>Mở mục <strong>"Sao Lưu & Phục Hồi"</strong> hoặc bấm vào biểu tượng khôi phục ở màn hình mở khóa ban đầu.</li>
+                <li>Chọn <strong>"Nhập khóa khôi phục ngoại tuyến"</strong> và điền mã <i>Setup Secret (Khóa Bí mật Thiết lập)</i> ở trên.</li>
+                <li>Nhập mật khẩu chính (Master Password) viết tay ở trên để khôi phục và giải mã toàn bộ dữ liệu an toàn.</li>
               </ul>
             </div>
             <div>
