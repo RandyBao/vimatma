@@ -81,7 +81,11 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
   const [phoneappEmail, setPhoneappEmail] = useState('');
 
   // Google Sheet Specific Fields
-  const [sheetHeaders, setSheetHeaders] = useState<string[]>(['Cột 1', 'Cột 2', 'Cột 3']);
+  const [sheetHeaders, setSheetHeaders] = useState<string[]>(() => 
+    localStorage.getItem('secure_vault_lang') === 'en' 
+      ? ['Title', 'Code / Key', 'Description'] 
+      : ['Tiêu đề', 'Mã số / Khóa', 'Mô tả']
+  );
   const [sheetRows, setSheetRows] = useState<string[][]>([
     ['', '', ''],
     ['', '', ''],
@@ -189,7 +193,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         setPhoneappNationalId(editingEntry.nationalId || '');
         setPhoneappEmail(editingEntry.email || '');
       } else if (editingEntry.category === 'sheet') {
-        setSheetHeaders(editingEntry.headers || ['Cột 1', 'Cột 2', 'Cột 3']);
+        setSheetHeaders(editingEntry.headers || (lang === 'vi' ? ['Tiêu đề', 'Mã số / Khóa', 'Mô tả'] : ['Title', 'Code / Key', 'Description']));
         setSheetRows(editingEntry.rows || [['', '', ''], ['', '', '']]);
         setIsIntegrated(!!editingEntry.isIntegrated);
         setSyncMode(editingEntry.syncMode || 'public');
@@ -269,7 +273,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setPhoneappNationalId('');
       setPhoneappEmail('');
 
-      setSheetHeaders(['Tiêu đề', 'Mã số / Khóa', 'Mô tả']);
+      setSheetHeaders(lang === 'vi' ? ['Tiêu đề', 'Mã số / Khóa', 'Mô tả'] : ['Title', 'Code / Key', 'Description']);
       setSheetRows([
         ['', '', ''],
         ['', '', ''],
@@ -1537,10 +1541,10 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     {isSyncing ? (
                       <>
                         <span className="animate-spin h-3.5 w-3.5 border-2 border-slate-950 border-t-transparent rounded-full block"></span>
-                        <span>Đang kết nối google và tải bảng...</span>
+                        <span>{_('Đang kết nối google và tải bảng...', 'Connecting Google and loading sheet...')}</span>
                       </>
                     ) : (
-                      <span>Đồng bộ hóa dữ liệu từ Google Sheets ngay ⟳</span>
+                      <span>{_('Đồng bộ hóa dữ liệu từ Google Sheets ngay ⟳', 'Sync data from Google Sheets now ⟳')}</span>
                     )}
                   </button>
                 </div>
@@ -1549,24 +1553,26 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-800/40">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                    <span>Xem trước dữ liệu bảng tính</span>
+                    <span>{_('Xem trước dữ liệu bảng tính', 'Spreadsheet Data Preview')}</span>
                   </h4>
                   <p className="text-[12px] text-slate-500 mt-0.5">
-                    {isIntegrated ? 'Bảng ở dưới là kết quả đã đồng bộ. Bạn vẫn có thể sửa tay ở đây dể tinh chỉnh!' : 'Thêm/bớt cột, dòng và bấm tiêu đề cột để sửa tên tiện lợi.'}
+                    {isIntegrated 
+                      ? _('Bảng ở dưới là kết quả đã đồng bộ. Bạn vẫn có thể sửa tay ở đây để tinh chỉnh!', 'The table below contains synced results. You can still edit manually here to fine-tune!') 
+                      : _('Thêm/bớt cột, dòng và bấm tiêu đề cột để sửa tên tiện lợi.', 'Add/remove columns, rows and click on column titles to easily edit names.')}
                   </p>
                 </div>
                 <div className="flex gap-1.5 text-xs self-start sm:self-auto">
                   <button
                     type="button"
                     onClick={() => {
-                      const newHeaders = [...sheetHeaders, `Cột ${sheetHeaders.length + 1}`];
+                      const newHeaders = [...sheetHeaders, lang === 'vi' ? `Cột ${sheetHeaders.length + 1}` : `Col ${sheetHeaders.length + 1}`];
                       const newRows = sheetRows.map(r => [...r, '']);
                       setSheetHeaders(newHeaders);
                       setSheetRows(newRows);
                     }}
                     className="px-2 py-1 bg-slate-950 hover:bg-slate-850 text-emerald-400 border border-slate-850 rounded-lg transition-all text-[11px] font-bold cursor-pointer"
                   >
-                    + Cột
+                    {_('+ Cột', '+ Col')}
                   </button>
                   <button
                     type="button"
@@ -1579,7 +1585,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     }}
                     className="px-2 py-1 bg-slate-950 hover:bg-rose-950 hover:text-rose-400 text-slate-400 border border-slate-850 rounded-lg transition-all text-[11px] font-bold cursor-pointer"
                   >
-                    - Cột
+                    {_('- Cột', '- Col')}
                   </button>
                   <button
                     type="button"
@@ -1589,7 +1595,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     }}
                     className="px-2 py-1 bg-slate-950 hover:bg-slate-850 text-emerald-400 border border-slate-850 rounded-lg transition-all text-[11px] font-bold cursor-pointer"
                   >
-                    + Dòng
+                    {_('+ Dòng', '+ Row')}
                   </button>
                   <button
                     type="button"
@@ -1599,7 +1605,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     }}
                     className="px-2 py-1 bg-slate-950 hover:bg-rose-950 hover:text-rose-400 text-slate-400 border border-slate-850 rounded-lg transition-all text-[11px] font-bold cursor-pointer"
                   >
-                    - Dòng
+                    {_('- Dòng', '- Row')}
                   </button>
                 </div>
               </div>
@@ -1668,13 +1674,25 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               <div className="bg-slate-950/75 border border-indigo-500/30 rounded-2xl p-4 space-y-2.5">
                 <div className="flex items-center gap-2 text-indigo-400">
                   <Shield className="h-4 w-4 shrink-0 text-indigo-400 animate-pulse" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Lưu Trữ Tối Ưu & Bảo Mật Cao</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {_('Lưu Trữ Tối Ưu & Bảo Mật Cao', 'Optimized Storage & High Security')}
+                  </span>
                 </div>
                 <p className="text-[12px] text-slate-400 leading-relaxed">
-                  Trình duyệt giới hạn bộ nhớ đệm <strong className="text-slate-350">localStorage tối đa là 5MB</strong>. Việc lưu trực tiếp các tệp tin hình ảnh, tài liệu hoặc clip MP4 dung lượng lớn (Ví dụ: <strong className="text-slate-350">&gt; 1GB</strong>) sẽ làm sập bộ nhớ đệm và gây mất toàn bộ dữ liệu.
+                  {lang === 'vi' ? (
+                    <>
+                      Trình duyệt giới hạn bộ nhớ đệm <strong className="text-slate-350">localStorage tối đa là 5MB</strong>. Việc lưu trực tiếp các tệp tin hình ảnh, tài liệu hoặc clip MP4 dung lượng lớn (Ví dụ: <strong className="text-slate-350">&gt; 1GB</strong>) sẽ làm sập bộ nhớ đệm và gây mất toàn bộ dữ liệu.
+                    </>
+                  ) : (
+                    <>
+                      In-browser caching restricts <strong className="text-slate-350">localStorage to a 5MB maximum</strong>. Storing massive raw image/document files or MP4 clips directly (e.g. <strong className="text-slate-350">&gt; 1GB</strong>) will crash local storage arrays, causing permanent data loss.
+                    </>
+                  )}
                 </p>
                 <p className="text-[12px] text-indigo-400/95 leading-relaxed font-semibold">
-                  💡 Giải pháp tối ưu: Tải tệp lên Google Drive của bạn, lấy liên kết bảo mật và nhập vào đây. Hệ thống sẽ mã hóa an toàn liên kết Drive, dung lượng và định dạng để bảo vệ tuyệt mật mà không ngốn dung lượng trình duyệt của bạn!
+                  {lang === 'vi' 
+                    ? '💡 Giải pháp tối ưu: Tải tệp lên Google Drive của bạn, lấy liên kết bảo mật và nhập vào đây. Hệ thống sẽ mã hóa an toàn liên kết Drive, dung lượng và định dạng để bảo vệ tuyệt mật mà không ngốn dung lượng trình duyệt của bạn!'
+                    : '💡 Optimal Solution: Simply upload files to your Google Drive, obtain a secure link, and paste it here. Secure Vault is fully capable of encoding and securing your Drive links, sizes, and extensions, keeping your vaults bulletproof without using up local browser limits!'}
                 </p>
               </div>
 
@@ -1752,7 +1770,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                   className="rounded border-slate-800 text-indigo-500 focus:ring-indigo-500 bg-slate-950 h-4 w-4 cursor-pointer"
                 />
                 <label htmlFor="form-gdrive-optimized" className="text-xs font-medium text-slate-400 cursor-pointer select-none">
-                  Kích hoạt tối ưu hóa đường truyền Google Drive (Tăng tốc độ tải trực tiếp từ Drive)
+                  {_('Kích hoạt tối ưu hóa đường truyền Google Drive (Tăng tốc độ tải trực tiếp từ Drive)', 'Enable Google Drive bandwidth optimization (Boost direct load from Drive)')}
                 </label>
               </div>
             </div>
@@ -1762,13 +1780,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           {showPassGen && (
             <div className="bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800">
               <div className="flex justify-between items-center px-4 pt-2.5 pb-1">
-                <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Trình tạo nhanh mật khẩu an toàn</span>
+                <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">{_('Trình tạo nhanh mật khẩu an toàn', 'Quick Secure Password Generator')}</span>
                 <button 
                   type="button" 
                   onClick={() => setShowPassGen(false)} 
                   className="text-slate-500 hover:text-slate-300 text-xs font-semibold cursor-pointer"
                 >
-                  Đóng x
+                  {_('Đóng x', 'Close x')}
                 </button>
               </div>
               <PasswordGenerator 

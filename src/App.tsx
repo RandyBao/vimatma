@@ -138,7 +138,32 @@ export default function App() {
   const [vaultTitle, setVaultTitle] = useState(() => {
     return localStorage.getItem('secure_vault_app_title') || '';
   });
-  const currentVaultTitle = isDeployedOnGithubOrVercel ? t.app_title : (vaultTitle || t.app_title);
+  
+  const getLocalizedTitle = () => {
+    if (isDeployedOnGithubOrVercel) return t.app_title;
+    if (!vaultTitle) return t.app_title;
+    
+    // Find if the current title matches one of our default suggested pairs and translate on-the-fly
+    const defaultPairs = [
+      { vi: 'Ví Mật Mã', en: 'Save Code' },
+      { vi: 'Quản Lí Mật Khẩu', en: 'Password Locker' },
+      { vi: 'Két Sắt Mật Mã', en: 'Confidential Safe' },
+      { vi: 'Mật Mã Bảo Mật', en: 'Crypto Secure' },
+      { vi: 'Trình Giữ Mật Mã', en: 'Secret Keeper' },
+      { vi: 'Kho Biệt Lập', en: 'Isolated Vault' }
+    ];
+    
+    const matched = defaultPairs.find(
+      p => p.vi.toLowerCase() === vaultTitle.toLowerCase() || p.en.toLowerCase() === vaultTitle.toLowerCase()
+    );
+    
+    if (matched) {
+      return lang === 'vi' ? matched.vi : matched.en;
+    }
+    return vaultTitle;
+  };
+
+  const currentVaultTitle = getLocalizedTitle();
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
   const [customAppTitle, setCustomAppTitle] = useState('');
 
@@ -1223,7 +1248,7 @@ export default function App() {
                       {currentVaultTitle}
                     </h2>
                     <span className="text-[12px] text-slate-500 font-bold uppercase tracking-widest block mt-1">
-                      MÃ HÓA AES-256 NỘI BỘ
+                      {lang === 'vi' ? 'MÃ HÓA AES-256 NỘI BỘ' : 'LOCAL AES-256 ENCRYPTION'}
                     </span>
                   </div>
                 </div>
@@ -1980,7 +2005,7 @@ export default function App() {
                       <div>
                         <h4 className="text-sm font-bold text-white flex items-center gap-1.5 font-sans">
                           <span className="text-sm shrink-0">✈️</span>
-                          <span>Chế độ Du lịch (Travel Mode)</span>
+                          <span>{lang === 'vi' ? 'Chế độ Du lịch (Travel Mode)' : 'Travel Mode'}</span>
                         </h4>
                         <p className="text-[12px] text-slate-400 mt-1 max-w-xl leading-relaxed">
                           {lang === 'vi' 
@@ -2449,10 +2474,14 @@ export default function App() {
                     </div>
                     <div className="min-w-0">
                       <h4 className="text-sm font-bold uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
-                        <span>Khu vực Ngăn Bí Mật (Code Cabinet)</span>
+                        <span>{lang === 'vi' ? 'Khu vực Ngăn Bí Mật (Code Cabinet)' : 'Secret Drawer (Code Cabinet)'}</span>
                         <span className="bg-indigo-500/20 text-[10px] font-black tracking-widest text-indigo-300 px-1 py-0.2 rounded">SECURE</span>
                       </h4>
-                      <p className="text-xs text-slate-400 mt-0.5 leading-relaxed truncate">Các tài khoản, ví, dữ liệu và tệp lớn qua Google Drive trong ngăn này cực kỳ an toàn.</p>
+                      <p className="text-xs text-slate-400 mt-0.5 leading-relaxed truncate">
+                        {lang === 'vi' 
+                          ? 'Các tài khoản, ví, dữ liệu và tệp lớn qua Google Drive trong ngăn này cực kỳ an toàn.' 
+                          : 'All accounts, wallets, data, and massive Google Drive files in this cabinet are highly secured.'}
+                      </p>
                     </div>
                   </div>
                   <button
@@ -2463,7 +2492,7 @@ export default function App() {
                     }}
                     className="self-end sm:self-auto px-3.5 py-1.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 hover:text-indigo-200 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer shadow-sm"
                   >
-                    🔒 Khóa Ngăn (Lock)
+                    {lang === 'vi' ? '🔒 Khóa Ngăn (Lock)' : '🔒 Lock Drawer'}
                   </button>
                 </div>
               )}

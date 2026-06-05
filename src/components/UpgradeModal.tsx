@@ -118,18 +118,6 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
     }, 1200);
   };
 
-  const handleResetTrialTesting = () => {
-    localStorage.removeItem('secure_vault_pro_trial_expires');
-    localStorage.removeItem('secure_vault_pro_trial_used');
-    localStorage.removeItem('secure_vault_pro_active');
-    localStorage.removeItem('secure_vault_trial_expired_notified_perm');
-    sessionStorage.removeItem('secure_vault_trial_almost_expired_shown');
-    setTrialStatus('none');
-    setTrialTimeLeft('');
-    setErrorMsg(lang === 'vi' ? 'Đã khởi tạo lại trạng thái để thử nghiệm!' : 'Trial state reset for test purposes!');
-    setTimeout(() => setErrorMsg(''), 3000);
-  };
-
   // Reset step to comparison when modal is opened
   useEffect(() => {
     if (isOpen) {
@@ -645,21 +633,33 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                       </svg>
                     </div>
                     <div>
-                      <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wide">Cổng thanh toán Ko-fi / PayPal Business</h4>
-                      <p className="text-[10px] text-slate-400 font-mono">Xử lý quốc tế cực kỳ an toàn, tiện lợi</p>
+                      <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wide">
+                        {lang === 'vi' ? 'Cổng thanh toán Ko-fi / PayPal Business' : 'Ko-fi / PayPal Business Gateway'}
+                      </h4>
+                      <p className="text-[10px] text-slate-400 font-mono">
+                        {lang === 'vi' ? 'Xử lý quốc tế cực kỳ an toàn, tiện lợi' : 'Highly secure, convenient international billing'}
+                      </p>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <p className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
-                      Để tránh các hạn chế đăng ký doanh nghiệp trực tiếp từ Việt Nam, hệ thống sử dụng **Ko-fi** làm trung gian liên kết trực tiếp tới tài khoản **PayPal Business** của bạn. Người dùng có thể thanh toán bằng ứng dụng PayPal hoặc thẻ tín dụng quốc tế một cách dễ dàng.
+                      {lang === 'vi' 
+                        ? 'Để tránh các hạn chế đăng ký doanh nghiệp trực tiếp từ Việt Nam, hệ thống sử dụng Ko-fi làm trung gian liên kết trực tiếp tới tài khoản PayPal Business của bạn. Người dùng có thể thanh toán bằng ứng dụng PayPal hoặc thẻ tín dụng quốc tế một cách dễ dàng.'
+                        : 'To maintain fluid transactions, the system leverages Ko-fi as a direct middle-tier provider connected directly with your standard PayPal Business accounts. Users can securely settle with physical cards or digital PayPal accounts with absolute ease.'}
                     </p>
 
                     <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl flex items-center justify-between">
                       <div className="text-left">
-                        <span className="text-[9px] font-bold text-indigo-400 tracking-wider uppercase block">Phương án đăng ký:</span>
+                        <span className="text-[9px] font-bold text-indigo-400 tracking-wider uppercase block">
+                          {lang === 'vi' ? 'Phương án đăng ký:' : 'Subscription Plan:'}
+                        </span>
                         <span className="text-xs font-extrabold text-white">
-                          {selectedPlan === 'monthly' ? 'Gói hàng tháng' : selectedPlan === 'annual' ? 'Gói hàng năm (Tiết kiệm)' : 'Sở hữu vĩnh viễn (Trọn đời)'}
+                          {selectedPlan === 'monthly' 
+                            ? (lang === 'vi' ? 'Gói hàng tháng' : 'Monthly Tier') 
+                            : selectedPlan === 'annual' 
+                              ? (lang === 'vi' ? 'Gói hàng năm (Tiết kiệm)' : 'Annual Tier (Best Value)') 
+                              : (lang === 'vi' ? 'Sở hữu vĩnh viễn (Trọn đời)' : 'Lifetime Access')}
                         </span>
                       </div>
                       <span className="font-mono text-emerald-400 font-black text-sm bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg">
@@ -671,7 +671,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     <div className="p-3.5 bg-slate-950/70 border border-slate-850 rounded-xl space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                          <span>⚙️ Cấu hình Link Nhận Tiền Ko-fi:</span>
+                          <span>⚙️ {lang === 'vi' ? 'Cấu hình Link Nhận Tiền Ko-fi:' : 'Configure Ko-fi Payment Gateway links:'}</span>
                         </label>
                         <button
                           type="button"
@@ -682,13 +682,17 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                           }}
                           className="self-start sm:self-auto text-[9px] text-indigo-400 font-mono font-black uppercase tracking-wider bg-indigo-500/10 px-2 py-1 rounded hover:bg-indigo-500/20 transition-all border border-indigo-500/20"
                         >
-                          {useSeparateKofiUrls ? '» CHUYỂN SANG BẢN ĐƠN (1 LINK)' : '» CẤU HÌNH 3 LINK RIÊNG BIỆT'}
+                          {useSeparateKofiUrls 
+                            ? (lang === 'vi' ? '» CHUYỂN SANG BẢN ĐƠN (1 LINK)' : '» SWITCH TO SINGLE URL MODE') 
+                            : (lang === 'vi' ? '» CẤU HÌNH 3 LINK RIÊNG BIỆT' : '» SETUP 3 MULTI-TIER URLS')}
                         </button>
                       </div>
 
                       {!useSeparateKofiUrls ? (
                         <div className="space-y-1.5 animate-fade-in">
-                          <span className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider block">Link chung duy nhất (Tất cả gói nhảy vào đây):</span>
+                          <span className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider block">
+                            {lang === 'vi' ? 'Link chung duy nhất (Tất cả gói nhảy vào đây):' : 'Single Universal Link (Fallback redirect):'}
+                          </span>
                           <input
                             type="url"
                             value={kofiUrl}
@@ -697,7 +701,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                               setKofiUrl(val);
                               localStorage.setItem('secure_vault_kofi_url', val);
                             }}
-                            placeholder="https://ko-fi.com/RandyBao"
+                            placeholder={lang === 'vi' ? "https://ko-fi.com/RandyBao" : "https://ko-fi.com/YourAccount"}
                             className="w-full bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-lg px-3 py-1.8 text-xs text-slate-200 outline-none font-mono tracking-wide"
                           />
                         </div>
@@ -705,8 +709,12 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                         <div className="space-y-3 pt-2 border-t border-slate-900 animate-slide-down">
                           <div className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-[9.5px] font-black text-indigo-400 uppercase tracking-wider">Link cho Gói Tháng ($4.99/mo):</span>
-                              <span className="text-[8.5px] text-slate-500 lowercase font-mono">bậc thành viên hoặc sản phẩm $4.99</span>
+                              <span className="text-[9.5px] font-black text-indigo-400 uppercase tracking-wider">
+                                {lang === 'vi' ? 'Link cho Gói Tháng ($4.99/mo):' : 'Link for Monthly Plan ($4.99/mo):'}
+                              </span>
+                              <span className="text-[8.5px] text-slate-500 lowercase font-mono">
+                                {lang === 'vi' ? 'bậc thành viên hoặc sản phẩm $4.99' : 'membership tier or $4.99 shop item'}
+                              </span>
                             </div>
                             <input
                               type="url"
@@ -716,15 +724,19 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                                 setKofiUrlMonthly(val);
                                 localStorage.setItem('secure_vault_kofi_url_monthly', val);
                               }}
-                              placeholder="https://ko-fi.com/RandyBao/tiers hoặc link sản phẩm $4.99"
+                              placeholder={lang === 'vi' ? "https://ko-fi.com/RandyBao/tiers hoặc link sản phẩm $4.99" : "https://ko-fi.com/YourAccount/tiers or $4.99 item URL"}
                               className="w-full bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none font-mono"
                             />
                           </div>
 
                           <div className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-[9.5px] font-black text-indigo-400 uppercase tracking-wider">Link cho Gói Năm ($29.99/yr):</span>
-                              <span className="text-[8.5px] text-slate-500 lowercase font-mono">bậc thành viên hoặc sản phẩm $29.99</span>
+                              <span className="text-[9.5px] font-black text-indigo-400 uppercase tracking-wider">
+                                {lang === 'vi' ? 'Link cho Gói Năm ($29.99/yr):' : 'Link for Annual Plan ($29.99/yr):'}
+                              </span>
+                              <span className="text-[8.5px] text-slate-500 lowercase font-mono">
+                                {lang === 'vi' ? 'bậc thành viên hoặc sản phẩm $29.99' : 'membership tier or $29.99 shop item'}
+                              </span>
                             </div>
                             <input
                               type="url"
@@ -734,15 +746,19 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                                 setKofiUrlAnnual(val);
                                 localStorage.setItem('secure_vault_kofi_url_annual', val);
                               }}
-                              placeholder="https://ko-fi.com/RandyBao/tiers hoặc link sản phẩm $29.99"
+                              placeholder={lang === 'vi' ? "https://ko-fi.com/RandyBao/tiers hoặc link sản phẩm $29.99" : "https://ko-fi.com/YourAccount/tiers or $29.99 item URL"}
                               className="w-full bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none font-mono"
                             />
                           </div>
 
                           <div className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-[9.5px] font-black text-emerald-400 uppercase tracking-wider">Link cho Gói Trọn Đời ($49.99):</span>
-                              <span className="text-[8.5px] text-slate-500 lowercase font-mono">link chi tiết sản phẩm trọn đời $49.99</span>
+                              <span className="text-[9.5px] font-black text-emerald-400 uppercase tracking-wider">
+                                {lang === 'vi' ? 'Link cho Gói Trọn Đời ($49.99):' : 'Link for Lifetime Tier ($49.99):'}
+                              </span>
+                              <span className="text-[8.5px] text-slate-500 lowercase font-mono">
+                                {lang === 'vi' ? 'link chi tiết sản phẩm trọn đời $49.99' : '$49.99 shop product product page'}
+                              </span>
                             </div>
                             <input
                               type="url"
@@ -752,7 +768,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                                 setKofiUrlLifetime(val);
                                 localStorage.setItem('secure_vault_kofi_url_lifetime', val);
                               }}
-                              placeholder="https://ko-fi.com/s/xxxxxxxx (Link sản phẩm $49.99)"
+                              placeholder={lang === 'vi' ? "https://ko-fi.com/s/xxxxxxxx (Link sản phẩm $49.99)" : "https://ko-fi.com/s/xxxxxxxx ($49.99 product link)"}
                               className="w-full bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none font-mono"
                             />
                           </div>
@@ -762,10 +778,12 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                       {/* Instruction Help Card */}
                       <div className="p-3 bg-indigo-500/[0.02] border border-indigo-500/10 rounded-xl space-y-1.5 mt-2">
                         <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1 select-none">
-                          👉 Làm sao để hiện đúng số tiền khi khách click?
+                          👉 {lang === 'vi' ? 'Làm sao để hiện đúng số tiền khi khách click?' : 'How do you display the correct amount on redirect?'}
                         </span>
                         <p className="text-[9.5px] text-slate-300 leading-relaxed font-sans">
-                          Ko-fi không tự điều chỉnh tiền qua URL trang cá nhân. Có 2 cách tiện lợi nhất để khách click lập tức hiện đúng giá {getPlanPrice()} USD:
+                          {lang === 'vi' 
+                            ? `Ko-fi không tự điều chỉnh tiền qua URL trang cá nhân. Có 2 cách tiện lợi nhất để khách click lập tức hiện đúng giá ${getPlanPrice()} USD:`
+                            : `Ko-fi does not dynamically adjust billing amounts via a standard generic user profiles. You can achieve direct targeted redirects for ${getPlanPrice()} USD in 2 simple steps:`}
                         </p>
                         <div className="text-[9.5px] text-slate-400 space-y-1 pl-1 font-sans">
                           <p>
@@ -897,16 +915,6 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                           </p>
                         </div>
                       </div>
-
-                      <div className="text-right">
-                        <button
-                          type="button"
-                          onClick={handleResetTrialTesting}
-                          className="text-[10px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
-                        >
-                          {lang === 'vi' ? '[Khởi tạo lại dùng thử / Reset state]' : '[Reset trial state]'}
-                        </button>
-                      </div>
                     </div>
                   )}
 
@@ -922,20 +930,10 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                           </h4>
                           <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
                             {lang === 'vi'
-                              ? 'Thời hạn thử nghiệm PRO miễn phí đã kết thúc. Hãy nâng cấp gói vĩnh viễn để giữ các mục bảo mật mở rộng.'
-                              : 'Your 3-day trial has expired. Upgrade your lifetime tier to retain advanced vault limits.'}
+                              ? 'Thời hạn thử nghiệm PRO miễn phí 3 ngày duy nhất đã kết thúc. Để tiếp tục sử dụng các chức năng PRO, bạn cần nâng cấp một trong ba gói Pro chính thức dưới đây.'
+                              : 'Your lock-protection 3-day trial has ended. Only registered account tier unlocks are now eligible to run PRO.'}
                           </p>
                         </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1">
-                        <button
-                          type="button"
-                          onClick={handleResetTrialTesting}
-                          className="text-[10px] text-slate-600 hover:text-slate-400 underline transition-all font-medium"
-                        >
-                          {lang === 'vi' ? '[Gia hạn lại dùng thử / Reset testing]' : '[Reset trial back to demo]'}
-                        </button>
                       </div>
                     </div>
                   )}

@@ -420,25 +420,28 @@ SecureVault - 100% Offline Device-Encrypted Vault
             <span>⚙️</span>
             <span>{_('HƯỚNG DẪN KHÔI PHỤC KÉT CHỨA', 'RECOVERY & BOOTSTRAPPING INSTRUCTIONS')}</span>
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
-            <div>
-              <p className="font-semibold text-slate-800">Tiếng Việt:</p>
-              <ul className="list-decimal pl-3 space-y-1">
-                <li>Mở lại đường dẫn ứng dụng SecureVault bạn đã lưu dấu trang (bookmark) trên thiết bị của mình.</li>
-                <li>Mở mục <strong>"Sao Lưu & Phục Hồi"</strong> hoặc bấm vào biểu tượng khôi phục ở màn hình mở khóa ban đầu.</li>
-                <li>Chọn <strong>"Nhập khóa khôi phục ngoại tuyến"</strong> và điền mã <i>Setup Secret (Khóa Bí mật Thiết lập)</i> ở trên.</li>
-                <li>Nhập mật khẩu chính (Master Password) viết tay ở trên để khôi phục và giải mã toàn bộ dữ liệu an toàn.</li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-800">English Instruction:</p>
-              <ul className="list-decimal pl-3 space-y-1">
-                <li>Load the SecureVault application on your device securely.</li>
-                <li>Navigate to the <strong>"Backup & Restore"</strong> panel on startup.</li>
-                <li>Select <strong>"Restore from Recovery Kit"</strong> and enter the <i>Setup Secret</i> typed above.</li>
-                <li>Provide your handwritten master password to decrypt and restore local records immediately without web connections.</li>
-              </ul>
-            </div>
+          <div className="text-left">
+            {currentLang === 'vi' ? (
+              <div className="space-y-1">
+                <p className="font-semibold text-slate-850">Tiếng Việt:</p>
+                <ul className="list-decimal pl-4.5 space-y-1 text-slate-600">
+                  <li>Mở lại đường dẫn ứng dụng SecureVault bạn đã lưu dấu trang (bookmark) trên thiết bị của mình.</li>
+                  <li>Mở mục <strong>"Sao Lưu & Phục Hồi"</strong> hoặc bấm vào biểu tượng khôi phục ở màn hình mở khóa ban đầu.</li>
+                  <li>Chọn <strong>"Nhập khóa khôi phục ngoại tuyến"</strong> và điền mã <i>Setup Secret (Khóa Bí mật Thiết lập)</i> ở trên.</li>
+                  <li>Nhập mật khẩu chính (Master Password) viết tay ở trên để khôi phục và giải mã toàn bộ dữ liệu an toàn.</li>
+                </ul>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <p className="font-semibold text-slate-850">English Instructions:</p>
+                <ul className="list-decimal pl-4.5 space-y-1 text-slate-600">
+                  <li>Load the SecureVault application on your device securely.</li>
+                  <li>Navigate to the <strong>"Backup & Restore"</strong> panel on startup.</li>
+                  <li>Select <strong>"Restore from Recovery Kit"</strong> and enter the <i>Setup Secret</i> typed above.</li>
+                  <li>Provide your handwritten master password to decrypt and restore local records immediately without web connections.</li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
