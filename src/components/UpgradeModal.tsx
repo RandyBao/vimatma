@@ -177,11 +177,11 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
     e.preventDefault();
     const cleanCode = couponCode.trim().toUpperCase();
 
-    if (cleanCode === 'PRO1T' || cleanCode === 'PRO1M') {
+    if (cleanCode === 'PRO1M' || cleanCode === 'PRO1T') {
       activatePro('monthly');
-    } else if (cleanCode === 'PRO1N' || cleanCode === 'PRO1Y') {
+    } else if (cleanCode === 'PRO1Y' || cleanCode === 'PRO1N') {
       activatePro('annual');
-    } else if (cleanCode === 'PROTRONDOI' || cleanCode === 'PROLIFETIME' || cleanCode === 'VIP2026' || cleanCode === 'FREEPRO' || cleanCode === 'SECURE') {
+    } else if (cleanCode === 'PROLIFETIME' || cleanCode === 'PROTRONDOI' || cleanCode === 'VIP2026' || cleanCode === 'FREEPRO' || cleanCode === 'SECURE') {
       activatePro('lifetime');
     } else {
       setErrorMsg(t.tier_invalidCode);
@@ -193,7 +193,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
     setIsProcessing(true);
     setErrorMsg('');
     
-    // Simulate payment clearing
+    // Snappy responsive processing timer suited for native-like offline mobile installations
     setTimeout(() => {
       setIsProcessing(false);
       if (type === 'monthly') {
@@ -213,19 +213,19 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
         setSuccess(false);
         setCouponCode('');
         onClose();
-      }, 2500);
-    }, 1800);
+      }, 1500);
+    }, 600);
   };
 
   const handlePayNow = () => {
     const cleanCode = couponCode.trim().toUpperCase();
-    if (cleanCode === 'PRO1T' || cleanCode === 'PRO1M') {
+    if (cleanCode === 'PRO1M' || cleanCode === 'PRO1T') {
       activatePro('monthly');
       return;
-    } else if (cleanCode === 'PRO1N' || cleanCode === 'PRO1Y') {
+    } else if (cleanCode === 'PRO1Y' || cleanCode === 'PRO1N') {
       activatePro('annual');
       return;
-    } else if (cleanCode === 'PROTRONDOI' || cleanCode === 'PROLIFETIME' || cleanCode === 'VIP2026' || cleanCode === 'FREEPRO' || cleanCode === 'SECURE') {
+    } else if (cleanCode === 'PROLIFETIME' || cleanCode === 'PROTRONDOI' || cleanCode === 'VIP2026' || cleanCode === 'FREEPRO' || cleanCode === 'SECURE') {
       activatePro('lifetime');
       return;
     }
@@ -630,7 +630,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     type="text"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
-                    placeholder={lang === 'vi' ? 'Nhập PRO1T, PRO1N, hoặc PROTRONDOI...' : 'Enter PRO1T, PRO1N, or PROTRONDOI...'}
+                    placeholder={lang === 'vi' ? 'Nhập mã giảm giá của bạn...' : 'Enter your discount code...'}
                     className="flex-1 bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-700 outline-none font-mono uppercase tracking-wider"
                   />
                   <button
@@ -640,39 +640,6 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     {lang === 'vi' ? 'ÁP DỤNG' : 'APPLY'}
                   </button>
                 </form>
-
-                {/* Gift codes selection list */}
-                <div className="bg-slate-950 border border-slate-900 rounded-xl p-3 space-y-2 text-left">
-                  <p className="text-[11px] text-slate-400 font-semibold leading-relaxed">
-                    🎁 {lang === 'vi' ? 'Mã ưu đãi độc quyền dành cho bạn (Nhấp vào mã để tự động điền):' : 'Exclusive coupon codes for you (Click to auto-fill):'}
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <button 
-                      type="button" 
-                      onClick={() => setCouponCode('PRO1T')}
-                      className="p-2 bg-slate-900/40 hover:bg-slate-900 border border-slate-850 rounded-lg flex flex-col items-center justify-center text-center transition-all cursor-pointer hover:border-indigo-500/50 group"
-                    >
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{lang === 'vi' ? 'PRO 1 THÁNG' : 'PRO 1 MONTH'}</span>
-                      <span className="font-mono text-indigo-400 font-black text-xs mt-0.5 group-hover:scale-105 transition-transform">PRO1T</span>
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setCouponCode('PRO1N')}
-                      className="p-2 bg-slate-900/40 hover:bg-slate-900 border border-slate-850 rounded-lg flex flex-col items-center justify-center text-center transition-all cursor-pointer hover:border-indigo-500/50 group"
-                    >
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{lang === 'vi' ? 'PRO 1 NĂM' : 'PRO 1 YEAR'}</span>
-                      <span className="font-mono text-indigo-400 font-black text-xs mt-0.5 group-hover:scale-105 transition-transform">PRO1N</span>
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setCouponCode('PROTRONDOI')}
-                      className="p-2 bg-slate-900/40 hover:bg-slate-900 border border-emerald-950 rounded-lg flex flex-col items-center justify-center text-center transition-all cursor-pointer hover:border-emerald-500/40 group"
-                    >
-                      <span className="text-[9px] font-bold text-emerald-500/80 uppercase tracking-wider">{lang === 'vi' ? 'PRO TRỌN ĐỜI' : 'PRO LIFETIME'}</span>
-                      <span className="font-mono text-emerald-400 font-black text-xs mt-0.5 group-hover:scale-105 transition-transform">PROTRONDOI</span>
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {/* Dynamic form inputs based on selected Payment method */}
