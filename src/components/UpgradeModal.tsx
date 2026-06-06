@@ -177,23 +177,36 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
     e.preventDefault();
     const cleanCode = couponCode.trim().toUpperCase();
 
-    // Support VIP2026, FREEPRO, SECURE as special promotional codes
-    if (cleanCode === 'VIP2026' || cleanCode === 'FREEPRO' || cleanCode === 'SECURE') {
-      activatePro(true);
+    if (cleanCode === 'PRO1T' || cleanCode === 'PRO1M') {
+      activatePro('monthly');
+    } else if (cleanCode === 'PRO1N' || cleanCode === 'PRO1Y') {
+      activatePro('annual');
+    } else if (cleanCode === 'PROTRONDOI' || cleanCode === 'PROLIFETIME' || cleanCode === 'VIP2026' || cleanCode === 'FREEPRO' || cleanCode === 'SECURE') {
+      activatePro('lifetime');
     } else {
       setErrorMsg(t.tier_invalidCode);
       setTimeout(() => setErrorMsg(''), 4000);
     }
   };
 
-  const activatePro = (isVoucher: boolean = false) => {
+  const activatePro = (type: 'monthly' | 'annual' | 'lifetime' = 'lifetime') => {
     setIsProcessing(true);
     setErrorMsg('');
     
     // Simulate payment clearing
     setTimeout(() => {
       setIsProcessing(false);
-      localStorage.setItem('secure_vault_pro_active', 'true');
+      if (type === 'monthly') {
+        const expiry = Date.now() + 30 * 24 * 60 * 60 * 1000;
+        localStorage.setItem('secure_vault_pro_trial_expires', String(expiry));
+        localStorage.setItem('secure_vault_pro_trial_used', 'true');
+      } else if (type === 'annual') {
+        const expiry = Date.now() + 365 * 24 * 60 * 60 * 1000;
+        localStorage.setItem('secure_vault_pro_trial_expires', String(expiry));
+        localStorage.setItem('secure_vault_pro_trial_used', 'true');
+      } else {
+        localStorage.setItem('secure_vault_pro_active', 'true'); // Lifetime
+      }
       setSuccess(true);
       setTimeout(() => {
         onUpgradeSuccess();
@@ -205,9 +218,15 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
   };
 
   const handlePayNow = () => {
-    // If voucher code is VIP2026 / FREEPRO / SECURE in input during payment check
-    if (couponCode.trim().toUpperCase() === 'VIP2026' || couponCode.trim().toUpperCase() === 'FREEPRO' || couponCode.trim().toUpperCase() === 'SECURE') {
-      activatePro(true);
+    const cleanCode = couponCode.trim().toUpperCase();
+    if (cleanCode === 'PRO1T' || cleanCode === 'PRO1M') {
+      activatePro('monthly');
+      return;
+    } else if (cleanCode === 'PRO1N' || cleanCode === 'PRO1Y') {
+      activatePro('annual');
+      return;
+    } else if (cleanCode === 'PROTRONDOI' || cleanCode === 'PROLIFETIME' || cleanCode === 'VIP2026' || cleanCode === 'FREEPRO' || cleanCode === 'SECURE') {
+      activatePro('lifetime');
       return;
     }
     
@@ -219,7 +238,7 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
       }
     }
     
-    activatePro(false);
+    activatePro(selectedPlan);
   };
 
   const getPlanPrice = () => {
@@ -596,6 +615,63 @@ export default function UpgradeModal({ isOpen, onClose, isPro, onUpgradeSuccess,
                     <span className="text-[9px] text-slate-500 font-mono">Apple/Google Pay</span>
                   </button>
 
+                </div>
+              </div>
+
+              {/* Mã giảm giá / Voucher section */}
+              <div className="p-4 bg-slate-950/70 border border-slate-850 rounded-2xl space-y-3 animate-slide-up">
+                <h4 className="text-[12px] font-extrabold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-900 pb-2 select-none">
+                  <Gift className="h-4 w-4 text-emerald-400 shrink-0" />
+                  {lang === 'vi' ? 'Mã Giảm Giá / Kích Hoạt Voucher PRO' : 'Discount Code / PRO Voucher Activation'}
+                </h4>
+                
+                <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    placeholder={lang === 'vi' ? 'Nhập PRO1T, PRO1N, hoặc PROTRONDOI...' : 'Enter PRO1T, PRO1N, or PROTRONDOI...'}
+                    className="flex-1 bg-slate-900 border border-slate-850 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-700 outline-none font-mono uppercase tracking-wider"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 active:scale-98 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    {lang === 'vi' ? 'ÁP DỤNG' : 'APPLY'}
+                  </button>
+                </form>
+
+                {/* Gift codes selection list */}
+                <div className="bg-slate-950 border border-slate-900 rounded-xl p-3 space-y-2 text-left">
+                  <p className="text-[11px] text-slate-400 font-semibold leading-relaxed">
+                    🎁 {lang === 'vi' ? 'Mã ưu đãi độc quyền dành cho bạn (Nhấp vào mã để tự động điền):' : 'Exclusive coupon codes for you (Click to auto-fill):'}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => setCouponCode('PRO1T')}
+                      className="p-2 bg-slate-900/40 hover:bg-slate-900 border border-slate-850 rounded-lg flex flex-col items-center justify-center text-center transition-all cursor-pointer hover:border-indigo-500/50 group"
+                    >
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{lang === 'vi' ? 'PRO 1 THÁNG' : 'PRO 1 MONTH'}</span>
+                      <span className="font-mono text-indigo-400 font-black text-xs mt-0.5 group-hover:scale-105 transition-transform">PRO1T</span>
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setCouponCode('PRO1N')}
+                      className="p-2 bg-slate-900/40 hover:bg-slate-900 border border-slate-850 rounded-lg flex flex-col items-center justify-center text-center transition-all cursor-pointer hover:border-indigo-500/50 group"
+                    >
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{lang === 'vi' ? 'PRO 1 NĂM' : 'PRO 1 YEAR'}</span>
+                      <span className="font-mono text-indigo-400 font-black text-xs mt-0.5 group-hover:scale-105 transition-transform">PRO1N</span>
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setCouponCode('PROTRONDOI')}
+                      className="p-2 bg-slate-900/40 hover:bg-slate-900 border border-emerald-950 rounded-lg flex flex-col items-center justify-center text-center transition-all cursor-pointer hover:border-emerald-500/40 group"
+                    >
+                      <span className="text-[9px] font-bold text-emerald-500/80 uppercase tracking-wider">{lang === 'vi' ? 'PRO TRỌN ĐỜI' : 'PRO LIFETIME'}</span>
+                      <span className="font-mono text-emerald-400 font-black text-xs mt-0.5 group-hover:scale-105 transition-transform">PROTRONDOI</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
