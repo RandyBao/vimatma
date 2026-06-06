@@ -525,7 +525,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
             )}
 
             <div className="text-[8px] text-slate-500 leading-relaxed pt-1.5 border-t border-slate-850/60 font-semibold font-mono flex items-center justify-between gap-2">
-              <span>{lang === 'vi' ? 'Phiên bản v1.1 (Phát hành chính thức)' : 'Release version v1.1 (Official Edition)'}</span>
+              <span>{lang === 'vi' ? 'Phiên bản v1.1/06.06' : 'Version v1.1/06.06'}</span>
               <span className="text-slate-650 font-normal">© 2026 LBM</span>
             </div>
           </div>
