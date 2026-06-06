@@ -378,11 +378,11 @@ export default function App() {
     };
 
     // Lắng nghe các tương tác của người dùng để hoãn khóa kho
-    window.addEventListener('mousemove', resetTimer);
-    window.addEventListener('keydown', resetTimer);
-    window.addEventListener('mousedown', resetTimer);
-    window.addEventListener('touchstart', resetTimer);
-    window.addEventListener('scroll', resetTimer);
+    window.addEventListener('mousemove', resetTimer, { passive: true });
+    window.addEventListener('keydown', resetTimer, { passive: true });
+    window.addEventListener('mousedown', resetTimer, { passive: true });
+    window.addEventListener('touchstart', resetTimer, { passive: true });
+    window.addEventListener('scroll', resetTimer, { passive: true });
 
     return () => {
       clearInterval(timer);
@@ -1793,7 +1793,7 @@ export default function App() {
                       x="50" 
                       y="48" 
                       textAnchor="middle" 
-                      className="fill-rose-400 font-extrabold text-[12px] tracking-wider select-none font-sans"
+                      className="fill-yellow-400 font-extrabold text-[12px] tracking-wider select-none font-sans"
                     >
                       LBM
                     </text>
@@ -1801,7 +1801,7 @@ export default function App() {
                       x="50" 
                       y="59" 
                       textAnchor="middle" 
-                      className="fill-slate-400 font-bold text-[7px] tracking-widest select-none font-sans"
+                      className="fill-emerald-400 font-black text-[7px] tracking-widest select-none font-sans"
                     >
                       {lang === 'vi' ? 'XEM' : 'VIEW'}
                     </text>

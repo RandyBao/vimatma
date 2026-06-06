@@ -454,7 +454,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
                       x="50" 
                       y="48" 
                       textAnchor="middle" 
-                      className="fill-rose-400 font-extrabold text-[12px] tracking-wider select-none font-sans"
+                      className="fill-yellow-400 font-extrabold text-[12px] tracking-wider select-none font-sans"
                     >
                       LBM
                     </text>
@@ -462,7 +462,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
                       x="50" 
                       y="59" 
                       textAnchor="middle" 
-                      className="fill-slate-400 font-bold text-[7px] tracking-widest select-none font-sans"
+                      className="fill-emerald-400 font-black text-[7px] tracking-widest select-none font-sans"
                     >
                       {lang === 'vi' ? 'XEM' : 'VIEW'}
                     </text>
