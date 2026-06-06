@@ -242,8 +242,11 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
             </svg>
           </div>
 
-          <h1 className="text-[23px] font-extrabold tracking-tight text-white font-sans transition-all leading-snug">
-            {isSetupMode ? t.lock_setupState : (lang === 'vi' ? 'VÍ MẬT MÃ' : 'SAVE CODE')}
+          <h1 className="text-[23px] font-extrabold tracking-tight text-white font-sans transition-all leading-snug flex items-center justify-center gap-2">
+            <span>{isSetupMode ? t.lock_setupState : (lang === 'vi' ? 'VÍ MẬT MÃ' : 'SAVE CODE')}</span>
+            <span className="bg-emerald-500/10 text-emerald-400 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border border-emerald-500/20 font-mono align-middle">
+              v1.1
+            </span>
           </h1>
           <p className="text-slate-400 text-xs mt-1.5 max-w-[280px] leading-relaxed">
             {isSetupMode ? t.lock_setupSubtext : t.lock_decryptSubtext}
@@ -393,7 +396,7 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
           <div className="pt-2 text-center space-y-3 relative overflow-hidden transition-all duration-300">
             <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full blur-lg pointer-events-none"></div>
             
-            {/* Round LBM Logo Badge with integrated view/click action */}
+            {/* High-Fidelity Shield LBM Logo Badge with integrated view/click action */}
             <div className="flex flex-col items-center justify-center py-1">
               <div 
                 onClick={() => {
@@ -402,17 +405,69 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
                   }
                 }}
                 title={lang === 'vi' ? 'Bấm để xem Email Tác Giả' : 'Click to view Creator Email'}
-                className="group relative h-14 w-14 rounded-full bg-slate-950/90 border-2 border-emerald-400 flex items-center justify-center shadow-[0_0_18px_rgba(52,211,153,0.35)] hover:shadow-[0_0_28px_rgba(52,211,153,0.6)] transform hover:scale-110 transition-all duration-300 cursor-pointer overflow-hidden"
+                className="group relative w-20 h-20 flex items-center justify-center transform hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer drop-shadow-[0_0_12px_rgba(244,63,94,0.45)] hover:drop-shadow-[0_0_22px_rgba(244,63,94,0.75)]"
               >
-                {/* Standard LBM label */}
-                <span className="text-sm font-black text-emerald-400 tracking-wider group-hover:opacity-10 transition-opacity duration-200">
-                  LBM
-                </span>
-                {/* Embedded hover button */}
-                <span className="absolute inset-0 flex flex-col items-center justify-center text-[7.5px] font-black uppercase text-emerald-400 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-205 leading-none px-1 select-none">
-                  <span>{lang === 'vi' ? 'Xem' : 'View'}</span>
-                  <span className="mt-0.5 font-mono text-[7px]">EMAIL</span>
-                </span>
+                <svg 
+                  viewBox="0 0 100 100" 
+                  className="w-20 h-20 overflow-visible transition-transform duration-300 pointer-events-none"
+                >
+                  {/* Left sword (behind shield) */}
+                  <line x1="16" y1="16" x2="32" y2="32" stroke="#10b981" strokeWidth="3" strokeLinecap="round" />
+                  <line x1="26" y1="36" x2="36" y2="26" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+                  <circle cx="16" cy="16" r="3.5" fill="#f43f5e" />
+                  <line x1="32" y1="32" x2="84" y2="84" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
+
+                  {/* Right sword (behind shield) */}
+                  <line x1="84" y1="16" x2="68" y2="32" stroke="#10b981" strokeWidth="3" strokeLinecap="round" />
+                  <line x1="74" y1="36" x2="64" y2="26" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+                  <circle cx="84" cy="16" r="3.5" fill="#f43f5e" />
+                  <line x1="68" y1="32" x2="16" y2="84" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
+
+                  {/* Shield Body (has opaque slate-950 fill to mask the crossed blades) */}
+                  <path 
+                    d="M 50 18 C 30 18, 25 22, 24 25 C 23 48, 26 71, 50 86 C 74 71, 77 48, 76 25 C 75 22, 70 18, 50 18 Z" 
+                    fill="#020617" 
+                    stroke="#f43f5e" 
+                    strokeWidth="3.5" 
+                    strokeLinejoin="round"
+                  />
+                  
+                  {/* Shield Inner Decorative Outline */}
+                  <path 
+                    d="M 50 24 C 36 24, 32 26, 31 28 C 29 46, 31 66, 50 78 C 69 66, 71 46, 69 28 C 68 26, 62 24, 50 24 Z" 
+                    fill="none" 
+                    stroke="#f43f5e" 
+                    strokeWidth="1.2" 
+                    opacity="0.55" 
+                  />
+
+                  {/* Dynamic Content Group inside Shield */}
+                  {/* Keyhole state (shown by default, fades out on hover) */}
+                  <g className="transition-opacity duration-300 group-hover:opacity-0">
+                    <circle cx="50" cy="46" r="4.5" fill="#f43f5e" />
+                    <path d="M 47.5 48.5 L 45 61 L 55 61 L 52.5 48.5 Z" fill="#f43f5e" />
+                  </g>
+
+                  {/* LBM / Action state (fades in on hover) */}
+                  <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-305">
+                    <text 
+                      x="50" 
+                      y="48" 
+                      textAnchor="middle" 
+                      className="fill-rose-400 font-extrabold text-[12px] tracking-wider select-none font-sans"
+                    >
+                      LBM
+                    </text>
+                    <text 
+                      x="50" 
+                      y="59" 
+                      textAnchor="middle" 
+                      className="fill-slate-400 font-bold text-[7px] tracking-widest select-none font-sans"
+                    >
+                      {lang === 'vi' ? 'XEM' : 'VIEW'}
+                    </text>
+                  </g>
+                </svg>
               </div>
             </div>
 
@@ -469,10 +524,9 @@ export default function LockScreen({ onUnlock, lang, onLangChange }: LockScreenP
               </div>
             )}
 
-            <div className="text-[8px] text-slate-600 leading-relaxed pt-1.5 border-t border-slate-850/60 font-medium">
-              {lang === 'vi' 
-                ? 'Ứng dụng đã được ghi nhận bản quyền tác giả chính thức.' 
-                : 'Registered authentic software. All rights reserved.'}
+            <div className="text-[8px] text-slate-500 leading-relaxed pt-1.5 border-t border-slate-850/60 font-semibold font-mono flex items-center justify-between gap-2">
+              <span>{lang === 'vi' ? 'Phiên bản v1.1 (Phát hành chính thức)' : 'Release version v1.1 (Official Edition)'}</span>
+              <span className="text-slate-650 font-normal">© 2026 LBM</span>
             </div>
           </div>
         </div>
