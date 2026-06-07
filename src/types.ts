@@ -5,6 +5,7 @@ export interface ReminderConfig {
   date: string;               // Định dạng YYYY-MM-DD
   type: 'once' | 'monthly' | 'yearly';    // Ví dụ: Nhắc một lần, nhắc hàng tháng hoặc nhắc hàng năm (sinh nhật, ngày kỷ niệm)
   message?: string;           // Lời nhắc tùy chỉnh (ví dụ: "Sinh nhật vợ yêu ❤️")
+  time?: string;              // Định dạng HH:MM (vd: "07:00")
 }
 
 export interface BaseVaultEntry {

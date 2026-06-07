@@ -1067,7 +1067,7 @@ export default function VaultItemCard({
               <div className="mt-0.5 text-slate-200 font-medium select-text">{entry.reminder.message || (currentLang === 'vi' ? 'Thông báo tự động' : 'System automated alarm')}</div>
               <div className="mt-1 font-mono text-[12px] text-slate-400 flex items-center gap-1.5">
                 <Calendar className="h-3 w-3 text-slate-500" />
-                {currentLang === 'vi' ? 'Ngày: ' : 'Date: '}{entry.reminder.date.split('-').reverse().join('/')} • {entry.reminder.type === 'yearly' ? (currentLang === 'vi' ? 'Lặp lại hàng năm 🎂' : 'Repeats Annually 🎂') : entry.reminder.type === 'monthly' ? (currentLang === 'vi' ? 'Lặp lại hàng tháng 📅' : 'Repeats Monthly 📅') : (currentLang === 'vi' ? 'Lời nhắc 1 lần 📌' : 'One-time notification 📌')}
+                {currentLang === 'vi' ? 'Ngày: ' : 'Date: '}{entry.reminder.date.split('-').reverse().join('/')}{entry.reminder.time ? ` ${currentLang === 'vi' ? 'lúc' : 'at'} ${entry.reminder.time}` : ''} • {entry.reminder.type === 'yearly' ? (currentLang === 'vi' ? 'Lặp lại hàng năm 🎂' : 'Repeats Annually 🎂') : entry.reminder.type === 'monthly' ? (currentLang === 'vi' ? 'Lặp lại hàng tháng 📅' : 'Repeats Monthly 📅') : (currentLang === 'vi' ? 'Lời nhắc 1 lần 📌' : 'One-time notification 📌')}
               </div>
             </div>
           </div>
@@ -1563,7 +1563,7 @@ export default function VaultItemCard({
             <div className="mt-1 text-slate-200 font-sans text-sm font-medium select-text">{entry.reminder.message || 'Không có mô tả chi tiết'}</div>
             <div className="mt-1.5 font-mono text-slate-400 flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-indigo-500/70" />
-              <span>Thời gian: {entry.reminder.date.split('-').reverse().join('/')} ({entry.reminder.type === 'yearly' ? 'Lặp lại hàng năm 🎂' : entry.reminder.type === 'monthly' ? 'Lặp lại hàng tháng 📅' : 'Nhắc nhở 1 lần 📌'})</span>
+              <span>Thời gian: {entry.reminder.date.split('-').reverse().join('/')}{entry.reminder.time ? ` lúc ${entry.reminder.time}` : ''} ({entry.reminder.type === 'yearly' ? 'Lặp lại hàng năm 🎂' : entry.reminder.type === 'monthly' ? 'Lặp lại hàng tháng 📅' : 'Nhắc nhở 1 lần 📌'})</span>
             </div>
           </div>
         </div>

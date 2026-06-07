@@ -75,6 +75,87 @@ function getReminderDaysLeft(reminderDateStr: string, reminderType: 'once' | 'mo
   return { daysLeft, isToday, formattedDate };
 }
 
+// Helpers for syncing/exporting reminders to standard calendars (Google & .ics)
+function getGoogleCalendarUrl(title: string, date: string, time?: string, message?: string): string {
+  const base = "https://calendar.google.com/calendar/render?action=TEMPLATE";
+  const label = encodeURIComponent(title);
+  const desc = encodeURIComponent(message || '');
+  
+  let datePart = date.replace(/-/g, '');
+  let dates = "";
+  if (time) {
+    const hours = (time.split(':')[0] || '09').padStart(2, '0');
+    const mins = (time.split(':')[1] || '00').padStart(2, '0');
+    const startHourNum = parseInt(hours, 10);
+    const endHourNum = (startHourNum + 1) % 24;
+    const endHourStr = String(endHourNum).padStart(2, '0');
+    
+    dates = `${datePart}T${hours}${mins}00/${datePart}T${endHourStr}${mins}00`;
+  } else {
+    const startDate = new Date(date);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 1);
+    const endYear = endDate.getFullYear();
+    const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+    const endDateStr = String(endDate.getDate()).padStart(2, '0');
+    const endPart = `${endYear}${endMonth}${endDateStr}`;
+    dates = `${datePart}/${endPart}`;
+  }
+  
+  return `${base}&text=${label}&details=${desc}&dates=${dates}`;
+}
+
+function downloadIcsFile(title: string, date: string, time?: string, message?: string) {
+  const formattedTitle = title.replace(/[\\,;]/g, '\\$&');
+  const formattedDesc = (message || '').replace(/[\\,;]/g, '\\$&');
+  const datePart = date.replace(/-/g, '');
+  
+  let dtStart = "";
+  let dtEnd = "";
+  if (time) {
+    const hours = (time.split(':')[0] || '09').padStart(2, '0');
+    const mins = (time.split(':')[1] || '00').padStart(2, '0');
+    const endHour = String((parseInt(hours, 10) + 1) % 24).padStart(2, '0');
+    dtStart = `DTSTART:${datePart}T${hours}${mins}00`;
+    dtEnd = `DTEND:${datePart}T${endHour}${mins}00`;
+  } else {
+    dtStart = `DTSTART;VALUE=DATE:${datePart}`;
+    const startDate = new Date(date);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 1);
+    const endYear = endDate.getFullYear();
+    const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+    const endDateStr = String(endDate.getDate()).padStart(2, '0');
+    const endPart = `${endYear}${endMonth}${endDateStr}`;
+    dtEnd = `DTEND;VALUE=DATE:${endPart}`;
+  }
+  
+  const icsLines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Secure Vault//Calendar Reminder Sync//EN',
+    'BEGIN:VEVENT',
+    `SUMMARY:${formattedTitle}`,
+    `DESCRIPTION:${formattedDesc}`,
+    dtStart,
+    dtEnd,
+    'STATUS:CONFIRMED',
+    'SEQUENCE:0',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+  
+  const blob = new Blob([icsLines], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${title.trim().replace(/\s+/g, '_')}_reminder.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export default function App() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [masterPassword, setMasterPassword] = useState('');
@@ -1595,88 +1676,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* System Notification Band / Birthday & Reminders Hub */}
-      {isUnlocked && remindersToShow.length > 0 && (
-        <div id="reminders-dashboard-banner" className="max-w-7xl mx-auto w-full px-4 md:px-6 pt-5 animate-fade-in relative z-20">
-          <div className="bg-gradient-to-r from-slate-900 via-indigo-950/20 to-slate-905 border border-indigo-500/20 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
-            {/* Glowing orb accent */}
-            <div className="absolute -top-10 -right-10 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl -z-10"></div>
-            
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 bg-indigo-500/10 rounded-xl border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
-                  <Bell className="h-5 w-5 animate-bounce" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
-                    {t.rem_title}
-                    <span className="bg-indigo-500 text-slate-950 font-mono font-bold text-[11px] px-2 py-0.5 rounded-full leading-none">
-                      {remindersToShow.length}
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">{t.rem_desc}</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Horizontal Grid list for events */}
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {remindersToShow.map(({ entry, reminder, daysLeft, isToday, formattedDate }) => (
-                <div 
-                   key={entry.id}
-                   onClick={() => handleFocusReminderItem(entry.id, entry.category)}
-                   className={`p-3.5 rounded-xl border transition-all cursor-pointer text-left flex flex-col justify-between hover:scale-[1.01] hover:bg-slate-900 ${
-                     isToday 
-                       ? 'bg-indigo-500/10 border-indigo-500/35 shadow-lg shadow-indigo-500/5 hover:border-indigo-400' 
-                       : daysLeft < 0
-                       ? 'bg-slate-900/40 border-slate-900 opacity-65 hover:opacity-100'
-                       : 'bg-slate-900/70 border-slate-850 hover:border-slate-705'
-                   }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap ${
-                        isToday 
-                          ? 'bg-indigo-400 text-slate-950 animate-pulse' 
-                          : daysLeft < 0
-                          ? 'bg-slate-800 text-slate-450'
-                          : daysLeft <= 3
-                          ? 'bg-amber-500/20 text-amber-300'
-                          : 'bg-slate-800 text-indigo-300'
-                      }`}>
-                        {isToday 
-                          ? t.rem_today 
-                          : daysLeft < 0
-                          ? t.rem_daysPassed.replace('{n}', String(Math.abs(daysLeft)))
-                          : t.rem_daysLeft.replace('{n}', String(daysLeft))
-                        }
-                      </span>
-                      <span className="text-[11px] font-semibold text-slate-500 font-mono">
-                        {formattedDate.split('/').slice(0, 2).join('/')}
-                      </span>
-                    </div>
-                    
-                    <h4 className="text-sm font-bold text-white mt-1.5 line-clamp-1 group-hover:text-indigo-300">
-                      {entry.title}
-                    </h4>
-                    
-                    {reminder.message && (
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 italic font-sans">
-                        "{reminder.message}"
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="mt-3.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                    <span>{reminder.type === 'yearly' ? t.rem_yearly : reminder.type === 'monthly' ? t.rem_monthly : t.rem_once}</span>
-                    <span className="text-indigo-400 font-semibold">{t.rem_quickView}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Main App Container */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -2653,6 +2653,121 @@ export default function App() {
           )}
         </section>
       </main>
+
+      {/* System Notification Band / Birthday & Reminders Hub - Repositioned to Footer Area */}
+      {isUnlocked && remindersToShow.length > 0 && (
+        <div id="reminders-dashboard-banner" className="max-w-7xl mx-auto w-full px-4 md:px-6 pb-8 animate-fade-in relative z-20">
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950/20 to-slate-905 border border-indigo-500/20 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
+            {/* Glowing orb accent */}
+            <div className="absolute -top-10 -right-10 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl -z-10"></div>
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 bg-indigo-500/10 rounded-xl border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Bell className="h-5 w-5 animate-bounce" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                    {t.rem_title}
+                    <span className="bg-indigo-500 text-slate-950 font-mono font-bold text-[11px] px-2 py-0.5 rounded-full leading-none">
+                      {remindersToShow.length}
+                    </span>
+                  </h3>
+                </div>
+              </div>
+            </div>
+            
+            {/* Horizontal Grid list for events */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {remindersToShow.map(({ entry, reminder, daysLeft, isToday, formattedDate }) => (
+                <div 
+                   key={entry.id}
+                   onClick={() => handleFocusReminderItem(entry.id, entry.category)}
+                   className={`p-3.5 rounded-xl border transition-all cursor-pointer text-left flex flex-col justify-between hover:scale-[1.01] hover:bg-slate-900 ${
+                     isToday 
+                       ? 'bg-indigo-500/10 border-indigo-500/35 shadow-lg shadow-indigo-500/5 hover:border-indigo-400' 
+                       : daysLeft < 0
+                       ? 'bg-slate-900/40 border-slate-900 opacity-65 hover:opacity-100'
+                       : 'bg-slate-900/70 border-slate-850 hover:border-slate-705'
+                   }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap ${
+                        isToday 
+                          ? 'bg-indigo-400 text-slate-950 animate-pulse' 
+                          : daysLeft < 0
+                          ? 'bg-slate-800 text-slate-450'
+                          : daysLeft <= 3
+                          ? 'bg-amber-500/20 text-amber-300'
+                          : 'bg-slate-800 text-indigo-300'
+                      }`}>
+                        {isToday 
+                          ? t.rem_today 
+                          : daysLeft < 0
+                          ? t.rem_daysPassed.replace('{n}', String(Math.abs(daysLeft)))
+                          : t.rem_daysLeft.replace('{n}', String(daysLeft))
+                        }
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-400 font-mono flex items-center gap-1.5 shrink-0">
+                        <span>{formattedDate.split('/').slice(0, 2).join('/')}</span>
+                        {reminder.time && (
+                          <span className="text-indigo-300 font-bold bg-indigo-500/15 border border-indigo-500/20 px-1.5 py-0.5 rounded text-[10px] flex items-center gap-0.5">
+                            <Clock className="h-2.5 w-2.5" />
+                            {reminder.time}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    
+                    <h4 className="text-sm font-bold text-white mt-1.5 line-clamp-1 group-hover:text-indigo-300">
+                      {entry.title}
+                    </h4>
+                    
+                    {reminder.message && (
+                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 italic font-sans">
+                        "{reminder.message}"
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="mt-3.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-mono gap-1">
+                    <span className="text-slate-400 shrink-0">{reminder.type === 'yearly' ? t.rem_yearly : reminder.type === 'monthly' ? t.rem_monthly : t.rem_once}</span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const gUrl = getGoogleCalendarUrl(entry.title, reminder.date, reminder.time, reminder.message);
+                          window.open(gUrl, '_blank');
+                        }}
+                        className="text-emerald-400 hover:text-emerald-350 hover:underline transition-all flex items-center gap-0.5 outline-none font-bold"
+                        title={lang === 'vi' ? 'Đồng bộ Google Calendar' : 'Sync to Google Calendar'}
+                      >
+                        <span>Google 📅</span>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadIcsFile(entry.title, reminder.date, reminder.time, reminder.message);
+                        }}
+                        className="text-amber-400 hover:text-amber-350 hover:underline transition-all flex items-center gap-0.5 outline-none font-bold"
+                        title={lang === 'vi' ? 'Đồng bộ iPhone/Android (.ics)' : 'Sync to phone calendar (.ics)'}
+                      >
+                        <span>Điện thoại 📱</span>
+                      </button>
+                      
+                      <span className="text-indigo-400 font-semibold group-hover:text-indigo-300 transition-colors shrink-0">{t.rem_quickView}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add / Edit Form Modal */}
       <VaultFormModal

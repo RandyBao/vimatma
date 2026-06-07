@@ -59,8 +59,8 @@ export const translations = {
     head_renameSave: 'Lưu',
 
     // Reminders
-    rem_title: 'Nhắc nhở & Sự kiện sắp tới',
-    rem_desc: 'Đặt lịch nhắc cho vợ yêu ❤️, hóa đơn dịch vụ ngân hàng, thẻ căn cước hay bảo mật cần thiết.',
+    rem_title: 'Sự kiện sắp tới',
+    rem_desc: '',
     rem_today: 'Hôm nay ⭐',
     rem_daysLeft: 'Còn {n} ngày',
     rem_daysPassed: 'Đã qua {n} ngày',
@@ -362,8 +362,8 @@ export const translations = {
     head_renameSave: 'Apply',
 
     // Reminders
-    rem_title: 'Anniversaries & Alerts',
-    rem_desc: 'Maintain reminder alerts on credit lines, anniversary dates or system password update cycles.',
+    rem_title: 'Upcoming Events',
+    rem_desc: '',
     rem_today: 'Today ⭐',
     rem_daysLeft: '{n} days left',
     rem_daysPassed: '{n} days passed',

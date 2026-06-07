@@ -29,6 +29,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
   const [reminderDate, setReminderDate] = useState('');
   const [reminderType, setReminderType] = useState<'once' | 'monthly' | 'yearly'>('yearly');
   const [reminderMessage, setReminderMessage] = useState('');
+  const [reminderTime, setReminderTime] = useState('09:00');
 
   // Bank Specific Fields
   const [bankName, setBankName] = useState('');
@@ -147,11 +148,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         setReminderDate(editingEntry.reminder.date || '');
         setReminderType(editingEntry.reminder.type || 'yearly');
         setReminderMessage(editingEntry.reminder.message || '');
+        setReminderTime(editingEntry.reminder.time || '09:00');
       } else {
         setReminderEnabled(false);
         setReminderDate('');
         setReminderType('yearly');
         setReminderMessage('');
+        setReminderTime('09:00');
       }
 
       if (editingEntry.category === 'bank') {
@@ -234,6 +237,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setReminderDate('');
       setReminderType('yearly');
       setReminderMessage('');
+      setReminderTime('09:00');
 
       setDriveFileName('');
       setDriveFileSize('1.0 GB');
@@ -444,7 +448,8 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         enabled: true,
         date: reminderDate,
         type: reminderType,
-        message: reminderMessage.trim() || undefined
+        message: reminderMessage.trim() || undefined,
+        time: reminderTime || undefined
       };
     } else {
       targetData.reminder = undefined;
@@ -1993,7 +1998,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
 
             {reminderEnabled && isPro && (
               <div className="space-y-3 pt-1 animate-fade-in">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                       {_('Ngày nhắc nhở', 'Reminder Date')}
@@ -2003,6 +2008,17 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       value={reminderDate}
                       onChange={(e) => setReminderDate(e.target.value)}
                       required={reminderEnabled}
+                      className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm text-slate-100 outline-none focus:border-indigo-500 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                      {_('Giờ báo thức', 'Alert Time')}
+                    </label>
+                    <input
+                      type="time"
+                      value={reminderTime}
+                      onChange={(e) => setReminderTime(e.target.value)}
                       className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm text-slate-100 outline-none focus:border-indigo-500 transition-colors"
                     />
                   </div>
