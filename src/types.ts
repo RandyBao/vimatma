@@ -3,7 +3,7 @@ export type VaultCategory = 'bank' | 'social' | 'web' | 'note' | 'wallet' | 'ewa
 export interface ReminderConfig {
   enabled: boolean;
   date: string;               // Định dạng YYYY-MM-DD
-  type: 'once' | 'yearly';    // Ví dụ: Nhắc một lần hoặc nhắc hàng năm (sinh nhật, ngày kỷ niệm)
+  type: 'once' | 'monthly' | 'yearly';    // Ví dụ: Nhắc một lần, nhắc hàng tháng hoặc nhắc hàng năm (sinh nhật, ngày kỷ niệm)
   message?: string;           // Lời nhắc tùy chỉnh (ví dụ: "Sinh nhật vợ yêu ❤️")
 }
 

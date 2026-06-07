@@ -66,6 +66,7 @@ export const translations = {
     rem_daysPassed: 'Đã qua {n} ngày',
     rem_quickView: 'Xem nhanh →',
     rem_yearly: 'Hàng năm 🎂',
+    rem_monthly: 'Hàng tháng 📅',
     rem_once: 'Một lần 📌',
 
     // Sidebar
@@ -368,6 +369,7 @@ export const translations = {
     rem_daysPassed: '{n} days passed',
     rem_quickView: 'Locate item →',
     rem_yearly: 'Annually 🎂',
+    rem_monthly: 'Monthly 📅',
     rem_once: 'One-time 📌',
 
     // Sidebar

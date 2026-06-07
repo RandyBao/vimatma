@@ -27,7 +27,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
   // Reminder Fields
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderDate, setReminderDate] = useState('');
-  const [reminderType, setReminderType] = useState<'once' | 'yearly'>('yearly');
+  const [reminderType, setReminderType] = useState<'once' | 'monthly' | 'yearly'>('yearly');
   const [reminderMessage, setReminderMessage] = useState('');
 
   // Bank Specific Fields
@@ -2011,11 +2011,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       {_('Chu kỳ lặp lại', 'Repeat Cycle')}
                     </label>
                     <select
+                      id="form-repeat-cycle"
                       value={reminderType}
-                      onChange={(e) => setReminderType(e.target.value as 'once' | 'yearly')}
+                      onChange={(e) => setReminderType(e.target.value as 'once' | 'monthly' | 'yearly')}
                       className="w-full px-3 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm text-slate-100 outline-none focus:border-indigo-500 transition-colors cursor-pointer"
                     >
                       <option value="yearly">{_('Hàng năm (như Sinh nhật, Ngày kỷ niệm)', 'Annually (like Birthday, Anniversary)')}</option>
+                      <option value="monthly">{_('Hàng tháng (như Tiền nhà, Đóng phí dịch vụ)', 'Monthly (like Rent, Subscriptions, Bills)')}</option>
                       <option value="once">{_('Sự kiện 1 lần (như Hạn chót, Hẹn làm việc)', 'Once (like Deadline, Task appoint)')}</option>
                     </select>
                   </div>

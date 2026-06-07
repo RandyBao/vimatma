@@ -20,8 +20,8 @@ import { VaultEntry, VaultCategory, CustomCategory, GoogleSheetEntry } from './t
 import { encryptText } from './utils/crypto';
 import { LangType, translations } from './utils/lang';
 
-// Tính toán ngày nhắc nhở còn lại (hỗ trợ nhắc nhở một lần hoặc lặp lại hàng năm như sinh nhật)
-function getReminderDaysLeft(reminderDateStr: string, reminderType: 'once' | 'yearly'): { daysLeft: number; isToday: boolean; formattedDate: string } {
+// Tính toán ngày nhắc nhở còn lại (hỗ trợ nhắc nhở một lần, hàng tháng hoặc lặp lại hàng năm như sinh nhật)
+function getReminderDaysLeft(reminderDateStr: string, reminderType: 'once' | 'monthly' | 'yearly'): { daysLeft: number; isToday: boolean; formattedDate: string } {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -47,6 +47,24 @@ function getReminderDaysLeft(reminderDateStr: string, reminderType: 'once' | 'ye
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     if (diffDays > 3) {
       targetDate.setFullYear(currentYear + 1);
+    }
+  } else if (reminderType === 'monthly') {
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    
+    // Tìm ngày thích hợp cho tháng hiện tại (vd: nếu rDay là 31 nhưng tháng này chỉ có 30 ngày)
+    const daysInThisMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const actualDay = Math.min(rDay, daysInThisMonth);
+    targetDate = new Date(currentYear, currentMonth, actualDay, 0, 0, 0, 0);
+    
+    const diffMs = today.getTime() - targetDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    // Nếu ngày nhắc tháng này đã qua quá 1 ngày, chuyển sang tháng kế tiếp
+    if (diffDays > 1) {
+      const nextMonth = currentMonth + 1;
+      const daysInNextMonth = new Date(currentYear, nextMonth + 1, 0).getDate();
+      const actualNextDay = Math.min(rDay, daysInNextMonth);
+      targetDate = new Date(currentYear, nextMonth, actualNextDay, 0, 0, 0, 0);
     }
   }
 
@@ -1650,7 +1668,7 @@ export default function App() {
                   </div>
                   
                   <div className="mt-3.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                    <span>{reminder.type === 'yearly' ? t.rem_yearly : t.rem_once}</span>
+                    <span>{reminder.type === 'yearly' ? t.rem_yearly : reminder.type === 'monthly' ? t.rem_monthly : t.rem_once}</span>
                     <span className="text-indigo-400 font-semibold">{t.rem_quickView}</span>
                   </div>
                 </div>
