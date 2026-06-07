@@ -45,6 +45,11 @@ export interface WebAccountEntry extends BaseVaultEntry {
   websiteUrl: string;
   username: string;
   password?: string;
+  email?: string;
+  payoutEmail?: string;
+  pinCode?: string;
+  creatorHandle?: string;
+  apiKey?: string;
 }
 
 export interface SecureNoteEntry extends BaseVaultEntry {

@@ -49,6 +49,11 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [webUsername, setWebUsername] = useState('');
   const [webPassword, setWebPassword] = useState('');
+  const [webEmail, setWebEmail] = useState('');
+  const [webPayoutEmail, setWebPayoutEmail] = useState('');
+  const [webPinCode, setWebPinCode] = useState('');
+  const [webCreatorHandle, setWebCreatorHandle] = useState('');
+  const [webApiKey, setWebApiKey] = useState('');
 
   // Note Specific Fields
   const [noteContent, setNoteContent] = useState('');
@@ -163,9 +168,15 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         setSocialPassword(editingEntry.password || '');
         setSocialUrl(editingEntry.url || '');
       } else if (editingEntry.category === 'web') {
-        setWebsiteUrl(editingEntry.websiteUrl || '');
-        setWebUsername(editingEntry.username || '');
-        setWebPassword(editingEntry.password || '');
+        const webEntry = editingEntry as any;
+        setWebsiteUrl(webEntry.websiteUrl || '');
+        setWebUsername(webEntry.username || '');
+        setWebPassword(webEntry.password || '');
+        setWebEmail(webEntry.email || '');
+        setWebPayoutEmail(webEntry.payoutEmail || '');
+        setWebPinCode(webEntry.pinCode || '');
+        setWebCreatorHandle(webEntry.creatorHandle || '');
+        setWebApiKey(webEntry.apiKey || '');
       } else if (editingEntry.category === 'note') {
         setNoteContent(editingEntry.content || '');
       } else if (editingEntry.category === 'wallet') {
@@ -246,6 +257,11 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setWebsiteUrl('');
       setWebUsername('');
       setWebPassword('');
+      setWebEmail('');
+      setWebPayoutEmail('');
+      setWebPinCode('');
+      setWebCreatorHandle('');
+      setWebApiKey('');
 
       setNoteContent('');
 
@@ -459,6 +475,11 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         websiteUrl: websiteUrl.trim(),
         username: webUsername.trim(),
         password: webPassword.trim() || undefined,
+        email: webEmail.trim() || undefined,
+        payoutEmail: webPayoutEmail.trim() || undefined,
+        pinCode: webPinCode.trim() || undefined,
+        creatorHandle: webCreatorHandle.trim() || undefined,
+        apiKey: webApiKey.trim() || undefined,
       };
     } else if (activeTemplateType === 'note') {
       targetData = {
@@ -946,6 +967,103 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                         <KeyRound className="h-3.5 w-3.5" />
                       </button>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Optional Creator / Advanced Web fields */}
+              <div className="pt-3 border-t border-slate-900 mt-3 space-y-3">
+                <div className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">
+                  {_('Thông tin bổ sung cho Creator / Web App (Ko-fi, Patreon, Paypal,...)', 'Additional Creator & Web App Info (eg. Ko-fi, Patreon, Paypal...)')}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">
+                      {_('Email liên kết riêng', 'Associated Email')}
+                    </label>
+                    <input
+                      id="form-web-email"
+                      type="email"
+                      placeholder={_('Ví dụ: contact@creator.com...', 'e.g. contact@creator.com...')}
+                      value={webEmail}
+                      onChange={(e) => setWebEmail(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-900 rounded-lg text-xs text-slate-250 focus:border-emerald-500/50 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">
+                      {_('Biệt danh / Creator Handle (@)', 'Creator Handle (@)')}
+                    </label>
+                    <input
+                      id="form-web-handle"
+                      type="text"
+                      placeholder={_('Ví dụ: @my-nickname...', 'e.g. @my-nickname...')}
+                      value={webCreatorHandle}
+                      onChange={(e) => setWebCreatorHandle(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-900 rounded-lg text-xs text-slate-250 focus:border-emerald-500/50 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">
+                      {_('Cổng nhận tiền / Payout Address', 'Payout Receiver (e.g. PayPal)')}
+                    </label>
+                    <input
+                      id="form-web-payout"
+                      type="text"
+                      placeholder={_('Ví dụ: paypal.me/nickname...', 'e.g. paypal.me/nickname...')}
+                      value={webPayoutEmail}
+                      onChange={(e) => setWebPayoutEmail(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-950 border border-slate-900 rounded-lg text-xs text-slate-250 focus:border-emerald-500/50 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">
+                      {_('Mã PIN / Passcode bảo mật', 'Security PIN Code')}
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="form-web-pin"
+                        type={showFormSecrets['webPin'] ? 'text' : 'password'}
+                        placeholder={_('Mã PIN phụ nếu có...', 'Security PIN if any...')}
+                        value={webPinCode}
+                        onChange={(e) => setWebPinCode(e.target.value)}
+                        className="w-full pl-3 pr-8 py-1.5 bg-slate-950 border border-slate-900 rounded-lg text-xs text-slate-250 focus:border-emerald-500/50 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => toggleFormSecrets('webPin')}
+                        className="absolute right-2 top-2 text-slate-500 hover:text-slate-300 transition-colors"
+                      >
+                        {showFormSecrets['webPin'] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">
+                    {_('Mã API / Webhook Token', 'API Authorization Key / Token')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="form-web-apikey"
+                      type={showFormSecrets['webApiKey'] ? 'text' : 'password'}
+                      placeholder={_('Nhập API key / Token liên kết tại đây...', 'Paste your developer token / Webhook API auth...')}
+                      value={webApiKey}
+                      onChange={(e) => setWebApiKey(e.target.value)}
+                      className="w-full pl-3 pr-8 py-1.5 bg-slate-950 border border-slate-900 rounded-lg text-xs text-slate-250 focus:border-emerald-500/50 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleFormSecrets('webApiKey')}
+                      className="absolute right-2 top-2 text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      {showFormSecrets['webApiKey'] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
                   </div>
                 </div>
               </div>

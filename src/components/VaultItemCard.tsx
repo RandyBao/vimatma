@@ -777,6 +777,11 @@ export default function VaultItemCard({
               <>
                 <RenderField label="Tài khoản / Email" value={entry.username} />
                 {entry.password && <RenderField label="Mật khẩu" value={entry.password} secretKey="webPass" />}
+                {(entry as any).email && <RenderField label={currentLang === 'vi' ? "Email liên kết riêng" : "Associated Email"} value={(entry as any).email} />}
+                {(entry as any).creatorHandle && <RenderField label={currentLang === 'vi' ? "Biệt danh / Handle (@)" : "Creator Handle (@)"} value={(entry as any).creatorHandle} />}
+                {(entry as any).payoutEmail && <RenderField label={currentLang === 'vi' ? "Cổng nhận tiền / Payout" : "Payout Receiver"} value={(entry as any).payoutEmail} />}
+                {(entry as any).pinCode && <RenderField label={currentLang === 'vi' ? "Mã PIN bảo mật" : "Security PIN Code"} value={(entry as any).pinCode} secretKey="webPin" />}
+                {(entry as any).apiKey && <RenderField label={currentLang === 'vi' ? "Mã API / Token" : "API Key / Token"} value={(entry as any).apiKey} secretKey="webApiKey" fontMono />}
                 {entry.websiteUrl && (
                   <div className="flex flex-col gap-1 py-1.5 text-left">
                     <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider font-mono">Website</span>
@@ -1267,6 +1272,11 @@ export default function VaultItemCard({
               <>
                 <RenderField label="Tài khoản / Email" value={entry.username} />
                 {entry.password && <RenderField label="Mật khẩu" value={entry.password} secretKey="webPass" />}
+                {(entry as any).email && <RenderField label={currentLang === 'vi' ? "Email liên kết riêng" : "Associated Email"} value={(entry as any).email} />}
+                {(entry as any).creatorHandle && <RenderField label={currentLang === 'vi' ? "Biệt danh / Handle (@)" : "Creator Handle (@)"} value={(entry as any).creatorHandle} />}
+                {(entry as any).payoutEmail && <RenderField label={currentLang === 'vi' ? "Cổng nhận tiền / Payout" : "Payout Receiver"} value={(entry as any).payoutEmail} />}
+                {(entry as any).pinCode && <RenderField label={currentLang === 'vi' ? "Mã PIN bảo mật" : "Security PIN Code"} value={(entry as any).pinCode} secretKey="webPin" />}
+                {(entry as any).apiKey && <RenderField label={currentLang === 'vi' ? "Mã API / Token" : "API Key / Token"} value={(entry as any).apiKey} secretKey="webApiKey" fontMono />}
                 {entry.websiteUrl && (
                   <div id="website-link-container" className="flex flex-col gap-1 py-1.5 text-left">
                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider font-mono">Website</span>
