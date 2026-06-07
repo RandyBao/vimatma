@@ -28,6 +28,19 @@
     <!-- Register service worker -->
     <script>
       if ('serviceWorker' in navigator) {
+        let refreshing = false;
+
+        // Automatically reload the page when a new service worker takes control (claiming clients)
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          // Only reload if we already had a controlling service worker (avoids reload on first-ever install)
+          if (navigator.serviceWorker.controller) {
+            refreshing = true;
+            console.log('[PWA] Hệ thống đã phát hiện bản cập nhật mới! Tự động làm mới ứng dụng...');
+            window.location.reload();
+          }
+        });
+
         window.addEventListener('load', () => {
           // Robust path resolver for GitHub Pages / subfolders vs standard custom domains & Vercel
           let swPath = './sw.js';
@@ -42,10 +55,29 @@
           navigator.serviceWorker.register(swPath)
             .then((reg) => {
               console.log('PWA Service Worker registered successfully:', reg.scope);
+
+              // Periodic background update check every 5 minutes if online
+              setInterval(() => {
+                if (navigator.onLine) {
+                  reg.update().catch(err => console.debug('[PWA] Periodic update check failed:', err));
+                }
+              }, 5 * 60 * 1000); // 5 minutes
             })
             .catch((err) => {
               console.log('PWA Service Worker registration failed:', err);
             });
+        });
+
+        // Check for updates instantly whenever the app is brought back to focus / unlocked on mobile
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            navigator.serviceWorker.ready.then((reg) => {
+              if (navigator.onLine) {
+                console.log('[PWA] App focused. Checking for updates...');
+                reg.update().catch(err => console.debug('[PWA] Focus-triggered update check failed:', err));
+              }
+            });
+          }
         });
       }
     </script>

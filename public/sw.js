@@ -1,9 +1,10 @@
 // Programmatically calculate BASE_PATH based on where this service worker is placed.
 // For e.g. on Vercel: "/sw.js" -> ""
 // For GitHub Pages: "/quanlimatkhau/sw.js" -> "/quanlimatkhau"
+// Last Updated: 2026-06-07T10:08:00Z (Fast PWA Hot Reload Update)
 const SW_PATH = self.location.pathname;
 const BASE_PATH = SW_PATH.substring(0, SW_PATH.lastIndexOf('/')) || '';
-const CACHE_NAME = 'secure-vault-cache-v3';
+const CACHE_NAME = 'secure-vault-cache-v4';
 
 // Standard static files to cache initially
 const ASSETS_TO_CACHE = [
