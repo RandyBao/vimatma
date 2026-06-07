@@ -1831,13 +1831,13 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
               <label className="block text-sm font-semibold text-slate-300 mb-2">
                 {_('Ghi chú thêm', 'Additional Notes')}
               </label>
-              <input
+              <textarea
                 id="form-add-notes"
-                type="text"
                 placeholder={_('Ví dụ: Câu hỏi bảo mật, tài khoản phụ...', 'e.g. Additional recovery backup hints, question safety answers...')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm"
+                className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm min-h-[80px] resize-y"
+                rows={3}
               />
             </div>
           )}

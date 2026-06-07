@@ -1070,7 +1070,7 @@ export default function VaultItemCard({
 
         {/* Notes block */}
         {isExpanded && entry.notes && entry.category !== 'note' && (
-          <div className="mt-2.5 pt-2 border-t border-slate-850 text-slate-400 text-sm text-left italic select-text">
+          <div className="mt-2.5 pt-2 border-t border-slate-850 text-slate-400 text-sm text-left italic select-text whitespace-pre-wrap">
             <span className="font-semibold text-slate-500 not-italic">{currentLang === 'vi' ? 'Lưu ý: ' : 'Observations: '}</span> {entry.notes}
           </div>
         )}
@@ -1561,7 +1561,7 @@ export default function VaultItemCard({
 
       {/* Footer Notes or dates if prompt */}
       {isExpanded && entry.notes && entry.category !== 'note' && (
-        <div id="notes-footer" className="mt-3 pt-2 border-t border-slate-850 text-sm text-slate-350 leading-relaxed italic line-clamp-3 select-text text-left">
+        <div id="notes-footer" className="mt-3 pt-2 border-t border-slate-850 text-sm text-slate-350 leading-relaxed italic select-text text-left whitespace-pre-wrap">
           <span className="font-semibold text-slate-500 not-italic">Lưu ý: </span>
           {entry.notes}
         </div>
