@@ -31,16 +31,80 @@ export default function SpreadsheetWorkspaceModal({
   const [syncSuccess, setSyncSuccess] = useState(false);
   const [isDirty, setIsDirty] = useState(false); // check if there are unsaved manual edits
   const [lastSyncTime, setLastSyncTime] = useState<number | undefined>(undefined);
+  const [colWidths, setColWidths] = useState<number[]>([]);
+
+  // Calculate optimal width for a single column based on headers & rows
+  const handleDoubleClickResizer = (colIdx: number) => {
+    const headerLen = (headers[colIdx] || '').length;
+    const maxCellLen = rows.reduce((max, r) => Math.max(max, (r[colIdx] || '').length), 0);
+    const charCount = Math.max(headerLen, maxCellLen);
+    const autoWidth = Math.max(130, Math.min(500, charCount * 8.2 + 56));
+    setColWidths((prev) => {
+      const next = [...prev];
+      next[colIdx] = Math.round(autoWidth);
+      return next;
+    });
+  };
+
+  // Auto-fit function calculating optimal column widths for all columns based on content
+  const handleAutoFitWidths = (customHeaders?: string[], customRows?: string[][]) => {
+    const hSource = customHeaders || headers;
+    const rSource = customRows || rows;
+    if (!hSource || hSource.length === 0) return;
+
+    const newWidths = hSource.map((hdr, colIdx) => {
+      const headerLen = (hdr || '').length;
+      const maxCellLen = rSource.reduce((max, r) => {
+        const val = r[colIdx] || '';
+        return Math.max(max, val.length);
+      }, 0);
+      const charCount = Math.max(headerLen, maxCellLen);
+      const estimatedWidth = Math.max(130, Math.min(500, charCount * 8.2 + 56));
+      return Math.round(estimatedWidth);
+    });
+
+    setColWidths(newWidths);
+  };
+
+  // Add event listener for header resize on drag
+  const handleMouseDown = (colIdx: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = colWidths[colIdx] || 160;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const newWidth = Math.max(90, startWidth + deltaX);
+      setColWidths((prev) => {
+        const next = [...prev];
+        next[colIdx] = newWidth;
+        return next;
+      });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
 
   // Load entry data when it is opened or changed
   useEffect(() => {
     if (isOpen && entry) {
-      setHeaders(entry.headers || [currentLang === 'vi' ? 'Cột 1' : 'Col 1', currentLang === 'vi' ? 'Cột 2' : 'Col 2', currentLang === 'vi' ? 'Cột 3' : 'Col 3']);
-      setRows(entry.rows || [['', '', ''], ['', '', '']]);
+      const initialHeaders = entry.headers || [currentLang === 'vi' ? 'Cột 1' : 'Col 1', currentLang === 'vi' ? 'Cột 2' : 'Col 2', currentLang === 'vi' ? 'Cột 3' : 'Col 3'];
+      const initialRows = entry.rows || [['', '', ''], ['', '', '']];
+      setHeaders(initialHeaders);
+      setRows(initialRows);
       setLastSyncTime(entry.lastSyncTime);
       setSyncError('');
       setSyncSuccess(false);
       setIsDirty(false);
+
+      // Automatically trigger initial fit for pleasant reading experience
+      handleAutoFitWidths(initialHeaders, initialRows);
     }
   }, [isOpen, entry]);
 
@@ -93,6 +157,7 @@ export default function SpreadsheetWorkspaceModal({
     const newColName = currentLang === 'vi' ? `Cột ${headers.length + 1}` : `Col ${headers.length + 1}`;
     setHeaders([...headers, newColName]);
     setRows(rows.map(row => [...row, '']));
+    setColWidths([...colWidths, 160]);
     setIsDirty(true);
   };
 
@@ -107,6 +172,7 @@ export default function SpreadsheetWorkspaceModal({
       const updatedRows = rows.map(r => r.filter((_, idx) => idx !== colIndex));
       setHeaders(updatedHeaders);
       setRows(updatedRows);
+      setColWidths(colWidths.filter((_, idx) => idx !== colIndex));
       setIsDirty(true);
     }
   };
@@ -185,6 +251,7 @@ export default function SpreadsheetWorkspaceModal({
         setLastSyncTime(Date.now());
         setSyncSuccess(true);
         setIsDirty(true); // marked dirty so changes are ready to be saved locally
+        handleAutoFitWidths(pulledHeaders, pulledRows);
       } else {
         // Private google sheet mode integration
         const token = window.prompt(currentLang === 'vi' ? "Nhập Google OAuth Access Token để thao tác bảng tính an toàn:" : "Enter Google OAuth Access Token for secure sheet access:");
@@ -207,11 +274,15 @@ export default function SpreadsheetWorkspaceModal({
           throw new Error(currentLang === 'vi' ? 'Dữ liệu trống.' : 'Spreadsheet contains no data values.');
         }
 
-        setHeaders(data.values[0]);
-        setRows(data.values.slice(1));
+        const syncHeaders = data.values[0];
+        const syncRows = data.values.slice(1);
+
+        setHeaders(syncHeaders);
+        setRows(syncRows);
         setLastSyncTime(Date.now());
         setSyncSuccess(true);
         setIsDirty(true);
+        handleAutoFitWidths(syncHeaders, syncRows);
       }
     } catch (err: any) {
       console.error(err);
@@ -443,6 +514,16 @@ export default function SpreadsheetWorkspaceModal({
               <Columns className="h-3.5 w-3.5" />
               <span>{currentLang === 'vi' ? 'Thêm cột cột' : 'Add New Column'}</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => handleAutoFitWidths()}
+              className="px-3 py-1.5 bg-slate-900 hover:bg-emerald-500/15 border border-slate-800 hover:border-emerald-500/30 text-emerald-400/90 hover:text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              title={currentLang === 'vi' ? 'Tự động tính đóng/mở rộng độ rộng tất cả các cột cho vừa vặn nhất dựa trên dữ liệu' : 'Autofit widths of all columns based on content length'}
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              <span>{currentLang === 'vi' ? 'Tự co giãn cột' : 'Auto-fit Columns'}</span>
+            </button>
           </div>
         </div>
 
@@ -453,13 +534,21 @@ export default function SpreadsheetWorkspaceModal({
               <tr className="bg-slate-900/60 font-bold">
                 <th className="p-2 border-r border-slate-850 text-center text-[11px] text-slate-500 select-none bg-slate-950 w-12 sticky left-0 z-20">#</th>
                 {headers.map((hdr, colIdx) => (
-                  <th key={colIdx} className="p-1 px-1 border-r border-slate-850 text-emerald-400 font-bold bg-slate-950 min-w-[150px]">
-                    <div className="flex items-center justify-between group px-1">
+                  <th 
+                    key={colIdx} 
+                    className="p-1 px-1 border-r border-slate-850 text-emerald-400 font-bold bg-slate-950 relative overflow-hidden group"
+                    style={{ 
+                      width: `${colWidths[colIdx] || 160}px`,
+                      minWidth: `${colWidths[colIdx] || 160}px`,
+                      maxWidth: `${colWidths[colIdx] || 160}px` 
+                    }}
+                  >
+                    <div className="flex items-center justify-between px-1 pr-3">
                       <input
                         type="text"
                         value={hdr || ''}
                         onChange={(e) => handleHeaderChange(colIdx, e.target.value)}
-                        className="w-full bg-transparent text-xs font-bold text-emerald-400 px-1 py-1 outline-none text-left rounded border-b border-transparent focus:bg-slate-900 border-dashed focus:border-emerald-500/50"
+                        className="w-full bg-transparent text-xs font-bold text-emerald-400 px-1 py-1 outline-none text-left rounded border-b border-transparent focus:bg-slate-900 border-dashed focus:border-emerald-500/50 truncate"
                         placeholder={currentLang === 'vi' ? `Cột ${colIdx + 1}` : `Column ${colIdx + 1}`}
                       />
                       <button
@@ -471,6 +560,14 @@ export default function SpreadsheetWorkspaceModal({
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
+
+                    {/* Resizer control handle bar */}
+                    <div
+                      onMouseDown={(e) => handleMouseDown(colIdx, e)}
+                      onDoubleClick={() => handleDoubleClickResizer(colIdx)}
+                      className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-emerald-500/40 active:bg-emerald-500/80 transition-all z-20"
+                      title={currentLang === 'vi' ? 'Kéo để co giãn • Click đúp để tự động vừa khít' : 'Drag to resize • Double click to auto-fit'}
+                    />
                   </th>
                 ))}
                 <th className="p-2 w-14 border-r border-slate-850">{currentLang === 'vi' ? 'Thao tác' : 'Actions'}</th>
@@ -505,6 +602,11 @@ export default function SpreadsheetWorkspaceModal({
                           <td 
                             key={colIdx} 
                             className="p-0 border-r border-slate-900/45 focus-within:bg-slate-900/30 transition-colors"
+                            style={{ 
+                              width: `${colWidths[colIdx] || 160}px`,
+                              minWidth: `${colWidths[colIdx] || 160}px`,
+                              maxWidth: `${colWidths[colIdx] || 160}px` 
+                            }}
                           >
                             <div className="relative w-full flex items-center group/cell">
                               <input
