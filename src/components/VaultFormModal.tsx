@@ -115,6 +115,31 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
   const [isSecret, setIsSecret] = useState(false);
   const [isSafeForTravel, setIsSafeForTravel] = useState(false);
 
+  // Bill Specific Fields State
+  const [billType, setBillType] = useState<'finance' | 'utility' | 'app'>('finance');
+  const [billCycle, setBillCycle] = useState<'monthly' | 'yearly'>('monthly');
+  
+  // Finance fields
+  const [billFinanceProduct, setBillFinanceProduct] = useState('');
+  const [billFinanceContract, setBillFinanceContract] = useState('');
+  const [billFinanceName, setBillFinanceName] = useState('');
+  const [billFinanceDueDate, setBillFinanceDueDate] = useState('');
+  const [billFinanceAmount, setBillFinanceAmount] = useState('');
+
+  // Utility fields
+  const [billUtilityServiceType, setBillUtilityServiceType] = useState<'electricity' | 'water' | 'wifi' | 'rent_house' | 'rent_car' | 'parking'>('electricity');
+  const [billUtilityName, setBillUtilityName] = useState('');
+  const [billUtilityCustomerId, setBillUtilityCustomerId] = useState('');
+  const [billUtilityPeriod, setBillUtilityPeriod] = useState('Tháng 1');
+  const [billUtilityAmount, setBillUtilityAmount] = useState('');
+
+  // App fields
+  const [billAppName, setBillAppName] = useState('');
+  const [billAppContact, setBillAppContact] = useState('');
+  const [billAppPaymentMethod, setBillAppPaymentMethod] = useState('ewallet');
+  const [billAppDueDate, setBillAppDueDate] = useState('');
+  const [billAppAmount, setBillAppAmount] = useState('');
+
   // Find which template style to use
   const activeTemplateType = (() => {
     if (customCategories) {
@@ -223,6 +248,28 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         setDriveMediaType(dEntry.mediaType || 'video');
         setDriveLink(dEntry.driveLink || '');
         setIsDriveOptimized(dEntry.isOptimized !== false);
+      } else if (editingEntry.category === 'bill') {
+        const bEntry = editingEntry as any;
+        setBillType(bEntry.billType || 'finance');
+        setBillCycle(bEntry.billCycle || 'monthly');
+        
+        setBillFinanceProduct(bEntry.productName || '');
+        setBillFinanceContract(bEntry.contractNumber || '');
+        setBillFinanceName(bEntry.holderName || '');
+        setBillFinanceDueDate(bEntry.dueDate || '');
+        setBillFinanceAmount(bEntry.amount || '');
+
+        setBillUtilityServiceType(bEntry.utilityType || 'electricity');
+        setBillUtilityName(bEntry.utilityName || '');
+        setBillUtilityCustomerId(bEntry.customerId || '');
+        setBillUtilityPeriod(bEntry.billingPeriod || 'Tháng 1');
+        setBillUtilityAmount(bEntry.amount || '');
+
+        setBillAppName(bEntry.billAppName || '');
+        setBillAppContact(bEntry.linkedAccount || '');
+        setBillAppPaymentMethod(bEntry.paymentMethod || 'ewallet');
+        setBillAppDueDate(bEntry.dueDate || '');
+        setBillAppAmount(bEntry.amount || '');
       }
     } else {
       // Clear forms
@@ -232,6 +279,24 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setIsFavorite(false);
       setIsSecret(false);
       setIsSafeForTravel(false);
+
+      setBillType('finance');
+      setBillCycle('monthly');
+      setBillFinanceProduct('');
+      setBillFinanceContract('');
+      setBillFinanceName('');
+      setBillFinanceDueDate('');
+      setBillFinanceAmount('');
+      setBillUtilityServiceType('electricity');
+      setBillUtilityName('');
+      setBillUtilityCustomerId('');
+      setBillUtilityPeriod('Tháng 1');
+      setBillUtilityAmount('');
+      setBillAppName('');
+      setBillAppContact('');
+      setBillAppPaymentMethod('ewallet');
+      setBillAppDueDate('');
+      setBillAppAmount('');
 
       setReminderEnabled(false);
       setReminderDate('');
@@ -545,6 +610,44 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         driveLink: driveLink.trim(),
         isOptimized: isDriveOptimized,
       };
+    } else if (activeTemplateType === 'bill') {
+      targetData = {
+        ...targetData,
+        category: 'bill',
+        billType,
+        billCycle,
+        
+        // Finance fields
+        productName: billType === 'finance' ? billFinanceProduct.trim() : undefined,
+        contractNumber: billType === 'finance' ? billFinanceContract.trim() : undefined,
+        holderName: billType === 'finance' ? billFinanceName.trim() : billType === 'utility' ? billUtilityName.trim() : undefined,
+        dueDate: billType === 'finance' ? billFinanceDueDate : billType === 'app' ? billAppDueDate : undefined,
+        amount: billType === 'finance' ? billFinanceAmount.trim() : billType === 'utility' ? billUtilityAmount.trim() : billType === 'app' ? billAppAmount.trim() : undefined,
+
+        // Utility fields
+        utilityType: billType === 'utility' ? billUtilityServiceType : undefined,
+        customerId: billType === 'utility' ? billUtilityCustomerId.trim() : undefined,
+        billingPeriod: billType === 'utility' ? billUtilityPeriod.trim() : undefined,
+
+        // App fields
+        billAppName: billType === 'app' ? billAppName.trim() : undefined,
+        linkedAccount: billType === 'app' ? billAppContact.trim() : undefined,
+        paymentMethod: billType === 'app' ? billAppPaymentMethod.trim() : undefined,
+      };
+
+      // Auto generate/override reminder if a due date is filled
+      const derivedDueDate = billType === 'finance' ? billFinanceDueDate : billType === 'app' ? billAppDueDate : undefined;
+      if (derivedDueDate) {
+        targetData.reminder = {
+          enabled: true,
+          date: derivedDueDate,
+          type: billCycle === 'monthly' ? 'monthly' : 'yearly',
+          message: billType === 'finance' 
+            ? `${_('Đến hạn thanh toán', 'Payment due')}: ${billFinanceProduct.trim()}`
+            : `${_('Hạn gia hạn App', 'App renewal due')}: ${billAppName.trim()}`,
+          time: '09:00'
+        };
+      }
     }
 
     // Travel Mode & Password History logic for PRO users
@@ -617,7 +720,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                 {_('Loại lưu trữ', 'Locker Category')}
               </label>
               <div className="grid grid-cols-5 gap-1.5">
-                {(['bank', 'social', 'web', 'wallet', 'ewallet', 'phoneapp', 'sheet', 'note', 'gdrive'] as VaultCategory[])
+                {(['bank', 'social', 'web', 'wallet', 'ewallet', 'phoneapp', 'sheet', 'note', 'gdrive', 'bill'] as VaultCategory[])
                   .filter(cat => isPro ? true : (cat !== 'sheet' && cat !== 'gdrive'))
                   .map((cat) => {
                   let visualText = '';
@@ -627,10 +730,11 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     if (cat === 'web') visualText = 'Website & App';
                     if (cat === 'wallet') visualText = 'Ví Crypto';
                     if (cat === 'ewallet') visualText = 'Ví Điện Tử';
-                    if (cat === 'phoneapp') visualText = 'Ứng Dụng Di Động';
+                    if (cat === 'phoneapp') visualText = 'App Di Động';
                     if (cat === 'sheet') visualText = 'Bảng Tính';
                     if (cat === 'note') visualText = 'Ghi Chú';
                     if (cat === 'gdrive') visualText = 'Bảo Mật Drive';
+                    if (cat === 'bill') visualText = 'Hóa Đơn';
                   } else {
                     if (cat === 'bank') visualText = 'Bank Account';
                     if (cat === 'social') visualText = 'Social Media';
@@ -641,6 +745,125 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     if (cat === 'sheet') visualText = 'Spreadsheet';
                     if (cat === 'note') visualText = 'Secure Notes';
                     if (cat === 'gdrive') visualText = 'Secure Drive';
+                    if (cat === 'bill') visualText = 'Bill / Invoice';
+                  }
+
+                  if (cat === 'bill') {
+                    return (
+                      <div key={cat} className="relative group col-span-1">
+                        <button
+                          id={`cat-select-${cat}`}
+                          type="button"
+                          onClick={() => {
+                            setCategory('bill');
+                            setBillType('finance');
+                          }}
+                          className={`w-full h-10 flex items-center justify-center text-center px-0.5 text-[10px] sm:text-[11px] font-semibold rounded-xl border transition-all cursor-pointer ${
+                            category === cat
+                              ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold shadow-lg shadow-emerald-500/5'
+                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                          }`}
+                        >
+                          {visualText} ▾
+                        </button>
+                        <div className="absolute left-1/2 -translate-x-1/2 mt-1 w-36 bg-slate-950 border border-slate-800 rounded-xl py-1 shadow-lg hidden group-hover:block hover:block z-30 animate-fade-in text-[10.5px] space-y-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategory('bill');
+                              setBillType('finance');
+                            }}
+                            className={`w-full text-left px-2.5 py-1 hover:bg-slate-900 transition-colors ${billType === 'finance' && category === 'bill' ? 'text-emerald-400 font-bold' : 'text-slate-350'}`}
+                          >
+                            💼 {_('Tài chính', 'Finance')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategory('bill');
+                              setBillType('utility');
+                              setBillUtilityServiceType('electricity');
+                            }}
+                            className={`w-full text-left px-2.5 py-1 hover:bg-slate-900 transition-colors ${billType === 'utility' && billUtilityServiceType === 'electricity' && category === 'bill' ? 'text-emerald-400 font-bold' : 'text-slate-350'}`}
+                          >
+                            ⚡ {_('Điện', 'Electricity')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategory('bill');
+                              setBillType('utility');
+                              setBillUtilityServiceType('water');
+                            }}
+                            className={`w-full text-left px-2.5 py-1 hover:bg-slate-900 transition-colors ${billType === 'utility' && billUtilityServiceType === 'water' && category === 'bill' ? 'text-emerald-400 font-bold' : 'text-slate-350'}`}
+                          >
+                            💧 {_('Nước', 'Water')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategory('bill');
+                              setBillType('utility');
+                              setBillUtilityServiceType('wifi');
+                            }}
+                            className={`w-full text-left px-2.5 py-1 hover:bg-slate-900 transition-colors ${billType === 'utility' && billUtilityServiceType === 'wifi' && category === 'bill' ? 'text-emerald-400 font-bold' : 'text-slate-350'}`}
+                          >
+                            📶 {_('Wifi', 'Wifi')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategory('bill');
+                              setBillType('utility');
+                              setBillUtilityServiceType('rent_house');
+                            }}
+                            className={`w-full text-left px-2.5 py-1 hover:bg-slate-900 transition-colors ${billType === 'utility' && billUtilityServiceType === 'rent_house' && category === 'bill' ? 'text-emerald-400 font-bold' : 'text-slate-350'}`}
+                          >
+                            🏠 {_('Thuê nhà', 'House Rent')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategory('bill');
+                              setBillType('utility');
+                              setBillUtilityServiceType('rent_car');
+                            }}
+                            className={`w-full text-left px-2.5 py-1 hover:bg-slate-900 transition-colors ${billType === 'utility' && billUtilityServiceType === 'rent_car' && category === 'bill' ? 'text-emerald-400 font-bold' : 'text-slate-350'}`}
+                          >
+                            🚗 {_('Thuê xe', 'Car Rental')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategory('bill');
+                              setBillType('utility');
+                              setBillUtilityServiceType('parking');
+                            }}
+                            className={`w-full text-left px-2.5 py-1 hover:bg-slate-900 transition-colors ${billType === 'utility' && billUtilityServiceType === 'parking' && category === 'bill' ? 'text-emerald-400 font-bold' : 'text-slate-350'}`}
+                          >
+                            🅿️ {_('Tiền gửi xe', 'Parking Fee')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCategory('bill');
+                              setBillType('app');
+                            }}
+                            className={`w-full text-left px-2.5 py-1 hover:bg-slate-900 transition-colors ${billType === 'app' && category === 'bill' ? 'text-emerald-400 font-bold' : 'text-slate-350'}`}
+                          >
+                            📱 {_('App / Thuê bao', 'Apps')}
+                          </button>
+                        </div>
+                      </div>
+                    );
                   }
 
                   return (
@@ -649,9 +872,9 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       key={cat}
                       type="button"
                       onClick={() => setCategory(cat)}
-                      className={`text-center py-2 px-1 text-[11px] font-semibold rounded-xl border transition-all cursor-pointer ${
+                      className={`w-full h-10 flex items-center justify-center text-center px-0.5 text-[10px] sm:text-[11px] font-semibold rounded-xl border transition-all cursor-pointer ${
                         category === cat
-                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-semibold shadow-lg shadow-emerald-500/5 col-span-2'
+                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold shadow-lg shadow-emerald-500/5'
                           : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                       }`}
                     >
@@ -1899,6 +2122,405 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
             </div>
           )}
 
+          {/* Bill and Invoices Segment */}
+          {activeTemplateType === 'bill' && (
+            <div className="space-y-4 border-l border-emerald-500 pl-4 py-1 animate-fade-in">
+              {/* Type Switcher tabs: Finance / Utilities / App */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                  {_('Phân loại hóa đơn / Chi phí', 'Bill Category')}
+                </label>
+                <div className="grid grid-cols-3 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-850">
+                  <button
+                    type="button"
+                    onClick={() => setBillType('finance')}
+                    className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                      billType === 'finance'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    💼 {_('Tài chính', 'Finance')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBillType('utility');
+                      setBillUtilityServiceType('electricity');
+                    }}
+                    className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                      billType === 'utility'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    💧 {_('Điện / Nước / Wifi', 'Utilities')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBillType('app')}
+                    className={`py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                      billType === 'app'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    📱 {_('App / Thuê bao', 'Apps')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Cycle frequency switcher: Monthly or Yearly */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                  {_('Chu kỳ thanh toán', 'Billing Frequency')}
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="radio"
+                      name="billCycle"
+                      checked={billCycle === 'monthly'}
+                      onChange={() => setBillCycle('monthly')}
+                      className="rounded border-slate-850 text-emerald-500 bg-slate-950 focus:ring-emerald-500 pointer-events-auto cursor-pointer"
+                    />
+                    <span>{_('Hàng tháng', 'Monthly')}</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="radio"
+                      name="billCycle"
+                      checked={billCycle === 'yearly'}
+                      onChange={() => setBillCycle('yearly')}
+                      className="rounded border-slate-850 text-emerald-500 bg-slate-950 focus:ring-emerald-500 pointer-events-auto cursor-pointer"
+                    />
+                    <span>{_('Hàng năm', 'Annually')}</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* SEGMENT FOR FINANCE */}
+              {billType === 'finance' && (
+                <div className="space-y-4 pt-1 animate-fade-in">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                      {_('Sản phẩm tài chính / Gói vay', 'Product / Loan Package')} <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required={category === 'bill' && billType === 'finance'}
+                      placeholder={_('Ví dụ: Vay mua nhà Shinhan, Bảo hiểm Manulife...', 'e.g., Home Loan, Insurance policy...')}
+                      value={billFinanceProduct}
+                      onChange={(e) => {
+                        setBillFinanceProduct(e.target.value);
+                        if (!title) setTitle(e.target.value);
+                      }}
+                      className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm placeholder-slate-705 outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 font-sans">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        {_('Số hợp đồng', 'Contract ID / Policy No')}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={_('Ví dụ: HD-1203-99A...', 'e.g., PL-9923-B2...')}
+                        value={billFinanceContract}
+                        onChange={(e) => setBillFinanceContract(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-mono text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        {_('Tên khách hàng / Đại diện', 'Representative Name')}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={_('Nhập tên đại diện...', 'Who pays...')}
+                        value={billFinanceName}
+                        onChange={(e) => setBillFinanceName(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 text-slate-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 font-sans">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                        <span>{_('Hạn thanh toán', 'Due Date')}</span>
+                        <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded-md font-bold">Báo thức</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={billFinanceDueDate}
+                        onChange={(e) => setBillFinanceDueDate(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 text-slate-300 h-[38px] cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        {_('Số tiền cần đóng', 'Due Amount')}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={_('Ví dụ: 2.500.000...', 'e.g., $150.00...')}
+                        value={billFinanceAmount}
+                        onChange={(e) => setBillFinanceAmount(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-bold text-emerald-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SEGMENT FOR UTILITIES (Electricity / Water / Wifi) */}
+              {billType === 'utility' && (
+                <div className="space-y-4 pt-1 animate-fade-in font-sans">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                      {_('Lựa chọn Dịch vụ', 'Service Type')}
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+                      <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer select-none font-semibold">
+                        <input
+                          type="radio"
+                          name="utilityType"
+                          checked={billUtilityServiceType === 'electricity'}
+                          onChange={() => {
+                            setBillUtilityServiceType('electricity');
+                            if (!title || title.includes('Điện') || title.includes('Nước') || title.includes('Wifi') || title.includes('nhà') || title.includes('xe')) {
+                              setTitle(lang === 'vi' ? 'Hóa đơn tiền Điện' : 'Electricity Bill');
+                            }
+                          }}
+                          className="rounded border-slate-850 text-amber-500 bg-slate-950 focus:ring-amber-500 cursor-pointer shrink-0"
+                        />
+                        <span className="flex items-center gap-1 text-amber-400">⚡ {_('Báo Điện', 'Electricity')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer select-none font-semibold">
+                        <input
+                          type="radio"
+                          name="utilityType"
+                          checked={billUtilityServiceType === 'water'}
+                          onChange={() => {
+                            setBillUtilityServiceType('water');
+                            if (!title || title.includes('Điện') || title.includes('Nước') || title.includes('Wifi') || title.includes('nhà') || title.includes('xe')) {
+                              setTitle(lang === 'vi' ? 'Hóa đơn tiền Nước' : 'Water Bill');
+                            }
+                          }}
+                          className="rounded border-slate-850 text-cyan-500 bg-slate-950 focus:ring-cyan-500 cursor-pointer shrink-0"
+                        />
+                        <span className="flex items-center gap-1 text-cyan-400">💧 {_('Báo Nước', 'Water')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer select-none font-semibold">
+                        <input
+                          type="radio"
+                          name="utilityType"
+                          checked={billUtilityServiceType === 'wifi'}
+                          onChange={() => {
+                            setBillUtilityServiceType('wifi');
+                            if (!title || title.includes('Điện') || title.includes('Nước') || title.includes('Wifi') || title.includes('nhà') || title.includes('xe')) {
+                              setTitle(lang === 'vi' ? 'Hóa đơn Wifi Internet' : 'Wifi Internet Bill');
+                            }
+                          }}
+                          className="rounded border-slate-850 text-indigo-500 bg-slate-950 focus:ring-indigo-500 cursor-pointer shrink-0"
+                        />
+                        <span className="flex items-center gap-1 text-indigo-400">📶 {_('Mạng Wifi', 'Wifi')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer select-none font-semibold">
+                        <input
+                          type="radio"
+                          name="utilityType"
+                          checked={billUtilityServiceType === 'rent_house'}
+                          onChange={() => {
+                            setBillUtilityServiceType('rent_house');
+                            if (!title || title.includes('Điện') || title.includes('Nước') || title.includes('Wifi') || title.includes('nhà') || title.includes('xe')) {
+                              setTitle(lang === 'vi' ? 'Tiền Thuê nhà / Căn hộ' : 'House Rent');
+                            }
+                          }}
+                          className="rounded border-slate-850 text-emerald-500 bg-slate-950 focus:ring-emerald-500 cursor-pointer shrink-0"
+                        />
+                        <span className="flex items-center gap-1 text-emerald-400">🏠 {_('Thuê nhà', 'House Rent')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer select-none font-semibold">
+                        <input
+                          type="radio"
+                          name="utilityType"
+                          checked={billUtilityServiceType === 'rent_car'}
+                          onChange={() => {
+                            setBillUtilityServiceType('rent_car');
+                            if (!title || title.includes('Điện') || title.includes('Nước') || title.includes('Wifi') || title.includes('nhà') || title.includes('xe')) {
+                              setTitle(lang === 'vi' ? 'Tiền Thuê xe tự lái' : 'Car Rental Bill');
+                            }
+                          }}
+                          className="rounded border-slate-850 text-orange-500 bg-slate-950 focus:ring-orange-500 cursor-pointer shrink-0"
+                        />
+                        <span className="flex items-center gap-1 text-orange-400">🚗 {_('Thuê xe', 'Car Rental')}</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer select-none font-semibold">
+                        <input
+                          type="radio"
+                          name="utilityType"
+                          checked={billUtilityServiceType === 'parking'}
+                          onChange={() => {
+                            setBillUtilityServiceType('parking');
+                            if (!title || title.includes('Điện') || title.includes('Nước') || title.includes('Wifi') || title.includes('nhà') || title.includes('xe')) {
+                              setTitle(lang === 'vi' ? 'Biểu phí gửi xe / thẻ xe' : 'Parking Fee');
+                            }
+                          }}
+                          className="rounded border-slate-850 text-sky-500 bg-slate-950 focus:ring-sky-500 cursor-pointer shrink-0"
+                        />
+                        <span className="flex items-center gap-1 text-sky-400">🅿️ {_('Tiền gửi xe', 'Parking Fee')}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                      {_('Tên đứng tên / Người thụ hưởng', 'Bill Beneficiary')}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={_('Ví dụ: Nguyễn Văn A...', 'e.g., Alex Johnson...')}
+                      value={billUtilityName}
+                      onChange={(e) => setBillUtilityName(e.target.value)}
+                      className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 text-slate-100"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        {_('Mã khách hàng / Danh bộ', 'Customer ID / Code')} <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required={category === 'bill' && billType === 'utility'}
+                        placeholder={_('Ví dụ: PE1300021303, DB-12...', 'e.g., EN-881230...')}
+                        value={billUtilityCustomerId}
+                        onChange={(e) => setBillUtilityCustomerId(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-mono tracking-wider text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        {_('Kỳ thanh toán (1-12)', 'Billing Period (1-12)')}
+                      </label>
+                      <select
+                        value={billUtilityPeriod}
+                        onChange={(e) => setBillUtilityPeriod(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 h-[38px] text-slate-300 text-xs sm:text-sm"
+                      >
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                          <option key={m} value={lang === 'vi' ? `Tháng ${m} (Kỳ ${m})` : `Month ${m} (Cycle ${m})`}>
+                            {lang === 'vi' ? `Kỳ ${m} (Tháng ${m})` : `Cycle ${m} (Month ${m})`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                      {_('Số tiền cần đóng', 'Utility Bill Amount')}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={_('Ví dụ: 350.000 VNĐ...', 'e.g., $45.00...')}
+                      value={billUtilityAmount}
+                      onChange={(e) => setBillUtilityAmount(e.target.value)}
+                      className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-bold text-emerald-400"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* SEGMENT FOR APP SUBSCRIPTIONS */}
+              {billType === 'app' && (
+                <div className="space-y-4 pt-1 animate-fade-in font-sans">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        {_('Tên ứng dụng / App', 'Application Name')} <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required={category === 'bill' && billType === 'app'}
+                        placeholder={_('Ví dụ: CapCut, So9, Netflix...', 'e.g., Netflix, CapCut, Spotify...')}
+                        value={billAppName}
+                        onChange={(e) => {
+                          setBillAppName(e.target.value);
+                          if (!title) setTitle(e.target.value);
+                        }}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 text-slate-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        {_('SĐT / Email liên kết', 'Linked Email / Phone')}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={_('Ví dụ: user@example.com, sđt...', 'e.g., user@email.com...')}
+                        value={billAppContact}
+                        onChange={(e) => setBillAppContact(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 text-slate-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        {_('Thanh toán qua', 'Linked Account / Card')}
+                      </label>
+                      <select
+                        value={billAppPaymentMethod}
+                        onChange={(e) => setBillAppPaymentMethod(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 h-[38px] text-slate-300"
+                      >
+                        <option value="ewallet">{_('📱 Ví Điện Tử (Momo, Zalopay...)', 'E-Wallet (Paypal...)')}</option>
+                        <option value="bank_card">{_('💳 Thẻ Ngân Hàng (VISA, ATM...)', 'Bank Credit/ATM card')}</option>
+                        <option value="google_apple">{_('🛍️ Chợ Ứng Dụng (Google/Apple Pay)', 'In-App billing (Store)')}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-300 mb-1.5">
+                        {_('Số tiền gia hạn', 'Renewal Price')}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={_('Ví dụ: 199.000 VNĐ...', 'e.g., $9.99/mo...')}
+                        value={billAppAmount}
+                        onChange={(e) => setBillAppAmount(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-bold text-emerald-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                      <span>{_('Hạn gia hạn / Thanh toán', 'Renewal Deadline')}</span>
+                      <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded-md font-bold">Báo thức</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={billAppDueDate}
+                      onChange={(e) => setBillAppDueDate(e.target.value)}
+                      className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 text-slate-300 h-[38px] cursor-pointer"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* In-form Password Generator Popover */}
           {showPassGen && (
             <div className="bg-slate-950/40 p-1.5 rounded-2xl border border-slate-800">
@@ -1920,7 +2542,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
           )}
 
           {/* Advanced 2FA / TOTP Section */}
-          {activeTemplateType !== 'note' && activeTemplateType !== 'sheet' && (
+          {activeTemplateType !== 'note' && activeTemplateType !== 'sheet' && activeTemplateType !== 'bill' && (
             <div className="bg-slate-950/20 p-4 rounded-2xl border border-dashed border-slate-800 space-y-3">
               <div className="flex items-center gap-1.5 text-indigo-400">
                 <Shield className="h-4 w-4 shrink-0 text-indigo-400 animate-pulse" />

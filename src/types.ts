@@ -1,4 +1,4 @@
-export type VaultCategory = 'bank' | 'social' | 'web' | 'note' | 'wallet' | 'ewallet' | 'phoneapp' | 'sheet' | string;
+export type VaultCategory = 'bank' | 'social' | 'web' | 'note' | 'wallet' | 'ewallet' | 'phoneapp' | 'sheet' | 'bill' | string;
 
 export interface ReminderConfig {
   enabled: boolean;
@@ -115,7 +115,30 @@ export interface GoogleDriveFileEntry extends BaseVaultEntry {
   isOptimized?: boolean;    // Có tối ưu hóa link
 }
 
-export type VaultEntry = BankAccountEntry | SocialMediaEntry | WebAccountEntry | SecureNoteEntry | WalletEntry | EWalletEntry | PhoneAppEntry | GoogleSheetEntry | GoogleDriveFileEntry;
+export interface BillEntry extends BaseVaultEntry {
+  category: 'bill';
+  billType: 'finance' | 'utility' | 'app';
+  billCycle: 'monthly' | 'yearly';
+  
+  // Finance fields
+  productName?: string;       // Sản phẩm
+  contractNumber?: string;    // Số hợp đồng
+  holderName?: string;        // Tên (chủ hợp đồng / người đại diện)
+  dueDate?: string;           // Hạn thanh toán (YYYY-MM-DD)
+  amount?: string;            // Số tiền (vd: "350.000")
+
+  // Utility fields (Điện, Nước, Wifi)
+  utilityType?: 'electricity' | 'water' | 'wifi' | 'rent_house' | 'rent_car' | 'parking'; // Loại dịch vụ
+  customerId?: string;        // Mã khách hàng
+  billingPeriod?: string;     // Kỳ thanh toán (12 kỳ/12 tháng, vd: "Tháng 6")
+
+  // App/Subscription fields
+  billAppName?: string;       // Tên app (Capcut, So9...)
+  linkedAccount?: string;     // Mail / Số điện thoại liên kết
+  paymentMethod?: 'ewallet' | 'bank_card' | string; // Thanh toán qua (Ví điện tử, Thẻ ngân hàng)
+}
+
+export type VaultEntry = BankAccountEntry | SocialMediaEntry | WebAccountEntry | SecureNoteEntry | WalletEntry | EWalletEntry | PhoneAppEntry | GoogleSheetEntry | GoogleDriveFileEntry | BillEntry;
 
 export interface EncryptedDatabase {
   salt: string;          // hex string
@@ -128,5 +151,5 @@ export interface CustomCategory {
   id: string;
   label: string;
   count?: number;
-  iconType: 'bank' | 'social' | 'web' | 'wallet' | 'ewallet' | 'phoneapp' | 'sheet' | 'note' | 'gdrive';
+  iconType: 'bank' | 'social' | 'web' | 'wallet' | 'ewallet' | 'phoneapp' | 'sheet' | 'note' | 'gdrive' | 'bill';
 }

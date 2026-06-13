@@ -3,7 +3,7 @@ import {
   Star, CreditCard, Globe, Smartphone, FileText, 
   Lock, Eye, EyeOff, Copy, Check, Edit2, Trash2, ExternalLink, Wallet,
   Fingerprint, Table, Maximize2, ChevronDown, ChevronUp, Bell, Calendar, Timer, ShieldAlert,
-  History
+  History, Receipt
 } from 'lucide-react';
 import { VaultEntry, GoogleSheetEntry, CustomCategory } from '../types';
 import { generateTOTPCode } from '../utils/totp';
@@ -278,6 +278,10 @@ export default function VaultItemCard({
     if (entry.category === 'ewallet') return entry.pin || entry.phoneNumber;
     if (entry.category === 'phoneapp') return entry.passcode || entry.password || entry.username;
     if (entry.category === 'note') return entry.content;
+    if (entry.category === 'bill') {
+      const bEntry = entry as any;
+      return bEntry.amount || bEntry.customerId || bEntry.productName || bEntry.billAppName;
+    }
     return undefined;
   };
 
@@ -310,6 +314,29 @@ export default function VaultItemCard({
       const gEntry = entry as any;
       return `${gEntry.fileName || 'Tệp'} • ${gEntry.fileSize || '1GB+'}`;
     }
+    if (entry.category === 'bill') {
+      const bEntry = entry as any;
+      const amountStr = bEntry.amount ? ` • ${bEntry.amount}` : '';
+      const cycleStr = bEntry.billCycle === 'yearly' ? (currentLang === 'vi' ? 'Hàng năm' : 'Annually') : (currentLang === 'vi' ? 'Hàng tháng' : 'Monthly');
+      if (bEntry.billType === 'finance') {
+        return `${bEntry.productName || (currentLang === 'vi' ? 'Tài chính' : 'Finance')} (${cycleStr})${amountStr}`;
+      }
+      if (bEntry.billType === 'utility') {
+        let uLabel = '';
+        if (bEntry.utilityType === 'electricity') uLabel = currentLang === 'vi' ? 'Điện' : 'Electricity';
+        else if (bEntry.utilityType === 'water') uLabel = currentLang === 'vi' ? 'Nước' : 'Water';
+        else if (bEntry.utilityType === 'wifi') uLabel = currentLang === 'vi' ? 'Wifi' : 'Wifi';
+        else if (bEntry.utilityType === 'rent_house') uLabel = currentLang === 'vi' ? 'Thuê nhà' : 'House Rent';
+        else if (bEntry.utilityType === 'rent_car') uLabel = currentLang === 'vi' ? 'Thuê xe' : 'Car Rental';
+        else if (bEntry.utilityType === 'parking') uLabel = currentLang === 'vi' ? 'Gửi xe' : 'Parking Fee';
+        else uLabel = currentLang === 'vi' ? 'Khác' : 'Other';
+        return `${uLabel} • ${bEntry.customerId || ''}${amountStr}`;
+      }
+      if (bEntry.billType === 'app') {
+        return `${bEntry.billAppName || 'App'} (${cycleStr})${amountStr}`;
+      }
+      return `${currentLang === 'vi' ? 'Hóa đơn' : 'Bill'} (${cycleStr})${amountStr}`;
+    }
     return '';
   };
 
@@ -323,6 +350,7 @@ export default function VaultItemCard({
     if (entry.category === 'phoneapp') return entry.appName?.charAt(0) || 'A';
     if (entry.category === 'sheet') return entry.title?.charAt(0) || 'T';
     if (entry.category === 'gdrive') return 'D';
+    if (entry.category === 'bill') return 'H';
     return 'G';
   };
 
@@ -398,6 +426,13 @@ export default function VaultItemCard({
           bgColor: 'bg-indigo-500/10 border-indigo-500/20',
           badgeText: fallbackLabel || (currentLang === 'vi' ? 'Lưu trữ Drive' : 'Drive Link'),
           badgeColor: 'bg-indigo-500/25 text-indigo-300',
+        };
+      case 'bill':
+        return {
+          icon: <Receipt className="h-5 w-5 text-emerald-400" />,
+          bgColor: 'bg-emerald-500/10 border-emerald-500/20',
+          badgeText: fallbackLabel || (currentLang === 'vi' ? 'Hóa Đơn' : 'Bill Invoice'),
+          badgeColor: 'bg-emerald-500/25 text-emerald-300',
         };
       default:
         return {
@@ -1048,6 +1083,59 @@ export default function VaultItemCard({
                 )}
               </>
             )}
+
+            {entry.category === 'bill' && (
+              <>
+                <RenderField 
+                  label={currentLang === 'vi' ? 'Chu kỳ thanh toán' : 'Billing Cycle'} 
+                  value={(entry as any).billCycle === 'yearly' ? (currentLang === 'vi' ? 'Hàng năm' : 'Yearly') : (currentLang === 'vi' ? 'Hàng tháng' : 'Monthly')} 
+                />
+                
+                {(entry as any).billType === 'finance' && (
+                  <>
+                    <RenderField label={currentLang === 'vi' ? 'Sản phẩm tài chính' : 'Financial Product'} value={(entry as any).productName} />
+                    <RenderField label={currentLang === 'vi' ? 'Số hợp đồng' : 'Contract/Policy Number'} value={(entry as any).contractNumber} fontMono />
+                    <RenderField label={currentLang === 'vi' ? 'Chủ sở hữu' : 'Contract Owner'} value={(entry as any).name} />
+                    <RenderField label={currentLang === 'vi' ? 'Hạn thanh toán' : 'Due Date'} value={(entry as any).dueDate} fontMono />
+                    <RenderField label={currentLang === 'vi' ? 'Số tiền' : 'Amount'} value={(entry as any).amount} fontMono />
+                  </>
+                )}
+
+                {(entry as any).billType === 'utility' && (
+                  <>
+                    <RenderField 
+                      label={currentLang === 'vi' ? 'Loại dịch vụ' : 'Service Type'} 
+                      value={
+                        (entry as any).utilityType === 'electricity' ? (currentLang === 'vi' ? '⚡ Điện lực (EVN)' : 'Electricity') :
+                        (entry as any).utilityType === 'water' ? (currentLang === 'vi' ? '💧 Nước sạch' : 'Water Service') :
+                        (entry as any).utilityType === 'wifi' ? (currentLang === 'vi' ? '📶 Mạng Wifi / Internet' : 'Wifi / Internet') :
+                        (entry as any).utilityType === 'rent_house' ? (currentLang === 'vi' ? '🏠 Thuê nhà / Thuê căn hộ' : 'House Rent') :
+                        (entry as any).utilityType === 'rent_car' ? (currentLang === 'vi' ? '🚗 Thuê xe / Thuê xe tự lái' : 'Car Rental') :
+                        (entry as any).utilityType === 'parking' ? (currentLang === 'vi' ? '🅿️ Gửi xe / Vé xe tháng' : 'Parking Fee') :
+                        (currentLang === 'vi' ? 'Khác' : 'Other')
+                      } 
+                    />
+                    <RenderField label={currentLang === 'vi' ? 'Mã khách hàng' : 'Customer Code/ID'} value={(entry as any).customerId} fontMono />
+                    <RenderField label={currentLang === 'vi' ? 'Tên khách hàng' : 'Subscriber Name'} value={(entry as any).name} />
+                    <RenderField label={currentLang === 'vi' ? 'Kỳ đóng / Kỳ thanh toán' : 'Billing Period'} value={(entry as any).billingPeriod} />
+                    <RenderField label={currentLang === 'vi' ? 'Số tiền' : 'Amount'} value={(entry as any).amount} fontMono />
+                  </>
+                )}
+
+                {(entry as any).billType === 'app' && (
+                  <>
+                    <RenderField label={currentLang === 'vi' ? 'Tên dịch vụ/App' : 'Application / Service'} value={(entry as any).billAppName} />
+                    <RenderField label={currentLang === 'vi' ? 'Liên kết thông tin' : 'Linked Account Details'} value={(entry as any).appContact} />
+                    <RenderField 
+                      label={currentLang === 'vi' ? 'Thanh toán qua' : 'Payment Method'} 
+                      value={(entry as any).appPaymentMethod === 'ewallet' ? (currentLang === 'vi' ? 'Ví điện tử' : 'E-Wallet') : ((entry as any).appPaymentMethod === 'bank_card' ? (currentLang === 'vi' ? 'Thẻ Ngân Hàng' : 'Bank Credit Card') : (currentLang === 'vi' ? 'Chợ Ứng Dụng' : 'App Store Billing'))} 
+                    />
+                    <RenderField label={currentLang === 'vi' ? 'Ngày gia hạn bảo mật' : 'Renewal Due Date'} value={(entry as any).dueDate} fontMono />
+                    <RenderField label={currentLang === 'vi' ? 'Phí dịch vụ' : 'Subscription Cost'} value={(entry as any).amount} fontMono />
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -1540,6 +1628,59 @@ export default function VaultItemCard({
                       </div>
                     </div>
                   </div>
+                )}
+              </>
+            )}
+
+            {entry.category === 'bill' && (
+              <>
+                <RenderField 
+                  label={currentLang === 'vi' ? 'Chu kỳ thanh toán' : 'Billing Cycle'} 
+                  value={(entry as any).billCycle === 'yearly' ? (currentLang === 'vi' ? 'Hàng năm' : 'Yearly') : (currentLang === 'vi' ? 'Hàng tháng' : 'Monthly')} 
+                />
+                
+                {(entry as any).billType === 'finance' && (
+                  <>
+                    <RenderField label={currentLang === 'vi' ? 'Sản phẩm tài chính' : 'Financial Product'} value={(entry as any).productName} />
+                    <RenderField label={currentLang === 'vi' ? 'Số hợp đồng' : 'Contract/Policy Number'} value={(entry as any).contractNumber} fontMono />
+                    <RenderField label={currentLang === 'vi' ? 'Chủ sở hữu' : 'Contract Owner'} value={(entry as any).name} />
+                    <RenderField label={currentLang === 'vi' ? 'Hạn thanh toán' : 'Due Date'} value={(entry as any).dueDate} fontMono />
+                    <RenderField label={currentLang === 'vi' ? 'Số tiền' : 'Amount'} value={(entry as any).amount} fontMono />
+                  </>
+                )}
+
+                {(entry as any).billType === 'utility' && (
+                  <>
+                    <RenderField 
+                      label={currentLang === 'vi' ? 'Loại dịch vụ' : 'Service Type'} 
+                      value={
+                        (entry as any).utilityType === 'electricity' ? (currentLang === 'vi' ? '⚡ Điện lực (EVN)' : 'Electricity') :
+                        (entry as any).utilityType === 'water' ? (currentLang === 'vi' ? '💧 Nước sạch' : 'Water Service') :
+                        (entry as any).utilityType === 'wifi' ? (currentLang === 'vi' ? '📶 Mạng Wifi / Internet' : 'Wifi / Internet') :
+                        (entry as any).utilityType === 'rent_house' ? (currentLang === 'vi' ? '🏠 Thuê nhà / Thuê căn hộ' : 'House Rent') :
+                        (entry as any).utilityType === 'rent_car' ? (currentLang === 'vi' ? '🚗 Thuê xe / Thuê xe tự lái' : 'Car Rental') :
+                        (entry as any).utilityType === 'parking' ? (currentLang === 'vi' ? '🅿️ Gửi xe / Vé xe tháng' : 'Parking Fee') :
+                        (currentLang === 'vi' ? 'Khác' : 'Other')
+                      } 
+                    />
+                    <RenderField label={currentLang === 'vi' ? 'Mã khách hàng' : 'Customer Code/ID'} value={(entry as any).customerId} fontMono />
+                    <RenderField label={currentLang === 'vi' ? 'Tên khách hàng' : 'Subscriber Name'} value={(entry as any).name} />
+                    <RenderField label={currentLang === 'vi' ? 'Kỳ đóng / Kỳ thanh toán' : 'Billing Period'} value={(entry as any).billingPeriod} />
+                    <RenderField label={currentLang === 'vi' ? 'Số tiền' : 'Amount'} value={(entry as any).amount} fontMono />
+                  </>
+                )}
+
+                {(entry as any).billType === 'app' && (
+                  <>
+                    <RenderField label={currentLang === 'vi' ? 'Tên dịch vụ/App' : 'Application / Service'} value={(entry as any).billAppName} />
+                    <RenderField label={currentLang === 'vi' ? 'Liên kết thông tin' : 'Linked Account Details'} value={(entry as any).appContact} />
+                    <RenderField 
+                      label={currentLang === 'vi' ? 'Thanh toán qua' : 'Payment Method'} 
+                      value={(entry as any).appPaymentMethod === 'ewallet' ? (currentLang === 'vi' ? 'Ví điện tử' : 'E-Wallet') : ((entry as any).appPaymentMethod === 'bank_card' ? (currentLang === 'vi' ? 'Thẻ Ngân Hàng' : 'Bank Credit Card') : (currentLang === 'vi' ? 'Chợ Ứng Dụng' : 'App Store Billing'))} 
+                    />
+                    <RenderField label={currentLang === 'vi' ? 'Ngày gia hạn bảo mật' : 'Renewal Due Date'} value={(entry as any).dueDate} fontMono />
+                    <RenderField label={currentLang === 'vi' ? 'Phí dịch vụ' : 'Subscription Cost'} value={(entry as any).amount} fontMono />
+                  </>
                 )}
               </>
             )}
