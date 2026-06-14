@@ -115,6 +115,15 @@ export interface GoogleDriveFileEntry extends BaseVaultEntry {
   isOptimized?: boolean;    // Có tối ưu hóa link
 }
 
+export interface BillPaymentHistory {
+  id: string;
+  payDate: string;             // YYYY-MM-DD
+  period: string;              // e.g. "Tháng 6/2026"
+  amount: string;              // e.g. "350.000"
+  status: 'paid' | 'unpaid';
+  notes?: string;
+}
+
 export interface BillEntry extends BaseVaultEntry {
   category: 'bill';
   billType: 'finance' | 'utility' | 'app';
@@ -136,6 +145,9 @@ export interface BillEntry extends BaseVaultEntry {
   billAppName?: string;       // Tên app (Capcut, So9...)
   linkedAccount?: string;     // Mail / Số điện thoại liên kết
   paymentMethod?: 'ewallet' | 'bank_card' | string; // Thanh toán qua (Ví điện tử, Thẻ ngân hàng)
+
+  // Lịch sử thanh toán
+  paymentHistory?: BillPaymentHistory[];
 }
 
 export type VaultEntry = BankAccountEntry | SocialMediaEntry | WebAccountEntry | SecureNoteEntry | WalletEntry | EWalletEntry | PhoneAppEntry | GoogleSheetEntry | GoogleDriveFileEntry | BillEntry;

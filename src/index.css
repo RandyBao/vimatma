@@ -259,3 +259,42 @@ html {
   color: #93c5fd !important; /* Sky grey */
 }
 
+/* ==========================================================================
+   MOBILE & PERFORMANCE OPTIMIZATIONS (GITHUB & VERCEL OFFLINE READY)
+   ========================================================================== */
+html, body {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* smooth inertia scroll on iOS */
+  overscroll-behavior-y: contain; /* Prevents unwanted pull-down behavior */
+}
+
+/* Clear standard click overlays and optimize performance on touch devices */
+a, button, input, select, textarea, [role="button"], [onClick] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* Prevents double-tap zoom delay */
+}
+
+/* Custom sleek, unobtrusive webkit scrollbars for lists */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Soft scale effect on tap/click for interactive items */
+.active-press {
+  transition: transform 0.1s ease;
+}
+.active-press:active {
+  transform: scale(0.97);
+}
+

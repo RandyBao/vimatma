@@ -3,11 +3,12 @@ import {
   Star, CreditCard, Globe, Smartphone, FileText, 
   Lock, Eye, EyeOff, Copy, Check, Edit2, Trash2, ExternalLink, Wallet,
   Fingerprint, Table, Maximize2, ChevronDown, ChevronUp, Bell, Calendar, Timer, ShieldAlert,
-  History, Receipt
+  History, Receipt, PlusCircle
 } from 'lucide-react';
-import { VaultEntry, GoogleSheetEntry, CustomCategory } from '../types';
+import { VaultEntry, GoogleSheetEntry, CustomCategory, BillEntry, BillPaymentHistory } from '../types';
 import { generateTOTPCode } from '../utils/totp';
 import { translations } from '../utils/lang';
+import { formatDisplayAmount } from '../utils/currency';
 
 function TotpDisplay({ secret }: { secret: string }) {
   const currentLang = (localStorage.getItem('secure_vault_lang') as 'vi' | 'en') || 'vi';
@@ -95,6 +96,257 @@ function TotpDisplay({ secret }: { secret: string }) {
   );
 }
 
+function BillPaymentHistorySection({
+  entry,
+  onUpdateEntry,
+  currentLang
+}: {
+  entry: BillEntry;
+  onUpdateEntry?: (entry: VaultEntry) => void;
+  currentLang: 'vi' | 'en';
+}) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  
+  const formatAmountByLangLocal = (val: string, lang: 'vi' | 'en') => {
+    let raw = val.replace(/\D/g, '');
+    if (!raw) return '';
+    if (lang === 'en') {
+      return '$' + Number(raw).toLocaleString('en-US');
+    } else {
+      return Number(raw).toLocaleString('vi-VN') + ' đ';
+    }
+  };
+
+  const getRawNumericStringLocal = (val: string) => {
+    return val.replace(/\D/g, '');
+  };
+
+  const getDefaultPeriod = () => {
+    const today = new Date();
+    const mm = today.getMonth() + 1;
+    const yyyy = today.getFullYear();
+    return currentLang === 'vi' ? `Tháng ${mm}/${yyyy}` : `Month ${mm}/${yyyy}`;
+  };
+
+  const [period, setPeriod] = useState('');
+  const [payDate, setPayDate] = useState('');
+  const [amountInput, setAmountInput] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Sẽ đồng bộ hóa và tải giá trị mặc định của hóa đơn khi form được mở ra
+  useEffect(() => {
+    if (showAddForm) {
+      setPeriod(getDefaultPeriod());
+      
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      setPayDate(`${year}-${month}-${day}`);
+      
+      const defaultAmountRaw = entry.amount ? entry.amount.replace(/\D/g, '') : '';
+      if (defaultAmountRaw) {
+        setAmountInput(formatAmountByLangLocal(defaultAmountRaw, currentLang));
+      } else {
+        setAmountInput('');
+      }
+      setNotes('');
+    }
+  }, [showAddForm, entry.amount, currentLang]);
+
+  const handleAddRecord = () => {
+    if (!period.trim()) {
+      alert(currentLang === 'vi' ? 'Vui lòng nhập kỳ đóng.' : 'Please enter the billing period.');
+      return;
+    }
+    const rawAmt = getRawNumericStringLocal(amountInput) || '0';
+    const formattedAmount = formatAmountByLangLocal(rawAmt, currentLang) || '0';
+
+    const newRecord: BillPaymentHistory = {
+      id: `pay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      payDate,
+      period: period.trim(),
+      amount: formattedAmount,
+      status: 'paid',
+      notes: notes.trim() || undefined
+    };
+
+    const currentHistory = entry.paymentHistory || [];
+    const updatedHistory = [newRecord, ...currentHistory];
+
+    onUpdateEntry?.({
+      ...entry,
+      paymentHistory: updatedHistory
+    });
+
+    setShowAddForm(false);
+  };
+
+  const handleDeleteRecord = (recordId: string) => {
+    if (!confirm(currentLang === 'vi' ? 'Bạn có chắc chắn muốn xóa bản ghi thanh toán này?' : 'Are you sure you want to delete this payment record?')) {
+      return;
+    }
+    const currentHistory = entry.paymentHistory || [];
+    const updatedHistory = currentHistory.filter(h => h.id !== recordId);
+
+    onUpdateEntry?.({
+      ...entry,
+      paymentHistory: updatedHistory
+    });
+  };
+
+  const tr = {
+    title: currentLang === 'vi' ? 'LỊCH SỬ ĐÓNG HÓA ĐƠN' : 'PAYMENT HISTORY',
+    addBtn: currentLang === 'vi' ? 'Ghi nhận đóng tiền' : 'Record Payment',
+    period: currentLang === 'vi' ? 'Kỳ đóng / Kỳ thanh toán' : 'Billing Period',
+    payDate: currentLang === 'vi' ? 'Ngày đóng thực tế' : 'Date Paid',
+    amount: currentLang === 'vi' ? 'Số tiền thanh toán' : 'Amount Paid',
+    notes: currentLang === 'vi' ? 'Ghi chú thêm' : 'Notes / Comments',
+    save: currentLang === 'vi' ? 'Lưu lịch sử (Tối ưu)' : 'Save Record',
+    cancel: currentLang === 'vi' ? 'Hủy' : 'Cancel',
+    noHistory: currentLang === 'vi' ? 'Chưa ghi nhận lịch sử đóng tiền của hóa đơn này.' : 'No payment history recorded for this bill.',
+    actions: currentLang === 'vi' ? 'Thao tác' : 'Actions',
+  };
+
+  const historyList = entry.paymentHistory || [];
+
+  return (
+    <div className="mt-5 pt-4 border-t border-slate-805/60 font-sans" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center justify-between mb-3.5">
+        <label className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
+          <History className="h-4 w-4 text-emerald-500" />
+          <span>{tr.title}</span>
+        </label>
+        {!showAddForm && (
+          <button
+            type="button"
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-1.5 text-[11px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:text-white px-3 py-1.5 rounded-xl hover:bg-emerald-500/25 active:scale-95 transition-all cursor-pointer"
+          >
+            <PlusCircle className="h-3.5 w-3.5" />
+            <span>{tr.addBtn}</span>
+          </button>
+        )}
+      </div>
+
+      {showAddForm && (
+        <div className="p-4 bg-slate-950/40 border border-slate-800 rounded-2xl mb-4.5 space-y-4 animate-fade-in text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                {tr.period}
+              </label>
+              <input
+                type="text"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                placeholder="Tháng 06/2026"
+                className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-100 outline-none focus:border-emerald-500 font-sans"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                {tr.payDate}
+              </label>
+              <input
+                type="date"
+                value={payDate}
+                onChange={(e) => setPayDate(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-300 outline-none focus:border-emerald-500 h-[38px] cursor-pointer"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                {tr.amount}
+              </label>
+              <input
+                type="text"
+                value={amountInput}
+                onChange={(e) => setAmountInput(formatAmountByLangLocal(e.target.value, currentLang))}
+                placeholder={currentLang === 'vi' ? "0 đ" : "$0"}
+                className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm font-mono text-emerald-400 outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                {tr.notes}
+              </label>
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={currentLang === 'vi' ? "Ví dụ: Momo ví điện tử..." : "e.g., Credit card auto pay"}
+                className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-100 outline-none focus:border-emerald-500 font-sans"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2.5 pt-1 border-t border-slate-850/40">
+            <button
+              type="button"
+              onClick={() => setShowAddForm(false)}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-400 text-sm font-bold rounded-xl border border-slate-800 transition-colors"
+            >
+              {tr.cancel}
+            </button>
+            <button
+              type="button"
+              onClick={handleAddRecord}
+              className="px-4.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-sm font-black rounded-xl transition-colors shadow-lg shadow-emerald-500/10 cursor-pointer"
+            >
+              {tr.save}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {historyList.length === 0 ? (
+        <div className="text-center py-6 bg-slate-950/20 border border-dashed border-slate-800/80 rounded-2xl">
+          <p className="text-xs text-slate-500 font-sans">{tr.noHistory}</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-slate-800 shadow-sm max-h-[220px] overflow-y-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-black uppercase tracking-wider text-[9px] sticky top-0">
+                <th className="p-2.5 px-4">{tr.period}</th>
+                <th className="p-2.5 px-4">{tr.payDate}</th>
+                <th className="p-2.5 px-4">{tr.amount}</th>
+                <th className="p-2.5 px-4">{tr.notes}</th>
+                <th className="p-2.5 px-4 text-center w-12">{tr.actions}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 bg-slate-900/10">
+              {historyList.map((h) => (
+                <tr key={h.id} className="hover:bg-slate-950/30 transition-colors">
+                  <td className="p-2.5 px-4 text-slate-200 font-bold">{h.period}</td>
+                  <td className="p-2.5 px-4 text-slate-400 font-mono">
+                    {h.payDate.split('-').reverse().join('/')}
+                  </td>
+                  <td className="p-2.5 px-4 text-emerald-400 font-bold font-mono">{h.amount}</td>
+                  <td className="p-2.5 px-4 text-slate-400 max-w-[140px] truncate" title={h.notes}>
+                    {h.notes || '-'}
+                  </td>
+                  <td className="p-2.5 px-4 text-center">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteRecord(h.id)}
+                      className="p-1.5 hover:bg-rose-500/15 text-slate-500 hover:text-rose-400 rounded-lg transition-all cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface VaultItemCardProps {
   entry: VaultEntry;
   onEdit: (entry: VaultEntry) => void;
@@ -104,6 +356,9 @@ interface VaultItemCardProps {
   categories?: CustomCategory[];
   layoutMode?: 'grid' | 'table';
   hideCompactSummaries?: boolean;
+  onUpdateEntry?: (entry: VaultEntry) => void;
+  isFocused?: boolean;
+  onFocusToggle?: () => void;
 }
 
 export default function VaultItemCard({ 
@@ -114,12 +369,25 @@ export default function VaultItemCard({
   onOpenWorkspace,
   categories,
   layoutMode = 'grid',
-  hideCompactSummaries = false
+  hideCompactSummaries = false,
+  onUpdateEntry,
+  isFocused,
+  onFocusToggle
 }: VaultItemCardProps) {
   const [showSecrets, setShowSecrets] = useState<{ [key: string]: boolean }>({});
   const [showHistoryForField, setShowHistoryForField] = useState<{ [key: string]: boolean }>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpandedState, setIsExpandedState] = useState(false);
+  const isExpanded = isFocused !== undefined ? isFocused : isExpandedState;
+  
+  const toggleExpand = () => {
+    if (onFocusToggle) {
+      onFocusToggle();
+    } else {
+      setIsExpandedState(!isExpandedState);
+    }
+  };
+
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [launchInfoMessage, setLaunchInfoMessage] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -280,7 +548,7 @@ export default function VaultItemCard({
     if (entry.category === 'note') return entry.content;
     if (entry.category === 'bill') {
       const bEntry = entry as any;
-      return bEntry.amount || bEntry.customerId || bEntry.productName || bEntry.billAppName;
+      return bEntry.amount ? formatDisplayAmount(bEntry.amount, currentLang) : (bEntry.customerId || bEntry.productName || bEntry.billAppName);
     }
     return undefined;
   };
@@ -316,7 +584,7 @@ export default function VaultItemCard({
     }
     if (entry.category === 'bill') {
       const bEntry = entry as any;
-      const amountStr = bEntry.amount ? ` • ${bEntry.amount}` : '';
+      const amountStr = bEntry.amount ? ` • ${formatDisplayAmount(bEntry.amount, currentLang)}` : '';
       const cycleStr = bEntry.billCycle === 'yearly' ? (currentLang === 'vi' ? 'Hàng năm' : 'Annually') : (currentLang === 'vi' ? 'Hàng tháng' : 'Monthly');
       if (bEntry.billType === 'finance') {
         return `${bEntry.productName || (currentLang === 'vi' ? 'Tài chính' : 'Finance')} (${cycleStr})${amountStr}`;
@@ -451,7 +719,6 @@ export default function VaultItemCard({
     if (!value) return null;
     const isSecret = !!secretKey;
     const isShowing = isSecret ? !!showSecrets[secretKey] : true;
-    const displayValue = isShowing ? value : '••••••••••••';
     const uniqueKey = `${entry.id}-${secretKey || label}`;
 
     let translatedLabel = label;
@@ -492,6 +759,17 @@ export default function VaultItemCard({
       };
       translatedLabel = fieldTranslations[label] || label;
     }
+
+    const isAmountLabel = 
+      label === 'Số tiền' || 
+      label === 'Phí dịch vụ' || 
+      label === 'Amount' || 
+      label === 'Subscription Cost' ||
+      translatedLabel === 'Amount' ||
+      translatedLabel === 'Subscription Cost';
+
+    const cleanValue = isAmountLabel ? formatDisplayAmount(value, currentLang) : value;
+    const displayValue = isShowing ? cleanValue : '••••••••••••';
 
     const isPasswordField = secretKey && ['socPass', 'webPass', 'bankPass', 'walletPass', 'ewalletPass', 'phonepass'].includes(secretKey);
     const hasHistory = isPro && isPasswordField && (entry as any).passwordHistory && (entry as any).passwordHistory.length > 0;
@@ -600,7 +878,7 @@ export default function VaultItemCard({
     return (
       <div 
         id={`vault-row-${entry.id}`} 
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={toggleExpand}
         className={`bg-slate-900 border ${
           isExpanded ? 'border-emerald-500/40 bg-slate-900 shadow-md ring-1 ring-emerald-500/5' : 'border-slate-800/40 hover:border-slate-705 border-slate-800/80 hover:bg-slate-950/40'
         } rounded-xl p-3 px-4 sm:px-5 transition-all duration-300 flex flex-col justify-between group relative cursor-pointer select-none`}
@@ -778,7 +1056,7 @@ export default function VaultItemCard({
 
         {/* Categories specific field display when expanded */}
         {isExpanded && (
-          <div className="space-y-1 mt-3 pt-3 border-t border-slate-850/60 animate-fade-in select-text">
+          <div className="space-y-1 mt-3 pt-3 border-t border-slate-850/60 animate-fade-in select-text" onClick={(e) => e.stopPropagation()}>
             {entry.category === 'bank' && (
               <>
                 <RenderField label="Ngân hàng" value={entry.bankName} />
@@ -1134,6 +1412,8 @@ export default function VaultItemCard({
                     <RenderField label={currentLang === 'vi' ? 'Phí dịch vụ' : 'Subscription Cost'} value={(entry as any).amount} fontMono />
                   </>
                 )}
+
+                <BillPaymentHistorySection entry={entry as BillEntry} onUpdateEntry={onUpdateEntry} currentLang={currentLang} />
               </>
             )}
           </div>
@@ -1141,12 +1421,14 @@ export default function VaultItemCard({
 
         {/* 2FA Authenticator (Dynamic countdown) */}
         {isExpanded && entry.totpSecret && (
-          <TotpDisplay secret={entry.totpSecret} />
+          <div onClick={(e) => e.stopPropagation()}>
+            <TotpDisplay secret={entry.totpSecret} />
+          </div>
         )}
 
         {/* Reminder block */}
         {isExpanded && entry.reminder && entry.reminder.enabled && (
-          <div className="mt-3.5 p-3 bg-indigo-950/20 border border-indigo-500/20 rounded-xl flex items-start gap-2.5">
+          <div className="mt-3.5 p-3 bg-indigo-950/20 border border-indigo-500/20 rounded-xl flex items-start gap-2.5" onClick={(e) => e.stopPropagation()}>
             <div className="p-1.5 bg-indigo-500/15 rounded-lg text-indigo-400 shrink-0">
               <Bell className="h-4 w-4" />
             </div>
@@ -1163,7 +1445,7 @@ export default function VaultItemCard({
 
         {/* Notes block */}
         {isExpanded && entry.notes && entry.category !== 'note' && (
-          <div className="mt-2.5 pt-2 border-t border-slate-850 text-slate-400 text-sm text-left italic select-text whitespace-pre-wrap">
+          <div className="mt-2.5 pt-2 border-t border-slate-850 text-slate-400 text-sm text-left italic select-text whitespace-pre-wrap" onClick={(e) => e.stopPropagation()}>
             <span className="font-semibold text-slate-500 not-italic">{currentLang === 'vi' ? 'Lưu ý: ' : 'Observations: '}</span> {entry.notes}
           </div>
         )}
@@ -1186,7 +1468,7 @@ export default function VaultItemCard({
   return (
     <div 
       id={`vault-card-${entry.id}`} 
-      onClick={() => setIsExpanded(!isExpanded)}
+      onClick={toggleExpand}
       className={`bg-slate-900 border ${
         isExpanded ? 'border-emerald-500/45 bg-slate-900 shadow-lg ring-1 ring-emerald-500/10' : 'border-slate-800/60 hover:border-slate-700/85'
       } rounded-2xl p-5 hover:shadow-xl hover:shadow-slate-950/20 transition-all duration-300 flex flex-col justify-between group h-full relative cursor-pointer`}
@@ -1326,7 +1608,7 @@ export default function VaultItemCard({
 
         {/* Categories specific field display */}
         {isExpanded && (
-          <div className="space-y-1 mt-4 pt-3 border-t border-slate-850 animate-fade-in select-text">
+          <div className="space-y-1 mt-4 pt-3 border-t border-slate-850 animate-fade-in select-text" onClick={(e) => e.stopPropagation()}>
             {entry.category === 'bank' && (
               <>
                 <RenderField label="Ngân hàng" value={entry.bankName} />
@@ -1682,6 +1964,8 @@ export default function VaultItemCard({
                     <RenderField label={currentLang === 'vi' ? 'Phí dịch vụ' : 'Subscription Cost'} value={(entry as any).amount} fontMono />
                   </>
                 )}
+
+                <BillPaymentHistorySection entry={entry as BillEntry} onUpdateEntry={onUpdateEntry} currentLang={currentLang} />
               </>
             )}
           </div>
@@ -1689,13 +1973,15 @@ export default function VaultItemCard({
 
         {/* 2FA Authenticator (Dynamic countdown) */}
         {isExpanded && entry.totpSecret && (
-          <TotpDisplay secret={entry.totpSecret} />
+          <div onClick={(e) => e.stopPropagation()}>
+            <TotpDisplay secret={entry.totpSecret} />
+          </div>
         )}
       </div>
 
       {/* Reminder block */}
       {isExpanded && entry.reminder && entry.reminder.enabled && (
-        <div className="mt-3.5 p-3.5 bg-indigo-950/25 border border-indigo-500/20 rounded-xl flex items-start gap-3">
+        <div className="mt-3.5 p-3.5 bg-indigo-950/25 border border-indigo-500/20 rounded-xl flex items-start gap-3" onClick={(e) => e.stopPropagation()}>
           <div className="p-2 bg-indigo-500/15 rounded-lg text-indigo-400 shrink-0">
             <Bell className="h-4 w-4" />
           </div>
@@ -1712,7 +1998,7 @@ export default function VaultItemCard({
 
       {/* Footer Notes or dates if prompt */}
       {isExpanded && entry.notes && entry.category !== 'note' && (
-        <div id="notes-footer" className="mt-3 pt-2 border-t border-slate-850 text-sm text-slate-350 leading-relaxed italic select-text text-left whitespace-pre-wrap">
+        <div id="notes-footer" className="mt-3 pt-2 border-t border-slate-850 text-sm text-slate-350 leading-relaxed italic select-text text-left whitespace-pre-wrap" onClick={(e) => e.stopPropagation()}>
           <span className="font-semibold text-slate-500 not-italic">Lưu ý: </span>
           {entry.notes}
         </div>

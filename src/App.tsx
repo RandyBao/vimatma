@@ -5,7 +5,7 @@ import {
   FileText, ArrowUpDown, ChevronRight, RefreshCw, Layers, Wallet,
   Fingerprint, Table, ArrowUp, ArrowDown, Eye, EyeOff, ChevronUp, ChevronDown,
   Trash2, Edit2, LayoutGrid, List, Bell, Calendar, Clock, ShieldAlert, Sparkles, Gift,
-  Menu, X, Database, Gem, Vault
+  Menu, X, Database, Gem, Vault, ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LockScreen from './components/LockScreen';
@@ -16,7 +16,7 @@ import PasswordGenerator from './components/PasswordGenerator';
 import SecurityAudit from './components/SecurityAudit';
 import UpgradeModal from './components/UpgradeModal';
 import ProUtilities from './components/ProUtilities';
-import { VaultEntry, VaultCategory, CustomCategory, GoogleSheetEntry } from './types';
+import { VaultEntry, VaultCategory, CustomCategory, GoogleSheetEntry, BillEntry, BillPaymentHistory } from './types';
 import { encryptText } from './utils/crypto';
 import { LangType, translations } from './utils/lang';
 
@@ -74,6 +74,40 @@ function getReminderDaysLeft(reminderDateStr: string, reminderType: 'once' | 'mo
 
   return { daysLeft, isToday, formattedDate };
 }
+
+// Kiểm tra hóa đơn kỳ/tháng cụ thể đã thanh toán chưa
+const isPeriodPaid = (history: BillPaymentHistory[] | undefined, targetMonth: number, targetYear: number): boolean => {
+  if (!history || history.length === 0) return false;
+  return history.some(h => {
+    const cleanPeriod = h.period.toLowerCase();
+    const monthStr = String(targetMonth).padStart(2, '0');
+    return (
+      cleanPeriod.includes(`${monthStr}/${targetYear}`) ||
+      cleanPeriod.includes(`${targetMonth}/${targetYear}`) ||
+      (cleanPeriod.includes(monthStr) && cleanPeriod.includes(String(targetYear))) ||
+      (cleanPeriod.includes(String(targetMonth)) && cleanPeriod.includes(String(targetYear)))
+    );
+  });
+};
+
+// Kiểm tra xem hóa đơn có bị quá hạn không (đã qua hạn và chưa được thanh toán ghi lại)
+const isBillOverdue = (b: BillEntry, todayMidnight: Date): boolean => {
+  if (!b.dueDate) return false;
+  const dDate = new Date(b.dueDate);
+  if (isNaN(dDate.getTime())) return false;
+  
+  if (dDate.getTime() > todayMidnight.getTime()) return false;
+  
+  const m = dDate.getMonth() + 1;
+  const y = dDate.getFullYear();
+  
+  if (b.billCycle === 'yearly') {
+    const history = b.paymentHistory || [];
+    return !history.some(h => h.period.includes(String(y)));
+  } else {
+    return !isPeriodPaid(b.paymentHistory, m, y);
+  }
+};
 
 // Helpers for syncing/exporting reminders to standard calendars (Google & .ics)
 function getGoogleCalendarUrl(title: string, date: string, time?: string, message?: string): string {
@@ -334,6 +368,9 @@ export default function App() {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [showTrialAlmostExpiredModal, setShowTrialAlmostExpiredModal] = useState(false);
   const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
+  const [overdueBillsList, setOverdueBillsList] = useState<BillEntry[]>([]);
+  const [showOverdueBillsModal, setShowOverdueBillsModal] = useState(false);
+  const [focusedEntryId, setFocusedEntryId] = useState<string | null>(null);
   const [trialTimeLeftStr, setTrialTimeLeftStr] = useState('');
   const [appTheme, setAppTheme] = useState<string>(() => {
     return localStorage.getItem('secure_vault_theme') || 'slate';
@@ -443,6 +480,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isPro, lang]);
 
+  // Tự động tắt phóng to/tập trung nếu ghi chú được xóa
+  useEffect(() => {
+    if (focusedEntryId && !entries.some(e => e.id === focusedEntryId)) {
+      setFocusedEntryId(null);
+    }
+  }, [entries, focusedEntryId]);
+
   // Bộ đếm lùi và tự động bắt sự kiện tương tác để hoãn khóa kho
   useEffect(() => {
     if (!isUnlocked || effectiveAutoLockMinutes <= 0) {
@@ -534,6 +578,24 @@ export default function App() {
     
     setIsUnlocked(true);
     triggerToast(t.head_toastUnlocked, 'success');
+
+    // Kiểm tra và hiển thị nhắc nhở hóa đơn quá hạn chưa thanh toán
+    try {
+      const todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
+
+      const overdueList = decryptedEntries.filter(e => {
+        if (e.category !== 'bill') return false;
+        return isBillOverdue(e as BillEntry, todayMidnight);
+      }) as BillEntry[];
+
+      if (overdueList.length > 0) {
+        setOverdueBillsList(overdueList);
+        setShowOverdueBillsModal(true);
+      }
+    } catch (err) {
+      console.error('Error scanning overdue bills:', err);
+    }
   };
 
   // Lock vault / Log out safely
@@ -2573,82 +2635,133 @@ export default function App() {
                 </div>
               )}
 
-              {filteredEntries.length === 0 ? (
-                <div id="no-cards-placeholder" className="bg-slate-900 border border-slate-800/60 rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4">
-                  <div className="h-14 w-14 bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800 text-slate-500">
-                    <Shield className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-slate-200">{t.work_emptyTitle}</h3>
-                    <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto leading-relaxed">
-                      {searchQuery 
-                        ? t.work_emptySearch
-                        : t.work_emptyDesc}
-                    </p>
-                  </div>
-                  {!searchQuery && (
-                    <button
-                      id="placeholder-add-btn"
-                      type="button"
-                      onClick={handleCreateNew}
-                      className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold py-2.5 px-5 rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-emerald-500/5 mt-2"
+              {(() => {
+                const visibleEntries = focusedEntryId
+                  ? filteredEntries.filter((e) => e.id === focusedEntryId)
+                  : filteredEntries;
+            
+              return (
+                <div key={viewMode} className="w-full">
+                  {/* Chế độ Tập Trung Thao tác (Focus / Enlarge Mode Header) */}
+                  {focusedEntryId && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 rounded-2xl p-4 px-5 animate-fade-in text-left shadow-lg gap-4"
                     >
-                      <PlusCircle className="h-4 w-4" />
-                      <span>{t.work_createFirst}</span>
-                    </button>
+                      <div className="flex items-center gap-3">
+                        <span className="relative flex h-3.5 w-3.5 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                        </span>
+                        <div>
+                          <h4 className="text-sm font-black uppercase tracking-wider text-emerald-400 font-sans">
+                            {lang === 'vi' ? 'Chế độ Thao tác Tập trung' : 'Focused Operation Mode'}
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {lang === 'vi' 
+                              ? 'Đã ẩn các ghi chú khác ngoài màn hình để bạn dễ dàng sao chép bảo mật và thao tác riêng tư.' 
+                              : 'Hidden other credentials from screen. Safely view, copy or modify your details.'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFocusedEntryId(null)}
+                        className="px-4.5 py-2.5 bg-slate-800 hover:bg-slate-700 hover:text-white text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-700/80 flex items-center gap-2 active:scale-95 shadow-md shrink-0 w-full sm:w-auto justify-center"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        <span>{lang === 'vi' ? 'Quay lại danh sách' : 'Back to Checklist'}</span>
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {visibleEntries.length === 0 ? (
+                    <div id="no-cards-placeholder" className="bg-slate-900 border border-slate-800/60 rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4">
+                      <div className="h-14 w-14 bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800 text-slate-500">
+                        <Shield className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-200">{t.work_emptyTitle}</h3>
+                        <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto leading-relaxed">
+                          {searchQuery 
+                            ? t.work_emptySearch
+                            : t.work_emptyDesc}
+                        </p>
+                      </div>
+                      {!searchQuery && (
+                        <button
+                          id="placeholder-add-btn"
+                          type="button"
+                          onClick={handleCreateNew}
+                          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold py-2.5 px-5 rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-emerald-500/5 mt-2"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                          <span>{t.work_createFirst}</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : viewMode === 'grid' ? (
+                    <div className={focusedEntryId ? "flex flex-col items-center justify-center w-full" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"}>
+                      {visibleEntries.map((item) => (
+                        <motion.div
+                          id={`anim-wrapper-${item.id}`}
+                          key={item.id}
+                          layout
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.25 }}
+                          className={focusedEntryId ? "w-full max-w-3xl sm:max-w-4xl mx-auto shadow-2xl" : ""}
+                        >
+                          <VaultItemCard
+                            entry={item}
+                            onEdit={handleEditInit}
+                            onDelete={handleDeleteEntry}
+                            onToggleFavorite={handleToggleFavorite}
+                            onOpenWorkspace={handleOpenWorkspace}
+                            categories={categories}
+                            layoutMode="grid"
+                            hideCompactSummaries={hideCompactSummaries}
+                            onUpdateEntry={handleSaveEntry}
+                            isFocused={focusedEntryId === item.id}
+                            onFocusToggle={() => setFocusedEntryId(focusedEntryId === item.id ? null : item.id)}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div id="credentials-list-flow" className={focusedEntryId ? "flex flex-col gap-3 w-full max-w-4xl sm:max-w-5xl mx-auto" : "flex flex-col gap-3"}>
+                      {visibleEntries.map((item) => (
+                        <motion.div
+                          id={`anim-wrapper-${item.id}`}
+                          key={item.id}
+                          layout
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.98 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <VaultItemCard
+                            entry={item}
+                            onEdit={handleEditInit}
+                            onDelete={handleDeleteEntry}
+                            onToggleFavorite={handleToggleFavorite}
+                            onOpenWorkspace={handleOpenWorkspace}
+                            categories={categories}
+                            layoutMode="table"
+                            hideCompactSummaries={hideCompactSummaries}
+                            onUpdateEntry={handleSaveEntry}
+                            isFocused={focusedEntryId === item.id}
+                            onFocusToggle={() => setFocusedEntryId(focusedEntryId === item.id ? null : item.id)}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {filteredEntries.map((item) => (
-                    <motion.div
-                      id={`anim-wrapper-${item.id}`}
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      <VaultItemCard
-                        entry={item}
-                        onEdit={handleEditInit}
-                        onDelete={handleDeleteEntry}
-                        onToggleFavorite={handleToggleFavorite}
-                        onOpenWorkspace={handleOpenWorkspace}
-                        categories={categories}
-                        layoutMode="grid"
-                        hideCompactSummaries={hideCompactSummaries}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div id="credentials-list-flow" className="flex flex-col gap-3">
-                  {filteredEntries.map((item) => (
-                    <motion.div
-                      id={`anim-wrapper-${item.id}`}
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <VaultItemCard
-                        entry={item}
-                        onEdit={handleEditInit}
-                        onDelete={handleDeleteEntry}
-                        onToggleFavorite={handleToggleFavorite}
-                        onOpenWorkspace={handleOpenWorkspace}
-                        categories={categories}
-                        layoutMode="table"
-                        hideCompactSummaries={hideCompactSummaries}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
+              );
+            })()}
             </div>
           )}
         </section>
@@ -2967,6 +3080,129 @@ export default function App() {
                   className="w-full sm:w-auto py-3 px-5 border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer"
                 >
                   {lang === 'vi' ? 'Tiếp tục bản Free' : 'Use Basic Free'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* 3. Overdue Bill Reminders Modal */}
+        {showOverdueBillsModal && overdueBillsList.length > 0 && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-slate-950/70">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-amber-500/30 rounded-3xl p-6 shadow-[0_20px_50px_rgba(245,158,11,0.15)] overflow-hidden text-slate-200"
+            >
+              {/* Decorative side badge */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
+
+              {/* Header */}
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-400 shrink-0">
+                  <ShieldAlert className="h-7 w-7" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-lg font-black text-amber-400 tracking-wider uppercase font-sans">
+                    {lang === 'vi' ? 'Nhắc Nhở Đóng Hóa Đơn' : 'Bill Payment Reminder'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5 uppercase tracking-widest">
+                    {lang === 'vi' ? 'Hóa đơn đã đến hoặc quá hạn đóng' : 'Bills due or overdue'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowOverdueBillsModal(false)}
+                  className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors p-1"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Content / List of bills */}
+              <div className="mt-5 space-y-3.5 text-sm">
+                <p className="text-slate-300 font-medium leading-relaxed text-left">
+                  {lang === 'vi'
+                    ? `Phát hiện ${overdueBillsList.length} hóa đơn bảo mật đã đến hạn hoặc quá ngày thanh toán mà chưa ghi nhận lịch sử đóng tiền:`
+                    : `Detected ${overdueBillsList.length} bills that are due or overdue but have not been updated or recorded as paid:`}
+                </p>
+
+                <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
+                  {overdueBillsList.map((bill) => {
+                    // Calculate overdue days
+                    const daysDiff = bill.dueDate ? Math.floor((new Date().getTime() - new Date(bill.dueDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                    const isOverdue = daysDiff > 0;
+                    
+                    const billNameStr = 
+                      bill.billType === 'finance' ? bill.productName || 'Hóa đơn Tài chính' : 
+                      bill.billType === 'utility' ? (
+                        bill.utilityType === 'electricity' ? (lang === 'vi' ? '⚡ Tiền điện EVN' : 'Electricity Bill') :
+                        bill.utilityType === 'water' ? (lang === 'vi' ? '💧 Tiền nước sạch' : 'Water Bill') :
+                        bill.utilityType === 'wifi' ? (lang === 'vi' ? '📶 Tiền cáp Internet / Wifi' : 'Internet Bill') :
+                        bill.utilityType === 'rent_house' ? (lang === 'vi' ? '🏠 Tiền thuê căn hộ / nhà' : 'House Rent Bill') :
+                        bill.utilityType === 'rent_car' ? (lang === 'vi' ? '🚗 Tiền thuê xe tự lái' : 'Car Rental Bill') :
+                        bill.utilityType === 'parking' ? (lang === 'vi' ? '🅿️ Phí gửi giữ xe máy/ô tô' : 'Parking Bill') :
+                        (lang === 'vi' ? 'Tiền Tiện ích' : 'Utility Bill')
+                      ) : bill.billAppName || 'Subscription App';
+
+                    return (
+                      <div 
+                        key={bill.id} 
+                        onClick={() => {
+                          setActiveCategory('bill');
+                          setSearchQuery(bill.title || '');
+                          setShowOverdueBillsModal(false);
+                          triggerToast(
+                            lang === 'vi'
+                              ? `Đã lọc và hiển thị hóa đơn: ${bill.title}`
+                              : `Filtered for: ${bill.title}`,
+                            'info'
+                          );
+                        }}
+                        className="p-3 bg-slate-950/60 border border-slate-800/80 hover:border-amber-500/40 rounded-2xl flex items-center justify-between gap-3 transition-all cursor-pointer hover:bg-slate-950 text-left active:scale-[0.99]"
+                      >
+                        <div className="truncate flex-1">
+                          <div className="font-bold text-slate-100 truncate text-sm flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+                            {bill.title} <span className="text-xs font-normal text-slate-400 font-sans">({billNameStr})</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-mono mt-1 flex items-center gap-2">
+                            <span>{lang === 'vi' ? 'Hạn cuối:' : 'Due Date:'} {bill.dueDate ? bill.dueDate.split('-').reverse().join('/') : '-'}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${isOverdue ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-300'}`}>
+                              {isOverdue 
+                                ? (lang === 'vi' ? `Trễ ${daysDiff} ngày` : `${daysDiff}d Overdue`) 
+                                : (lang === 'vi' ? 'Hôm nay' : 'Due Today')}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono font-bold text-slate-100 text-xs">{bill.amount || '-'}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Footer buttons */}
+              <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory('bill');
+                    setSearchQuery('');
+                    setShowOverdueBillsModal(false);
+                  }}
+                  className="w-full sm:flex-1 py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-450 hover:to-amber-550 text-slate-950 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_4px_12px_rgba(245,158,11,0.15)] flex items-center justify-center gap-1.5 cursor-pointer border border-amber-300/20"
+                >
+                  {lang === 'vi' ? 'Đến mục Hóa đơn để cập nhật' : 'Go to Bills workspace'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowOverdueBillsModal(false)}
+                  className="w-full sm:w-auto py-3 px-5 border border-slate-800 hover:bg-slate-850 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer"
+                >
+                  {lang === 'vi' ? 'Bỏ qua' : 'Dismiss'}
                 </button>
               </div>
             </motion.div>

@@ -3,6 +3,7 @@ import { X, ShieldAlert, KeyRound, Eye, EyeOff, Shield, Lock } from 'lucide-reac
 import { VaultEntry, VaultCategory, CustomCategory } from '../types';
 import PasswordGenerator from './PasswordGenerator';
 import { LangType, translations } from '../utils/lang';
+import { formatAmountString, formatAmountByLang, getRawNumericString } from '../utils/currency';
 
 interface VaultFormModalProps {
   isOpen: boolean;
@@ -253,23 +254,26 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
         setBillType(bEntry.billType || 'finance');
         setBillCycle(bEntry.billCycle || 'monthly');
         
+        const rawInitAmount = bEntry.amount || '';
+        const formattedInitAmount = formatAmountByLang(getRawNumericString(rawInitAmount), lang);
+        
         setBillFinanceProduct(bEntry.productName || '');
         setBillFinanceContract(bEntry.contractNumber || '');
         setBillFinanceName(bEntry.holderName || '');
         setBillFinanceDueDate(bEntry.dueDate || '');
-        setBillFinanceAmount(bEntry.amount || '');
+        setBillFinanceAmount(formattedInitAmount);
 
         setBillUtilityServiceType(bEntry.utilityType || 'electricity');
         setBillUtilityName(bEntry.utilityName || '');
         setBillUtilityCustomerId(bEntry.customerId || '');
         setBillUtilityPeriod(bEntry.billingPeriod || 'Tháng 1');
-        setBillUtilityAmount(bEntry.amount || '');
+        setBillUtilityAmount(formattedInitAmount);
 
         setBillAppName(bEntry.billAppName || '');
         setBillAppContact(bEntry.linkedAccount || '');
         setBillAppPaymentMethod(bEntry.paymentMethod || 'ewallet');
         setBillAppDueDate(bEntry.dueDate || '');
-        setBillAppAmount(bEntry.amount || '');
+        setBillAppAmount(formattedInitAmount);
       }
     } else {
       // Clear forms
@@ -2263,13 +2267,27 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                         {_('Số tiền cần đóng', 'Due Amount')}
                       </label>
-                      <input
-                        type="text"
-                        placeholder={_('Ví dụ: 2.500.000...', 'e.g., $150.00...')}
-                        value={billFinanceAmount}
-                        onChange={(e) => setBillFinanceAmount(e.target.value)}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-bold text-emerald-400"
-                      />
+                      <div className="relative flex items-center">
+                        {lang !== 'vi' && (
+                          <span className="absolute left-3 text-slate-400 font-bold text-sm pointer-events-none">
+                            $
+                          </span>
+                        )}
+                        <input
+                          type="text"
+                          placeholder={_('Ví dụ: 2.500.000...', 'e.g., 150...')}
+                          value={billFinanceAmount}
+                          onChange={(e) => setBillFinanceAmount(formatAmountString(e.target.value, lang))}
+                          className={`w-full py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-bold text-emerald-400 h-[38px] ${
+                            lang === 'vi' ? 'pl-4 pr-8' : 'pl-7 pr-4'
+                          }`}
+                        />
+                        {lang === 'vi' && (
+                          <span className="absolute right-3 text-slate-400 font-bold text-sm pointer-events-none">
+                            đ
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2430,13 +2448,27 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                     <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                       {_('Số tiền cần đóng', 'Utility Bill Amount')}
                     </label>
-                    <input
-                      type="text"
-                      placeholder={_('Ví dụ: 350.000 VNĐ...', 'e.g., $45.00...')}
-                      value={billUtilityAmount}
-                      onChange={(e) => setBillUtilityAmount(e.target.value)}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-bold text-emerald-400"
-                    />
+                    <div className="relative flex items-center">
+                      {lang !== 'vi' && (
+                        <span className="absolute left-3 text-slate-400 font-bold text-sm pointer-events-none">
+                          $
+                        </span>
+                      )}
+                      <input
+                        type="text"
+                        placeholder={_('Ví dụ: 350.000...', 'e.g., 45...')}
+                        value={billUtilityAmount}
+                        onChange={(e) => setBillUtilityAmount(formatAmountString(e.target.value, lang))}
+                        className={`w-full py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-bold text-emerald-400 h-[38px] ${
+                          lang === 'vi' ? 'pl-4 pr-8' : 'pl-7 pr-4'
+                        }`}
+                      />
+                      {lang === 'vi' && (
+                        <span className="absolute right-3 text-slate-400 font-bold text-sm pointer-events-none">
+                          đ
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -2494,13 +2526,27 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                       <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                         {_('Số tiền gia hạn', 'Renewal Price')}
                       </label>
-                      <input
-                        type="text"
-                        placeholder={_('Ví dụ: 199.000 VNĐ...', 'e.g., $9.99/mo...')}
-                        value={billAppAmount}
-                        onChange={(e) => setBillAppAmount(e.target.value)}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-bold text-emerald-400"
-                      />
+                      <div className="relative flex items-center">
+                        {lang !== 'vi' && (
+                          <span className="absolute left-3 text-slate-400 font-bold text-sm pointer-events-none">
+                            $
+                          </span>
+                        )}
+                        <input
+                          type="text"
+                          placeholder={_('Ví dụ: 199.000...', 'e.g., 9.99...')}
+                          value={billAppAmount}
+                          onChange={(e) => setBillAppAmount(formatAmountString(e.target.value, lang))}
+                          className={`w-full py-2 bg-slate-950 border border-slate-850 rounded-xl text-sm outline-none focus:border-emerald-500 font-bold text-emerald-400 h-[38px] ${
+                            lang === 'vi' ? 'pl-4 pr-8' : 'pl-7 pr-4'
+                          }`}
+                        />
+                        {lang === 'vi' && (
+                          <span className="absolute right-3 text-slate-400 font-bold text-sm pointer-events-none">
+                            đ
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 

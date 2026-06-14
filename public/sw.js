@@ -66,21 +66,25 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch((err) => {
-        console.debug('[PWA SW] Network fetch failed, offline mode active:', err);
       });
 
       // 2. Return cached response immediately if it exists (smooth, instant loading offline)
       if (cachedResponse) {
+        // Run fetch in background to update cache without blocking
+        fetchPromise.catch((err) => {
+          console.debug('[PWA SW] Background fetch failed (switched to offline cached version):', err);
+        });
         return cachedResponse;
       }
 
       // 3. Fallback to network if no cache exists
-      return fetchPromise.catch(() => {
+      return fetchPromise.catch((err) => {
+        console.warn('[PWA SW] Network fetch failed and no cache fallback exists:', err);
         // Fallback for document navigation when fully offline
         if (event.request.mode === 'navigate') {
           return caches.match(`${BASE_PATH}/`) || caches.match(`${BASE_PATH}/index.html`);
         }
+        throw err;
       });
     })
   );
