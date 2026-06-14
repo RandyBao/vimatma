@@ -106,6 +106,8 @@ function BillPaymentHistorySection({
   currentLang: 'vi' | 'en';
 }) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [isAmountFocused, setIsAmountFocused] = useState(false);
   
   const formatAmountByLangLocal = (val: string, lang: 'vi' | 'en') => {
     let raw = val.replace(/\D/g, '');
@@ -133,9 +135,9 @@ function BillPaymentHistorySection({
   const [amountInput, setAmountInput] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Sẽ đồng bộ hóa và tải giá trị mặc định của hóa đơn khi form được mở ra
+  // Sẽ đồng bộ hóa và tải giá trị mặc định của hóa đơn khi form được mở ra (chỉ khi không sửa bản ghi có sẵn)
   useEffect(() => {
-    if (showAddForm) {
+    if (showAddForm && !editingRecordId) {
       setPeriod(getDefaultPeriod());
       
       const today = new Date();
@@ -152,7 +154,7 @@ function BillPaymentHistorySection({
       }
       setNotes('');
     }
-  }, [showAddForm, entry.amount, currentLang]);
+  }, [showAddForm, entry.amount, currentLang, editingRecordId]);
 
   const handleAddRecord = () => {
     if (!period.trim()) {
@@ -162,24 +164,62 @@ function BillPaymentHistorySection({
     const rawAmt = getRawNumericStringLocal(amountInput) || '0';
     const formattedAmount = formatAmountByLangLocal(rawAmt, currentLang) || '0';
 
-    const newRecord: BillPaymentHistory = {
-      id: `pay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      payDate,
-      period: period.trim(),
-      amount: formattedAmount,
-      status: 'paid',
-      notes: notes.trim() || undefined
-    };
-
     const currentHistory = entry.paymentHistory || [];
-    const updatedHistory = [newRecord, ...currentHistory];
 
-    onUpdateEntry?.({
-      ...entry,
-      paymentHistory: updatedHistory
-    });
+    if (editingRecordId) {
+      // Chế độ Cập nhật bản ghi đang sửa
+      const updatedHistory = currentHistory.map(h => {
+        if (h.id === editingRecordId) {
+          return {
+            ...h,
+            period: period.trim(),
+            payDate,
+            amount: formattedAmount,
+            notes: notes.trim() || undefined
+          };
+        }
+        return h;
+      });
+      onUpdateEntry?.({
+        ...entry,
+        paymentHistory: updatedHistory
+      });
+      setEditingRecordId(null);
+    } else {
+      // Chế độ Thêm mới bản ghi
+      const newRecord: BillPaymentHistory = {
+        id: `pay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        payDate,
+        period: period.trim(),
+        amount: formattedAmount,
+        status: 'paid',
+        notes: notes.trim() || undefined
+      };
+      const updatedHistory = [newRecord, ...currentHistory];
+      onUpdateEntry?.({
+        ...entry,
+        paymentHistory: updatedHistory
+      });
+    }
 
     setShowAddForm(false);
+  };
+
+  const handleEditRecordInit = (record: BillPaymentHistory) => {
+    setEditingRecordId(record.id);
+    setPeriod(record.period);
+    setPayDate(record.payDate);
+    setAmountInput(record.amount);
+    setNotes(record.notes || '');
+    setShowAddForm(true);
+  };
+
+  const handleCancelForm = () => {
+    setShowAddForm(false);
+    setEditingRecordId(null);
+    setPeriod('');
+    setAmountInput('');
+    setNotes('');
   };
 
   const handleDeleteRecord = (recordId: string) => {
@@ -188,6 +228,12 @@ function BillPaymentHistorySection({
     }
     const currentHistory = entry.paymentHistory || [];
     const updatedHistory = currentHistory.filter(h => h.id !== recordId);
+
+    // Nếu đang sửa chính bản ghi bị xoá, thoát chế độ sửa
+    if (editingRecordId === recordId) {
+      setEditingRecordId(null);
+      setShowAddForm(false);
+    }
 
     onUpdateEntry?.({
       ...entry,
@@ -220,7 +266,10 @@ function BillPaymentHistorySection({
         {!showAddForm && (
           <button
             type="button"
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              setEditingRecordId(null);
+              setShowAddForm(true);
+            }}
             className="flex items-center gap-1.5 text-[11px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:text-white px-3 py-1.5 rounded-xl hover:bg-emerald-500/25 active:scale-95 transition-all cursor-pointer"
           >
             <PlusCircle className="h-3.5 w-3.5" />
@@ -231,6 +280,12 @@ function BillPaymentHistorySection({
 
       {showAddForm && (
         <div className="p-4 bg-slate-950/40 border border-slate-800 rounded-2xl mb-4.5 space-y-4 animate-fade-in text-left">
+          {editingRecordId && (
+            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider bg-emerald-500/10 p-2 px-3 rounded-lg border border-emerald-500/20">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>{currentLang === 'vi' ? 'Đang chỉnh sửa bản ghi lịch sử' : 'Editing historical record'}</span>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
@@ -258,13 +313,27 @@ function BillPaymentHistorySection({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
-                {tr.amount}
+              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 flex justify-between">
+                <span>{tr.amount}</span>
+                {isAmountFocused && amountInput && (
+                  <span className="text-emerald-500 font-mono normal-case">
+                    {currentLang === 'vi' ? 'Xem trước: ' : 'Preview: '}
+                    {formatAmountByLangLocal(amountInput, currentLang)}
+                  </span>
+                )}
               </label>
               <input
                 type="text"
-                value={amountInput}
-                onChange={(e) => setAmountInput(formatAmountByLangLocal(e.target.value, currentLang))}
+                value={isAmountFocused ? getRawNumericStringLocal(amountInput) : amountInput}
+                onFocus={() => setIsAmountFocused(true)}
+                onBlur={() => {
+                  setIsAmountFocused(false);
+                  setAmountInput(formatAmountByLangLocal(amountInput, currentLang));
+                }}
+                onChange={(e) => {
+                  const rawNum = getRawNumericStringLocal(e.target.value);
+                  setAmountInput(rawNum);
+                }}
                 placeholder={currentLang === 'vi' ? "0 đ" : "$0"}
                 className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm font-mono text-emerald-400 outline-none focus:border-emerald-500"
               />
@@ -285,8 +354,8 @@ function BillPaymentHistorySection({
           <div className="flex justify-end gap-2.5 pt-1 border-t border-slate-850/40">
             <button
               type="button"
-              onClick={() => setShowAddForm(false)}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-400 text-sm font-bold rounded-xl border border-slate-800 transition-colors"
+              onClick={handleCancelForm}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-400 text-sm font-bold rounded-xl border border-slate-800 transition-colors cursor-pointer"
             >
               {tr.cancel}
             </button>
@@ -295,7 +364,7 @@ function BillPaymentHistorySection({
               onClick={handleAddRecord}
               className="px-4.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-sm font-black rounded-xl transition-colors shadow-lg shadow-emerald-500/10 cursor-pointer"
             >
-              {tr.save}
+              {editingRecordId ? (currentLang === 'vi' ? 'Cập nhật bản ghi' : 'Update Record') : tr.save}
             </button>
           </div>
         </div>
@@ -314,7 +383,7 @@ function BillPaymentHistorySection({
                 <th className="p-2.5 px-4">{tr.payDate}</th>
                 <th className="p-2.5 px-4">{tr.amount}</th>
                 <th className="p-2.5 px-4">{tr.notes}</th>
-                <th className="p-2.5 px-4 text-center w-12">{tr.actions}</th>
+                <th className="p-2.5 px-4 text-center w-20">{tr.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 bg-slate-900/10">
@@ -329,13 +398,24 @@ function BillPaymentHistorySection({
                     {h.notes || '-'}
                   </td>
                   <td className="p-2.5 px-4 text-center">
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteRecord(h.id)}
-                      className="p-1.5 hover:bg-rose-500/15 text-slate-500 hover:text-rose-400 rounded-lg transition-all cursor-pointer"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleEditRecordInit(h)}
+                        className="p-1.5 hover:bg-emerald-500/15 text-slate-500 hover:text-emerald-400 rounded-lg transition-all cursor-pointer"
+                        title={currentLang === 'vi' ? 'Chỉnh sửa' : 'Edit'}
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRecord(h.id)}
+                        className="p-1.5 hover:bg-rose-500/15 text-slate-500 hover:text-rose-400 rounded-lg transition-all cursor-pointer"
+                        title={currentLang === 'vi' ? 'Xoá' : 'Delete'}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
