@@ -9,6 +9,15 @@
   --text-2xl: 25px;
   --text-3xl: 31px;
   --text-4xl: 37px;
+
+  --font-size-xs: 13px;
+  --font-size-sm: 15px;
+  --font-size-base: 17px;
+  --font-size-lg: 19px;
+  --font-size-xl: 21px;
+  --font-size-2xl: 25px;
+  --font-size-3xl: 31px;
+  --font-size-4xl: 37px;
 }
 
 
