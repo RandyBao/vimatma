@@ -115,6 +115,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
   const [isDriveOptimized, setIsDriveOptimized] = useState(true);
   const [isSecret, setIsSecret] = useState(false);
   const [isSafeForTravel, setIsSafeForTravel] = useState(false);
+  const [refLink, setRefLink] = useState('');
 
   // Bill Specific Fields State
   const [billType, setBillType] = useState<'finance' | 'utility' | 'app'>('finance');
@@ -167,6 +168,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setIsSecret(!!editingEntry.isSecret);
       setIsSafeForTravel(!!editingEntry.isSafeForTravel);
       setTotpSecret(editingEntry.totpSecret || '');
+      setRefLink((editingEntry as any).refLink || '');
 
       // Load reminder configuration if present
       if (editingEntry.reminder) {
@@ -283,6 +285,7 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       setIsFavorite(false);
       setIsSecret(false);
       setIsSafeForTravel(false);
+      setRefLink('');
 
       setBillType('finance');
       setBillCycle('monthly');
@@ -509,7 +512,8 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
       isSecret: isPro ? isSecret : false,
       totpSecret: totpSecret.trim() || undefined,
       updatedAt: Date.now(),
-      createdAt: editingEntry?.createdAt || Date.now()
+      createdAt: editingEntry?.createdAt || Date.now(),
+      refLink: ['bank', 'social', 'web', 'wallet', 'ewallet', 'phoneapp', 'note'].includes(activeTemplateType) ? (refLink.trim() || undefined) : undefined
     };
 
     if (reminderEnabled && reminderDate) {
@@ -2613,6 +2617,26 @@ export default function VaultFormModal({ isOpen, onClose, onSave, editingEntry, 
                   className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:border-indigo-500 transition-colors font-mono tracking-wider"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Link Ref Section */}
+          {['bank', 'social', 'web', 'wallet', 'ewallet', 'phoneapp', 'note'].includes(activeTemplateType) && (
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-300 flex items-center justify-between">
+                <span>{_('Link giới thiệu của bạn (Link Ref)', 'Referral Link (Ref Link)')}</span>
+                {refLink.trim() && (
+                  <span className="text-[11px] text-emerald-400 font-medium">Link Ref được thêm</span>
+                )}
+              </label>
+              <input
+                id="form-ref-link"
+                type="text"
+                placeholder={_('Ví dụ: https://binance.com/ref?code=your_id', 'e.g. https://binance.com/ref?code=your_id')}
+                value={refLink}
+                onChange={(e) => setRefLink(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm placeholder-slate-650 outline-none transition-all font-mono"
+              />
             </div>
           )}
 

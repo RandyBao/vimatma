@@ -1530,6 +1530,50 @@ export default function VaultItemCard({
           </div>
         )}
 
+        {/* Link Ref Display block */}
+        {isExpanded && (entry as any).refLink && (
+          <div className="mt-3 p-3 bg-emerald-950/15 border border-emerald-500/20 rounded-xl flex flex-col gap-1.5 text-left" onClick={(e) => e.stopPropagation()}>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+              {currentLang === 'vi' ? 'Link Ref (Link giới thiệu của bạn)' : 'Referral / Ref Link'}
+            </span>
+            <div className="flex items-center justify-between gap-2.5 bg-slate-950/40 p-2 rounded-xl border border-slate-850">
+              <span className="text-sm font-mono text-emerald-400 select-all truncate max-w-[280px] sm:max-w-md">
+                {(entry as any).refLink}
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText((entry as any).refLink);
+                    setCopiedField(`${entry.id}-refLink`);
+                    setTimeout(() => setCopiedField(null), 1500);
+                  }}
+                  className="p-1.5 bg-slate-900 border border-slate-800 hover:border-emerald-500/30 text-slate-400 hover:text-emerald-400 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0"
+                  title={currentLang === 'vi' ? 'Sao chép link' : 'Copy referral link'}
+                >
+                  {copiedField === `${entry.id}-refLink` ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(formatUrl((entry as any).refLink), '_blank', 'noopener,noreferrer');
+                  }}
+                  className="p-1.5 bg-slate-900 border border-slate-800 hover:border-emerald-500/30 text-slate-400 hover:text-emerald-400 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0"
+                  title={currentLang === 'vi' ? 'Mở liên kết' : 'Open Link'}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Local Card Info Banner */}
         {launchInfoMessage && (
           <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-[#0b0c2a]/95 border border-indigo-500/30 text-[12px] font-medium text-indigo-300 p-2.5 rounded-xl z-50 flex items-start gap-2 shadow-2xl animate-fade-in select-none" onClick={(e) => e.stopPropagation()}>
@@ -2081,6 +2125,50 @@ export default function VaultItemCard({
         <div id="notes-footer" className="mt-3 pt-2 border-t border-slate-850 text-sm text-slate-350 leading-relaxed italic select-text text-left whitespace-pre-wrap" onClick={(e) => e.stopPropagation()}>
           <span className="font-semibold text-slate-500 not-italic">Lưu ý: </span>
           {entry.notes}
+        </div>
+      )}
+
+      {/* Link Ref Display block */}
+      {isExpanded && (entry as any).refLink && (
+        <div className="mt-3 p-3 bg-emerald-950/15 border border-emerald-500/20 rounded-xl flex flex-col gap-1.5 text-left" onClick={(e) => e.stopPropagation()}>
+          <span className="text-[11px] font-bold text-slate-550 uppercase tracking-wider font-mono">
+            {currentLang === 'vi' ? 'Link Ref (Link giới thiệu của bạn)' : 'Referral / Ref Link'}
+          </span>
+          <div className="flex items-center justify-between gap-2.5 bg-slate-950/40 p-2 rounded-xl border border-slate-850">
+            <span className="text-sm font-mono text-emerald-400 select-all truncate max-w-[280px] sm:max-w-md">
+              {(entry as any).refLink}
+            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText((entry as any).refLink);
+                  setCopiedField(`${entry.id}-refLink`);
+                  setTimeout(() => setCopiedField(null), 1500);
+                }}
+                className="p-1.5 bg-slate-900 border border-slate-855 hover:border-emerald-500/30 text-slate-400 hover:text-emerald-400 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0"
+                title={currentLang === 'vi' ? 'Sao chép link' : 'Copy referral link'}
+              >
+                {copiedField === `${entry.id}-refLink` ? (
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(formatUrl((entry as any).refLink), '_blank', 'noopener,noreferrer');
+                }}
+                className="p-1.5 bg-slate-900 border border-slate-855 hover:border-emerald-500/30 text-slate-400 hover:text-emerald-400 rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0"
+                title={currentLang === 'vi' ? 'Mở liên kết' : 'Open Link'}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
